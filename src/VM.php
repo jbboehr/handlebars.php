@@ -5,44 +5,60 @@ namespace Handlebars;
 use SplStack;
 
 class VM {
-    private $main;
-    private $programs = array();
+    // Inputs
     private $data;
     private $helpers;
     private $partials;
+    private $options;
     
+    // Stacks
     private $contextStack;
+    private $dataStack;
+    private $hashStack;
+    private $programStack;
     private $stack;
     
+    // Internals
     private $buffer;
     private $lastContext;
-    private $lastData;
+    private $lastHash;
     private $lastHelper;
-    public $lastOptions;
-    private $registers;
-    private $useDepths = false;
     
     // Flags
-    private $trackIds = false;
+    private $compat = false;
     private $stringParams = false;
+    private $trackIds = false;
+    private $useDepths = false;
     
-    public function execute($opcodes, $data = null, $helpers = null, $partials = null)
+    public function execute($opcodes, $data = null, $helpers = null, $partials = null, $options = null)
     {
         $this->data = $data;
         $this->helpers = $helpers;
         $this->partials = $partials;
+        $this->options = (array) $options;
         
-        $this->programStack = new SplStack();
-        $this->programStack->push(array('children' => array($opcodes)));
-        $this->stack = new SplStack();
+        // Flags
+        $this->compat = !empty($options['compat']);
+        $this->stringParams = !empty($options['stringParams']);
+        $this->trackIds = !empty($options['trackIds']);
+        $this->useDepths = !empty($options['useDepths']);
+        
+        // Stacks
         $this->contextStack = new SplStack();
         $this->contextStack->push($data);
         $this->dataStack = new SplStack();
+        $this->hashStack = new SplStack();
+        $this->programStack = new SplStack();
+        $this->programStack->push(array('children' => array($opcodes)));
+        $this->stack = new SplStack();
         
+        // Output buffer
         $this->buffer = '';
-        $this->registers = array();
         
+        // Setup builtin helpers
         $this->setupBuiltinHelpers();
+        
+        // Execute
         $this->executeProgram(0);
         
         return $this->buffer;
@@ -59,7 +75,7 @@ class VM {
     
     public function __call($method, $args)
     {
-        throw new \Exception('Undefined method: ' . $method);
+        throw new Exception('Undefined method: ' . $method);
     }
     
     
@@ -79,7 +95,7 @@ class VM {
         // Push the program stack
         $top = $this->programStack->top();
         if( !isset($top['children'][$program]['opcodes']) ) {
-            throw new \Exception('sigh');
+            throw new Exception('sigh');
         }
         $opcodes = $top['children'][$program]['opcodes'];
         $this->programStack->push($top['children'][$program]);
@@ -112,7 +128,10 @@ class VM {
     {
         $self = $this;
         $this->helpers['if'] = function($conditional, $options) use ($self) {
-            if( !empty($conditional) ) {
+            if( is_callable($conditional) ) {
+                $conditional = call_user_func($conditional, $options->scope);
+            }
+            if( !empty($conditional) || (!empty($options->hash['includeZero']) && $conditional === 0) ) {
                 $options->fn($options->scope);
             } else {
                 $options->inverse($options->scope);
@@ -138,32 +157,45 @@ class VM {
             }
         };
         $this->helpers['with'] = function($context, $options) use ($self) {
+            if( is_callable($context) ) {
+                $context = call_user_func($context, $options->scope);
+            }
             if( !empty($context) ) {
                 return $options->fn($context);
             } else {
                 return $options->inverse();
             }
         };
-        $this->helpers['each'] = function($context, $options) use ($self) {
+        $this->helpers['each'] = function($context, $options = null) use ($self) {
+            if( func_num_args() < 2 ) {
+                throw new Exception('Must pass iterator to #each');
+            }
             if( is_callable($context) ) {
                 $context = call_user_func($context, $options->scope);
             }
             // @todo distinguish integer vs assoc array?
             $ret = '';
             $i = 0;
-            foreach( $context as $k => $value ) {
-                $data = array();
-                $data['index'] = $i;
-                $data['key'] = $k;
-                $data['first'] = ($i === 0);
-                
-                $ret .= $options->fn($value, array('data' => $data));
-                $i++;
+            if( !empty($context) ) {
+                $len = count($context) - 1;
+                foreach( $context as $k => $value ) {
+                    $data = array();
+                    $data['index'] = $i;
+                    $data['key'] = $k;
+                    $data['first'] = ($i === 0);
+                    $data['last'] = ($i === $len);
+                    
+                    $ret .= $options->fn($value, array('data' => $data));
+                    $i++;
+                }
             }
             if( $i === 0 ) {
               $ret = $options->inverse($options->scope);
             }
             return $ret;
+        };
+        $this->helpers['lookup'] = function($obj, $field) use ($self) {
+            return isset($obj[$field]) ? $obj[$field] : null;
         };
     }
     
@@ -173,7 +205,7 @@ class VM {
     
     private function contextName($context)
     {
-        throw new \Exception('reimplementing');
+        throw new Exception('reimplementing');
     }
     
     private function pop()
@@ -192,7 +224,7 @@ class VM {
     
     private function pushStackLiteral($item)
     {
-        throw new \Exception('reimplementing');
+        throw new Exception('reimplementing');
     }
     
     private function replace($value)
@@ -210,6 +242,17 @@ class VM {
     
     // Utils
     
+    private function depthedLookup($key)
+    {
+        $val = null;
+        foreach( $this->contextStack as $context ) {
+            if( is_array($context) && isset($context[$key]) ) {
+                $val = $context[$key];
+                break;
+            }
+        }
+        $this->push($val);
+    }
     
     private function setupHelper($paramSize, $name, $blockHelper = null)
     {
@@ -275,6 +318,7 @@ class VM {
             $param = $this->pop();
             $params[$i] = $param;
         }
+        ksort($params);
         
         return $options;
     }
@@ -283,9 +327,7 @@ class VM {
     {
         $options = $this->setupOptions($helperName, $paramSize, $params);
         //if( $useRegister ) {
-        //    $this->registers['options'] = $options;
-        //    return 'options';
-            //throw new \Exception('Not yet implemented');
+            //throw new Exception('Not yet implemented');
         //} else {
             $params[] = $options;
         //}
@@ -350,7 +392,7 @@ class VM {
         }
         
         if( !is_scalar($top) ) {
-            throw new \Exception('Top of stack was not scalar or lambda, was: ' . gettype($top));
+            throw new Exception('Top of stack was not scalar or lambda, was: ' . gettype($top));
         }
         
         // Stringify booleans
@@ -362,6 +404,33 @@ class VM {
         // Handlebars uses hex entities >.>
         $v = str_replace(array('`', '&#039;'), array('&#x60;', '&#x27;'), $v);
         $this->buffer .= $v;
+    }
+    
+    private function assignToHash($key)
+    {
+        $context = $type = $id = null;
+        $value = $this->pop();
+        
+        if( $this->trackIds ) {
+            $id = $this->pop();
+        }
+        
+        if( $this->stringParams ) {
+            $type = $this->pop();
+            $context = $this->pop();
+        }
+        
+        $hash = $this->hashStack->top();
+        if( $context ) {
+            $hash->contexts[$key] = $context;
+        }
+        if( $type ) {
+            $hash->types[$key] = $type;
+        }
+        if( $id ) {
+            $hash->ids[$key] = $id;
+        }
+        $hash->values[$key] = $value;
     }
     
     private function blockValue($name)
@@ -435,7 +504,7 @@ class VM {
         
         
         if( !is_callable($fn) ) {
-            throw new \Exception('helper was not callable: ' . $name);
+            throw new Exception('helper was not callable: ' . $name);
         }
         
         $result = call_user_func_array($fn, $helper['callParams']);
@@ -448,7 +517,7 @@ class VM {
         $helper = $this->setupHelper($paramSize, $name);
         $helperFn = $this->getHelper($helper['name']);
         if( !$helperFn ) {
-            throw new \Exception("Unknown helper: " . $name);
+            throw new Exception("Unknown helper: " . $name);
         }
         $result = call_user_func_array($helperFn, $helper['callParams']);
         $this->push($result);
@@ -457,17 +526,21 @@ class VM {
     private function lookupData($depth, $parts)
     {
         if( count($parts) !== 1 ) {
-            throw new \Exception('not exactly one part, not yet implemented');
+            throw new Exception('not exactly one part, not yet implemented');
         }
         if( $depth >= $this->dataStack->count() ) {
-            throw new \Exception('Hit the bottom of the data stack');
+            //throw new Exception('Hit the bottom of the data stack');
+            $data = array();
         } else if( $depth === 0 ) {
             $data = $this->dataStack->top();
         } else {
             $data = $this->dataStack->offsetGet($depth);
         }
         
-        $val = $data['data'][$parts[0]];
+        $val = null;
+        if( isset($data['data'][$parts[0]]) ) {
+            $val = $data['data'][$parts[0]];
+        }
         $this->push($val);
     }
     
@@ -476,9 +549,12 @@ class VM {
         $i = 0;
         $len = count($parts);
         
-        // @todo mustache compat
-        
-        $this->pushContext();
+        if( !$scoped && !empty($this->options['compat']) /*&& !$this->lastContext*/ ) {
+            // @todo - not sure why lastContext isn't working right
+            $this->depthedLookup($parts[$i++]);
+        } else {
+            $this->pushContext();
+        }
         
         $value = $this->top();
         
@@ -498,9 +574,29 @@ class VM {
         $this->replace($value);
     }
     
+    private function popHash()
+    {
+        $hash = $this->hashStack->pop();
+        
+        if( $this->trackIds ) {
+            $this->push($hash->trackIds);
+        }
+        if( $this->stringParams ) {
+            $this->push($hash->contexts);
+            $this->push($hash->types);
+        }
+        $this->push($hash->values);
+    }
+    
     private function pushContext()
     {
         $this->push($this->lastContext);
+        $this->lastContext = null; // is this right?
+    }
+    
+    private function pushHash()
+    {
+        $this->hashStack->push(new Hash);
     }
     
     private function pushLiteral($literal)

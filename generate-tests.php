@@ -3,6 +3,7 @@
 $opcodesDir = __DIR__ . '/spec/handlebars/opcodes/';
 $opcodesOutputDir = __DIR__ . '/tests/Spec';
 $specialSuites = array('parser', 'tokenizer');
+$skipTests = array('testDataPassedToHelpersEach1');
 
 
 
@@ -81,6 +82,11 @@ EOF;
         $data = $test['data'];
         convertLambdas($data);
         
+        // Mark skipped
+        if( in_array($functionName, $skipTests) ) {
+            $parts[] = i(2) . '$this->markTestIncomplete();' . "\n";
+        }
+        
         // Generate general test data
         $parts[] = i(2) . '$it = ' . i_var_export(2, $test['it']) . ";";
         $parts[] = i(2) . '$desc = ' . i_var_export(2, $test['description']) . ";";
@@ -104,6 +110,16 @@ EOF;
             $parts[] = i(2) . '$helpers = array();';
         }*/
         
+        // Generate options - @todo merge compile and runtime options for now
+        $options = array();
+        if( isset($test['compileOptions']) ) {
+            $options = array_merge($options, $test['compileOptions']);
+        }
+        if( isset($test['options']) ) {
+            $options = array_merge($options, $test['options']);
+        }
+        $parts[] = i(2) . '$options = ' . i_var_export(2, $options) . ";";
+        
         // Generate throws
         $throwsStr = '';
         if( !empty($test['exception']) ) {
@@ -113,7 +129,7 @@ EOF;
         // Generate opcodes
         $parts[] = i(2) . '$opcodes = ' . i_var_export(2, (isset($test['opcodes']) ? $test['opcodes'] : null)) . ";";
         
-        $parts[] = i(2) . "\$actual = \$this->vm->execute(\$opcodes, \$data, \$helpers, \$partials);";
+        $parts[] = i(2) . "\$actual = \$this->vm->execute(\$opcodes, \$data, \$helpers, \$partials, \$options);";
         $parts[] = i(2) . "\$this->assertEquals(\$expected, \$actual);";
         
         // Footer
