@@ -136,9 +136,9 @@ function convertLambdas(&$data) {
     foreach( $data as $k => $v ) {
         if( is_array($v) ) {
             if( !empty($v['!code']) ) {
-                $data[$k] = new ClosureHolder($v['php']);
+                $data[$k] = new ClosureHolder($v['php'] . '/*' . $v['javascript'] . '*/');
             } else {
-                convertLambdas($v);
+                convertLambdas($data[$k]);
             }
         }
     }

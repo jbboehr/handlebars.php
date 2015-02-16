@@ -2,6 +2,8 @@
 
 namespace Handlebars;
 
+use SplStack;
+
 class VM {
     private $main;
     private $programs = array();
@@ -9,9 +11,11 @@ class VM {
     private $helpers;
     private $partials;
     
-    private $buffer;
     private $dataStack;
-    private $inlineStack;
+    private $stack;
+    
+    private $buffer;
+    //private $callStack;
     private $lastContext;
     private $lastHelper;
     private $registers;
@@ -21,21 +25,23 @@ class VM {
     private $trackIds = false;
     private $stringParams = false;
     
-    public function execute($rawOpcodes, $data = null, $helpers = null, $partials = null)
+    public function execute($opcodes, $data = null, $helpers = null, $partials = null)
     {
-        $this->main = $rawOpcodes['opcodes'];
-        $this->programs = !empty($rawOpcodes['children']) ? $rawOpcodes['children'] : array();
         $this->data = $data;
         $this->helpers = $helpers;
         $this->partials = $partials;
         
+        $this->programStack = new SplStack();
+        $this->programStack->push(array('children' => array($opcodes)));
+        $this->stack = new SplStack();
+        $this->dataStack = new SplStack();
+        $this->dataStack->push($data);
+        
         $this->buffer = '';
-        $this->dataStack = array();
-        $this->dataStack[] = $data;
         $this->registers = array();
         
         $this->setupBuiltinHelpers();
-        $this->executeProgram($this->main);
+        $this->executeProgram(0);
         
         return $this->buffer;
     }
@@ -56,14 +62,21 @@ class VM {
     
     
     
-    /*private*/ public function executeProgram($opcodes)
+    /*private*/ public function executeProgram($program, $context = null)
     {
-        if( is_int($opcodes) ) {
-            $opcodes = $this->programs[$opcodes]['opcodes'];
+        if( $context !== null ) {
+            $this->dataStack->push($context);
         }
+        $top = $this->programStack->top();
+        if( !isset($top['children'][$program]['opcodes']) ) {
+            throw new \Exception('sigh');
+        }
+        $opcodes = $top['children'][$program]['opcodes'];
+        $this->programStack->push($top['children'][$program]);
         foreach( $opcodes as $opcode ) {
             $this->accept($opcode);
         }
+        $this->programStack->pop();
     }
     
     private function accept($opcode)
@@ -97,43 +110,58 @@ class VM {
                 return $options->fn($context);
             }
         };
+        $this->helpers['with'] = function($context, $options) use ($self) {
+            if( !empty($context) ) {
+                return $options->fn($context);
+            } else {
+                return $options->inverse();
+            }
+        };
     }
     
     
     
-    // Utils
+    // Stack ops
     
     private function contextName($context)
     {
-        if( $this->useDepths && $context ) {
-            throw new \Exception('Not yet implemented');
-        } else {
-            return 'depth' + $context;
-        }
+        throw new \Exception('reimplementing');
     }
     
     private function pop()
     {
-        return array_pop($this->inlineStack);
+        if( $this->stack->count() ) {
+            return $this->stack->pop();
+        } else {
+            // error?
+        }
     }
     
-    private function push($literal)
+    private function push($item)
     {
-        $this->inlineStack[] = $literal;
+        return $this->stack->push($item);
     }
     
     private function pushStackLiteral($item)
     {
-        throw new \Exception('sigh');
-        //$this->push(new Literal($item));
+        throw new \Exception('reimplementing');
     }
     
     private function replace($value)
     {
-        $prev = $this->pop();
-        $this->push($value);
+        $prev = $this->stack->pop();
+        $this->stack->push($value);
         return $prev;
     }
+    
+    private function top()
+    {
+        return $this->stack->top();
+    }
+    
+    
+    // Utils
+    
     
     private function setupHelper($paramSize, $name, $blockHelper = null)
     {
@@ -141,10 +169,11 @@ class VM {
         $paramsInit = $this->setupParams($name, $paramSize, $params, $blockHelper);
         $foundHelper = isset($this->helpers[$name]) ? $name : null;
         $callParams = $params;
-        array_unshift($callParams, $this->contextName(0));
-        //array_merge(array($this->contextName(0)), $params);
-        //$callParams[] = $this->contextName(0);
-        //$callParams += $params;
+        /* if( $this->dataStack->count() ) {
+            array_unshift($callParams, $this->dataStack->top());
+        } else {
+            array_unshift($callParams, null);
+        } */
         return array(
             'params' => $params,
             'paramsInit' => $paramsInit,
@@ -153,12 +182,12 @@ class VM {
         );
     }
     
-    private function setupOptions($helper, $paramSize, $params)
+    private function setupOptions($helper, $paramSize, &$params)
     {
         $options = new Options();
         $options->name = $helper;
         $options->hash = $this->pop();
-        $options->context = $this->dataStack[count($this->dataStack) - 1];
+        $options->context = $this->dataStack->top();
         if( $this->trackIds ) {
             $options->trackIds = $this->pop();
         }
@@ -176,22 +205,28 @@ class VM {
                 $program = function() {};
             } else {
                 $programNumber = $program;
-                $program = function() use ($self, $programNumber) {
-                    return $self->executeProgram($programNumber);
+                $program = function($arg = null) use ($self, $programNumber) {
+                    return $self->executeProgram($programNumber, $arg);
                 };
             }
             if( $inverse === null ) {
                 $inverse = function() {};
             } else {
                 $inverseNumber = $inverse;
-                $inverse = function() use ($self, $inverseNumber) {
-                    return $self->executeProgram($inverseNumber);
+                $inverse = function($arg = null) use ($self, $inverseNumber) {
+                    return $self->executeProgram($inverseNumber, $arg);
                 };
             }
         }
         
         $options->fn = $program;
         $options->inverse = $inverse;
+        
+        $i = $paramSize;
+        while($i--) {
+            $param = $this->pop();
+            $params[$i] = $param;
+        }
         
         return $options;
     }
@@ -208,11 +243,6 @@ class VM {
         //}
     }
     
-    private function top()
-    {
-        return $this->inlineStack[count($this->inlineStack) - 1];
-    }
-    
     
     
     
@@ -221,7 +251,7 @@ class VM {
     
     private function ambiguousBlockValue()
     {
-        $params = array($this->contextName(0));
+        $params = array($this->dataStack->top());
         $this->setupParams('', 0, $params, true);
         
         $current = $this->pop();
@@ -263,7 +293,7 @@ class VM {
         }
         
         if( is_callable($top) ) {
-            $top = call_user_func($top);
+            $top = call_user_func($top, $this->dataStack->top());
         }
         
         if( $top instanceof SafeString ) {
@@ -294,7 +324,13 @@ class VM {
     
     private function getContext($depth)
     {
-        $this->lastContext = $depth;
+        if( $depth >= $this->dataStack->count() ) {
+            return null;
+        } else if( $depth === 0 ) {
+            $this->lastContext = $this->dataStack->top();
+        } else {
+            $this->lastContext = $this->dataStack->offsetGet($depth);
+        }
     }
     
     private function invokeAmbiguous($name, $helperCall)
@@ -321,6 +357,31 @@ class VM {
         }
     }
     
+    private function invokeHelper($paramSize, $name, $isSimple)
+    {
+        $nonhelper = $this->pop();
+        $helper = $this->setupHelper($paramSize, $name);
+        
+        $fn = $nonhelper;
+        if( $isSimple ) {
+            if( ($helperFn = $this->getHelper($helper['name'])) ) {
+                $fn = $helperFn;
+            }
+        }
+        if( !$fn ) {
+            $fn = $this->getHelper('helperMissing');
+        }
+        
+        
+        if( !is_callable($fn) ) {
+            throw new \Exception('helper was not callable: ' . $name);
+        }
+        
+        $result = call_user_func_array($fn, $helper['callParams']);
+        
+        $this->push($result);
+    }
+    
     private function invokeKnownHelper($paramSize, $name)
     {
         $helper = $this->setupHelper($paramSize, $name);
@@ -339,13 +400,10 @@ class VM {
         
         // @todo mustache compat
         
-        //var_dump($parts);
-        //var_dump(count($this->dataStack));
-        $this->dataStack[] = $this->dataStack[$this->lastContext];
         $this->pushContext();
-        //var_dump(count($this->dataStack));
         
-        $value = $this->top(); //$this->dataStack[$this->top()];
+        $value = $this->top();
+        
         for (; $i < $len; $i++) {
             if( !isset($value[$parts[$i]]) ) {
                 $value = null;
@@ -354,14 +412,18 @@ class VM {
                 $value = $value[$parts[$i]];
             }
         }
+        
         $this->replace($value);
     }
     
     private function pushContext()
     {
-        $this->push($this->dataStack[$this->lastContext]);
-        //$this->push($this->lastContext);
-        //$this->pushStackLiteral($this->contextName($this->lastContext));
+        $this->push($this->lastContext);
+    }
+    
+    private function pushLiteral($literal)
+    {
+        $this->push($literal);
     }
     
     private function pushProgram($program)
@@ -373,7 +435,7 @@ class VM {
     {
         $top = $this->top();
         if( is_callable($top) ) {
-            $this->replace($top());
+            $this->replace($top($this->dataStack->top()));
         }
     }
 }
@@ -387,6 +449,7 @@ class Options {
     public $program;
     public $inverse;
     public $fn;
+    public $context; // @todo remove?
     
     public function fn()
     {
