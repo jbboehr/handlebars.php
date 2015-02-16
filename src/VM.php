@@ -89,9 +89,9 @@ class VM {
         $self = $this;
         $this->helpers['if'] = function($conditional, $options) use ($self) {
             if( !empty($conditional) ) {
-                $options->fn($options->context);
+                $options->fn($options->scope);
             } else {
-                $options->inverse($options->context);
+                $options->inverse($options->scope);
             }
         };
         $this->helpers['unless'] = function($conditional, $options) use ($self) {
@@ -106,6 +106,9 @@ class VM {
                 return $options->fn();
             } else if( $context === false || $context === null || empty($context) ) {
                 return $options->inverse();
+            } else if( is_array($context) ) {
+                $eachHelper = $self->getHelper('each');
+                return call_user_func($eachHelper, $context, $options);
             } else {
                 return $options->fn($context);
             }
@@ -116,6 +119,27 @@ class VM {
             } else {
                 return $options->inverse();
             }
+        };
+        $this->helpers['each'] = function($context, $options) use ($self) {
+            if( is_callable($context) ) {
+                $context = call_user_func($context, $options->scope);
+            }
+            // @todo distinguish integer vs assoc array?
+            $ret = '';
+            $i = 0;
+            foreach( $context as $k => $value ) {
+                $data = array();
+                $data['index'] = $i;
+                $data['key'] = $k;
+                $data['first'] = ($i === 0);
+                
+                $ret .= $options->fn($value, array('data' => $data));
+                $i++;
+            }
+            if( $i === 0 ) {
+              $ret = $options->inverse($options->scope);
+            }
+            return $ret;
         };
     }
     
@@ -187,7 +211,7 @@ class VM {
         $options = new Options();
         $options->name = $helper;
         $options->hash = $this->pop();
-        $options->context = $this->dataStack->top();
+        $options->scope = $this->dataStack->top();
         if( $this->trackIds ) {
             $options->trackIds = $this->pop();
         }
@@ -314,6 +338,19 @@ class VM {
         // Handlebars uses hex entities >.>
         $v = str_replace(array('`', '&#039;'), array('&#x60;', '&#x27;'), $v);
         $this->buffer .= $v;
+    }
+    
+    private function blockValue($name)
+    {
+        $params = array($this->dataStack->top());
+        $this->setupParams($name, 0, $params, false);
+        
+        $current = $this->pop();
+        //array_unshift($params, $current); // cough
+        $params[0] = $current;
+        
+        $helper = $this->getHelper('blockHelperMissing');
+        call_user_func_array($helper, $params);
     }
     
     private function emptyHash()

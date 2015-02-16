@@ -88,9 +88,12 @@ EOF;
         $parts[] = i(2) . '$tmpl = ' . i_var_export(2, $test['template']) . ";";
         $parts[] = i(2) . '$expected = ' . i_var_export(2, (isset($test['expected']) ? $test['expected'] : null)) . ";";
         $parts[] = i(2) . '$partials = ' . i_var_export(2, (isset($test['partials']) ? $test['partials'] : null)) . ";";
-        $parts[] = i(2) . '$opcodes = ' . i_var_export(2, (isset($test['opcodes']) ? $test['opcodes'] : null)) . ";";
         
         // Generate helpers
+        $helpers = $test['helpers'];
+        convertLambdas($helpers);
+        $parts[] = i(2) . '$helpers = ' . i_var_export(2, $helpers) . ";";
+        /*
         if( !empty($test['helpers']['php']) ) {
             $parts[] = i(2) . '$helpers = array(';
             foreach( $test['helpers']['php'] as $name => $fn ) {
@@ -99,7 +102,7 @@ EOF;
             $parts[] = i(2) . ');';
         } else {
             $parts[] = i(2) . '$helpers = array();';
-        }
+        }*/
         
         // Generate throws
         $throwsStr = '';
@@ -107,7 +110,10 @@ EOF;
             $parts[] = i(2) . "\$this->setExpectedException('\\Handlebars\\Exception');";
         }
         
-        $parts[] = i(2) . "\$actual = \$this->vm->execute(\$opcodes, \$data, \$partials, \$helpers);";
+        // Generate opcodes
+        $parts[] = i(2) . '$opcodes = ' . i_var_export(2, (isset($test['opcodes']) ? $test['opcodes'] : null)) . ";";
+        
+        $parts[] = i(2) . "\$actual = \$this->vm->execute(\$opcodes, \$data, \$helpers, \$partials);";
         $parts[] = i(2) . "\$this->assertEquals(\$expected, \$actual);";
         
         // Footer
