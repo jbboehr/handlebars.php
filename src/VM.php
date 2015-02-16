@@ -442,6 +442,10 @@ class VM {
         $value = $this->top();
         
         for (; $i < $len; $i++) {
+            if( !is_array($value) ) { 
+                $value = null;
+                break;
+            }
             if( !isset($value[$parts[$i]]) ) {
                 $value = null;
                 break;
@@ -474,45 +478,5 @@ class VM {
         if( is_callable($top) ) {
             $this->replace($top($this->dataStack->top()));
         }
-    }
-}
-
-class Options {
-    public $name;
-    public $hash;
-    public $hashIds;
-    public $hashTypes;
-    public $hashContexts;
-    public $program;
-    public $inverse;
-    public $fn;
-    public $context; // @todo remove?
-    
-    public function fn()
-    {
-        if( $this->fn ) {
-            return call_user_func_array($this->fn, func_get_args());
-        }
-    }
-    
-    public function inverse()
-    {
-        if( $this->inverse ) {
-            return call_user_func_array($this->inverse, func_get_args());
-        }
-    }
-}
-
-class Literal {
-    private $value;
-    
-    public function __construct($value)
-    {
-        $this->value = $value;
-    }
-    
-    public function value()
-    {
-        return $this->value;
     }
 }
