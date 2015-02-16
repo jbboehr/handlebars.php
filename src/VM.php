@@ -11,13 +11,14 @@ class VM {
     private $helpers;
     private $partials;
     
-    private $dataStack;
+    private $contextStack;
     private $stack;
     
     private $buffer;
-    //private $callStack;
     private $lastContext;
+    private $lastData;
     private $lastHelper;
+    public $lastOptions;
     private $registers;
     private $useDepths = false;
     
@@ -34,8 +35,9 @@ class VM {
         $this->programStack = new SplStack();
         $this->programStack->push(array('children' => array($opcodes)));
         $this->stack = new SplStack();
+        $this->contextStack = new SplStack();
+        $this->contextStack->push($data);
         $this->dataStack = new SplStack();
-        $this->dataStack->push($data);
         
         $this->buffer = '';
         $this->registers = array();
@@ -62,21 +64,43 @@ class VM {
     
     
     
-    /*private*/ public function executeProgram($program, $context = null)
+    /*private*/ public function executeProgram($program, $context = null, $data = null)
     {
+        // Push the context stack
         if( $context !== null ) {
-            $this->dataStack->push($context);
+            $this->contextStack->push($context);
         }
+        
+        // Push the data stack
+        if( $data !== null ) {
+            $this->dataStack->push($data);
+        }
+        
+        // Push the program stack
         $top = $this->programStack->top();
         if( !isset($top['children'][$program]['opcodes']) ) {
             throw new \Exception('sigh');
         }
         $opcodes = $top['children'][$program]['opcodes'];
         $this->programStack->push($top['children'][$program]);
+        
+        // Execute the program
         foreach( $opcodes as $opcode ) {
             $this->accept($opcode);
         }
+        
+        // Pop the program stack
         $this->programStack->pop();
+        
+        // Pop the data stack, if necessary
+        if( $data !== null ) {
+            $this->dataStack->pop();
+        }
+        
+        // Pop the context stack, if necessary
+        if( $context !== null ) {
+            $this->contextStack->pop();
+        }
     }
     
     private function accept($opcode)
@@ -193,8 +217,8 @@ class VM {
         $paramsInit = $this->setupParams($name, $paramSize, $params, $blockHelper);
         $foundHelper = isset($this->helpers[$name]) ? $name : null;
         $callParams = $params;
-        /* if( $this->dataStack->count() ) {
-            array_unshift($callParams, $this->dataStack->top());
+        /* if( $this->contextStack->count() ) {
+            array_unshift($callParams, $this->contextStack->top());
         } else {
             array_unshift($callParams, null);
         } */
@@ -211,7 +235,7 @@ class VM {
         $options = new Options();
         $options->name = $helper;
         $options->hash = $this->pop();
-        $options->scope = $this->dataStack->top();
+        $options->scope = $this->contextStack->top();
         if( $this->trackIds ) {
             $options->trackIds = $this->pop();
         }
@@ -229,16 +253,16 @@ class VM {
                 $program = function() {};
             } else {
                 $programNumber = $program;
-                $program = function($arg = null) use ($self, $programNumber) {
-                    return $self->executeProgram($programNumber, $arg);
+                $program = function($arg = null, $data = null) use ($self, $options, $programNumber) {
+                    return $self->executeProgram($programNumber, $arg, $data);
                 };
             }
             if( $inverse === null ) {
                 $inverse = function() {};
             } else {
                 $inverseNumber = $inverse;
-                $inverse = function($arg = null) use ($self, $inverseNumber) {
-                    return $self->executeProgram($inverseNumber, $arg);
+                $inverse = function($arg = null, $data = null) use ($self, $options, $inverseNumber) {
+                    return $self->executeProgram($inverseNumber, $arg, $data);
                 };
             }
         }
@@ -275,7 +299,7 @@ class VM {
     
     private function ambiguousBlockValue()
     {
-        $params = array($this->dataStack->top());
+        $params = array($this->contextStack->top());
         $this->setupParams('', 0, $params, true);
         
         $current = $this->pop();
@@ -317,7 +341,7 @@ class VM {
         }
         
         if( is_callable($top) ) {
-            $top = call_user_func($top, $this->dataStack->top());
+            $top = call_user_func($top, $this->contextStack->top());
         }
         
         if( $top instanceof SafeString ) {
@@ -342,7 +366,7 @@ class VM {
     
     private function blockValue($name)
     {
-        $params = array($this->dataStack->top());
+        $params = array($this->contextStack->top());
         $this->setupParams($name, 0, $params, false);
         
         $current = $this->pop();
@@ -361,12 +385,12 @@ class VM {
     
     private function getContext($depth)
     {
-        if( $depth >= $this->dataStack->count() ) {
+        if( $depth >= $this->contextStack->count() ) {
             return null;
         } else if( $depth === 0 ) {
-            $this->lastContext = $this->dataStack->top();
+            $this->lastContext = $this->contextStack->top();
         } else {
-            $this->lastContext = $this->dataStack->offsetGet($depth);
+            $this->lastContext = $this->contextStack->offsetGet($depth);
         }
     }
     
@@ -430,6 +454,23 @@ class VM {
         $this->push($result);
     }
     
+    private function lookupData($depth, $parts)
+    {
+        if( count($parts) !== 1 ) {
+            throw new \Exception('not exactly one part, not yet implemented');
+        }
+        if( $depth >= $this->dataStack->count() ) {
+            throw new \Exception('Hit the bottom of the data stack');
+        } else if( $depth === 0 ) {
+            $data = $this->dataStack->top();
+        } else {
+            $data = $this->dataStack->offsetGet($depth);
+        }
+        
+        $val = $data['data'][$parts[0]];
+        $this->push($val);
+    }
+    
     private function lookupOnContext($parts, $falsy, $scoped)
     {
         $i = 0;
@@ -476,7 +517,7 @@ class VM {
     {
         $top = $this->top();
         if( is_callable($top) ) {
-            $this->replace($top($this->dataStack->top()));
+            $this->replace($top($this->contextStack->top()));
         }
     }
 }
