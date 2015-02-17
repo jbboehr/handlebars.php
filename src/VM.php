@@ -19,7 +19,7 @@ class VM {
     private $stack;
     
     // Internals
-    private $buffer;
+    /*private*/ public $buffer;
     private $lastContext;
     private $lastHash;
     private $lastHelper;
@@ -33,8 +33,11 @@ class VM {
     
     public function execute($opcodes, $data = null, $helpers = null, $partials = null, $options = null)
     {
+        // Setup builtin helpers
+        $this->setupBuiltinHelpers();
+        
         $this->data = $data;
-        $this->helpers = $helpers;
+        $this->helpers = array_merge($this->helpers, $helpers);
         $this->partials = $partials;
         $this->options = (array) $options;
         
@@ -57,8 +60,6 @@ class VM {
         // Output buffer
         $this->buffer = '';
         
-        // Setup builtin helpers
-        $this->setupBuiltinHelpers();
         
         // Execute
         $buffer = $this->executeProgram(0);
@@ -102,8 +103,9 @@ class VM {
         $opcodes = $top['children'][$program]['opcodes'];
         $this->programStack->push($top['children'][$program]);
         
-        // Reset the buffer?
-        //$this->buffer = '';
+        // Save and reset the buffer
+        $prevBuffer = $this->buffer;
+        $this->buffer = '';
         
         // Execute the program
         foreach( $opcodes as $opcode ) {
@@ -112,7 +114,7 @@ class VM {
         
         // Get the buffer
         $buffer = $this->buffer;
-        $this->buffer = '';
+        $this->buffer = $prevBuffer;
         
         // Pop the program stack
         $this->programStack->pop();
@@ -157,14 +159,15 @@ class VM {
         };
         $this->helpers['blockHelperMissing'] = function($context, $options) use ($self) {
             if( $context === true ) {
-                return $options->fn();
+                return $options->fn($options->scope);
             } else if( $context === false || $context === null || empty($context) ) {
-                return $options->inverse();
+                return $options->inverse($options->scope);
             } else if( is_array($context) ) {
                 $eachHelper = $self->getHelper('each');
                 return call_user_func($eachHelper, $context, $options);
             } else {
-                return $options->fn($context);
+                // @todo data/ids?
+                return $options->fn($context, $options);
             }
         };
         $this->helpers['with'] = function($context, $options) use ($self) {
@@ -298,8 +301,8 @@ class VM {
             $options->hashContexts = $this->pop();
         }
         
-        $inverse = $this->pop();
-        $program = $this->pop();
+        $options->inverseNumber = $inverse = $this->pop();
+        $options->programNumber = $program = $this->pop();
         
         if( $program !== null || $inverse !== null ) {
             $self = $this;
@@ -372,9 +375,8 @@ class VM {
         
         if( !$this->lastHelper ) {
             $helper = $this->getHelper('blockHelperMissing');
-            $result =  call_user_func_array($helper, $params);
+            $result = call_user_func_array($helper, $params);
             $this->buffer .= $result;
-            //$this->push($result);
         } else {
             // @todo ?
         }
@@ -507,8 +509,7 @@ class VM {
             $this->buffer .= $result;
             //$this->push($result);
         } else {
-            // @todo
-            //$this->buffer .= $nonhelper; // cough
+            // @todo?
             $this->push($nonhelper);
         }
     }
