@@ -6,8 +6,10 @@ $specialSuites = array('parser', 'tokenizer');
 $skipTests = array(
     'testDataPassedToHelpersEach1',
     'testTheHelpersHashIsAvailableIsNestedContextsHelpersHash1',
-    'testFailsWithMultipleAndArgsRegistration1'
+    'testFailsWithMultipleAndArgsRegistration1',
+    'testGH731ZeroContextRenderingRegressions1'
 );
+$skipSuites = array('partials');
 
 
 
@@ -36,7 +38,7 @@ foreach( $opcodesFiles as $filePath ) {
     
     $tests = json_decode(file_get_contents($filePath), true);
     
-    if( !$tests  ) {
+    if( !$tests ) {
         //trigger_error("No tests in file: " . $file, E_USER_WARNING);
         continue;
     }
@@ -87,7 +89,7 @@ EOF;
         convertLambdas($data);
         
         // Mark skipped
-        if( in_array($functionName, $skipTests) ) {
+        if( in_array($functionName, $skipTests) || in_array($suiteName, $skipSuites) ) {
             $parts[] = i(2) . '$this->markTestIncomplete();' . "\n";
         }
         

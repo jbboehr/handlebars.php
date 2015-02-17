@@ -428,6 +428,10 @@ class VM {
             return;
         }
         
+        if( is_array($top) ) {
+            // this is javascript behaviour, perhaps remove
+            $top = join(',', $top);
+        }
         if( !is_scalar($top) ) {
             throw new Exception('Top of stack was not scalar or lambda, was: ' . gettype($top));
         }
