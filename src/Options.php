@@ -13,7 +13,7 @@ class Options implements ArrayAccess {
     public $program;
     public $inverse;
     public $fn;
-    public $context; // @todo remove?
+    public $scope;
     
     public function fn()
     {

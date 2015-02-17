@@ -28,6 +28,7 @@ class VM {
     private $compat = false;
     private $stringParams = false;
     private $trackIds = false;
+    private $useData = false;
     private $useDepths = false;
     
     public function execute($opcodes, $data = null, $helpers = null, $partials = null, $options = null)
@@ -41,6 +42,7 @@ class VM {
         $this->compat = !empty($options['compat']);
         $this->stringParams = !empty($options['stringParams']);
         $this->trackIds = !empty($options['trackIds']);
+        $this->useData = !empty($options['data']);
         $this->useDepths = !empty($options['useDepths']);
         
         // Stacks
@@ -59,9 +61,9 @@ class VM {
         $this->setupBuiltinHelpers();
         
         // Execute
-        $this->executeProgram(0);
+        $buffer = $this->executeProgram(0);
         
-        return $this->buffer;
+        return $buffer;
     }
     
     public function getHelper($name)
@@ -100,10 +102,17 @@ class VM {
         $opcodes = $top['children'][$program]['opcodes'];
         $this->programStack->push($top['children'][$program]);
         
+        // Reset the buffer?
+        //$this->buffer = '';
+        
         // Execute the program
         foreach( $opcodes as $opcode ) {
             $this->accept($opcode);
         }
+        
+        // Get the buffer
+        $buffer = $this->buffer;
+        $this->buffer = '';
         
         // Pop the program stack
         $this->programStack->pop();
@@ -117,6 +126,8 @@ class VM {
         if( $context !== null ) {
             $this->contextStack->pop();
         }
+        
+        return $buffer;
     }
     
     private function accept($opcode)
@@ -132,9 +143,9 @@ class VM {
                 $conditional = call_user_func($conditional, $options->scope);
             }
             if( !empty($conditional) || (!empty($options->hash['includeZero']) && $conditional === 0) ) {
-                $options->fn($options->scope);
+                return $options->fn($options->scope);
             } else {
-                $options->inverse($options->scope);
+                return $options->inverse($options->scope);
             }
         };
         $this->helpers['unless'] = function($conditional, $options) use ($self) {
@@ -297,7 +308,8 @@ class VM {
             } else {
                 $programNumber = $program;
                 $program = function($arg = null, $data = null) use ($self, $options, $programNumber) {
-                    return $self->executeProgram($programNumber, $arg, $data);
+                    $v = $self->executeProgram($programNumber, $arg, $data);
+                    return $v;
                 };
             }
             if( $inverse === null ) {
@@ -305,7 +317,8 @@ class VM {
             } else {
                 $inverseNumber = $inverse;
                 $inverse = function($arg = null, $data = null) use ($self, $options, $inverseNumber) {
-                    return $self->executeProgram($inverseNumber, $arg, $data);
+                    $v = $self->executeProgram($inverseNumber, $arg, $data);
+                    return $v;
                 };
             }
         }
@@ -319,6 +332,15 @@ class VM {
             $params[$i] = $param;
         }
         ksort($params);
+        
+        // This might not work right?
+        if( $this->dataStack->count() &&
+                ($top = $this->dataStack->top()) &&
+                !empty($top['data']) ) {
+            $options->data = array_merge($this->data, $top['data']);
+        } else {
+            $options->data = $this->data;
+        }
         
         return $options;
     }
@@ -350,9 +372,11 @@ class VM {
         
         if( !$this->lastHelper ) {
             $helper = $this->getHelper('blockHelperMissing');
-            call_user_func_array($helper, $params);
+            $result =  call_user_func_array($helper, $params);
+            $this->buffer .= $result;
+            //$this->push($result);
         } else {
-            
+            // @todo ?
         }
     }
     
@@ -443,7 +467,8 @@ class VM {
         $params[0] = $current;
         
         $helper = $this->getHelper('blockHelperMissing');
-        call_user_func_array($helper, $params);
+        $result = call_user_func_array($helper, $params);
+        $this->buffer .= $result; // @todo check
     }
     
     private function emptyHash()
@@ -473,16 +498,17 @@ class VM {
         
         if( $helper && $helper['name'] ) {
             $params = array();
-            // @todo options
             $helperFn = $this->getHelper($helper['name']);
             if( $helper['paramsInit'] ) {
                 $result = call_user_func_array($helperFn, $helper['callParams']);
             } else {
                 $result = call_user_func_array($helperFn, $helper['callParams']);
             }
-            $this->push($result);
+            $this->buffer .= $result;
+            //$this->push($result);
         } else {
             // @todo
+            //$this->buffer .= $nonhelper; // cough
             $this->push($nonhelper);
         }
     }
@@ -508,7 +534,7 @@ class VM {
         }
         
         $result = call_user_func_array($fn, $helper['callParams']);
-        
+        //$this->buffer .= $result;
         $this->push($result);
     }
     
@@ -520,14 +546,12 @@ class VM {
             throw new Exception("Unknown helper: " . $name);
         }
         $result = call_user_func_array($helperFn, $helper['callParams']);
+        //$this->buffer .= $result;
         $this->push($result);
     }
     
     private function lookupData($depth, $parts)
     {
-        if( count($parts) !== 1 ) {
-            throw new Exception('not exactly one part, not yet implemented');
-        }
         if( $depth >= $this->dataStack->count() ) {
             //throw new Exception('Hit the bottom of the data stack');
             $data = array();
@@ -537,10 +561,25 @@ class VM {
             $data = $this->dataStack->offsetGet($depth);
         }
         
-        $val = null;
-        if( isset($data['data'][$parts[0]]) ) {
-            $val = $data['data'][$parts[0]];
+        $first = array_shift($parts);
+        
+        if( $first === 'root' && !isset($this->data['root']) ) {
+            $val = $this->data;
+        } else if( isset($data['data'][$first]) ) {
+            $val = $data['data'][$first];
+        } else if( isset($this->data[$first]) ) {
+            $val = $this->data[$first];
+        } else {
+            $val = null;
         }
+        
+        for( $i = 0, $l = count($parts); $i < $l; $i++ ) {
+            if( !is_array($val) || !isset($val[$parts[$i]]) ) {
+                break;
+            }
+            $val = $val[$parts[$i]];
+        }
+        
         $this->push($val);
     }
     
@@ -609,11 +648,19 @@ class VM {
         $this->push($program);
     }
     
+    private function pushString($string)
+    {
+        $this->push($string);
+    }
+    
     private function resolvePossibleLambda()
     {
         $top = $this->top();
         if( is_callable($top) ) {
-            $this->replace($top($this->contextStack->top()));
+            $result = $top($this->contextStack->top());
+            //$this->buffer .= $result;
+            $this->replace($result);
         }
     }
 }
+
