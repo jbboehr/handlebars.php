@@ -7,7 +7,8 @@ $skipTests = array(
     'testDataPassedToHelpersEach1',
     'testTheHelpersHashIsAvailableIsNestedContextsHelpersHash1',
     'testFailsWithMultipleAndArgsRegistration1',
-    'testGH731ZeroContextRenderingRegressions1'
+    'testGH731ZeroContextRenderingRegressions1',
+    'testSubexpressionsCanTJustBePropertyLookupsSubexpressions2'
 );
 $skipSuites = array('partials');
 
