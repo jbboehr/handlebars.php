@@ -14,6 +14,8 @@ class Options implements ArrayAccess {
     public $inverse;
     public $fn;
     public $scope;
+    public $ids;
+    public $data;
     
     public function fn()
     {

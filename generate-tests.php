@@ -8,7 +8,10 @@ $skipTests = array(
     'testTheHelpersHashIsAvailableIsNestedContextsHelpersHash1',
     'testFailsWithMultipleAndArgsRegistration1',
     'testGH731ZeroContextRenderingRegressions1',
-    'testSubexpressionsCanTJustBePropertyLookupsSubexpressions2'
+    'testSubexpressionsCanTJustBePropertyLookupsSubexpressions2',
+    //'testShouldTrackContextPathForArraysEach1',
+    //'testShouldTrackContextPathForArraysBlockHelperMissing1',
+    //'testShouldTrackContextPathForKeysBlockHelperMissing1',
 );
 $skipSuites = array('partials');
 
@@ -212,7 +215,11 @@ function my_var_export($var, $indent = 0) {
             return $output;
         }
     } else {
-        return var_export($var, true);
+        $v = var_export($var, true);
+        if( is_string($var) ) {
+            $v = str_replace("\n", $v[0] . ' . "\n" . ' . $v[0], $v);
+        }
+        return $v;
     }
 }
 

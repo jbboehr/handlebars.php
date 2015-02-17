@@ -166,10 +166,18 @@ class VM {
             } else if( $context === false || $context === null || empty($context) ) {
                 return $options->inverse($options->scope);
             } else if( is_array($context) ) {
+                if( $options->ids !== null ) {
+                  $options->ids = array($options->name);
+                  //$options->ids[] = $options->name;
+                }
                 $eachHelper = $self->getHelper('each');
                 return call_user_func($eachHelper, $context, $options);
             } else {
-                // @todo data/ids?
+                if( $options->data && $options->ids ) {
+                    $data = $options['data'];
+                    $data['contextPath'] = (isset($options['data']['contextPath']) ? $options['data']['contextPath'] . '/' : '') . $options['name'];
+                    $options = array('data' => $data);
+                }
                 return $options->fn($context, $options);
             }
         };
@@ -186,7 +194,13 @@ class VM {
                 $context = call_user_func($context, $options->scope);
             }
             if( !empty($context) ) {
-                return $options->fn($context);
+                $fn = $options->fn;
+                if( $options->data && $options->ids ) {
+                    $data = $options['data'];
+                    $data['contextPath'] = (isset($options['data']['contextPath']) ? $options['data']['contextPath'] . '.' : '') . $options['ids'][0];
+                    $options = array('data' => $data);
+                }
+                return call_user_func($fn, $context, $options); //$options->fn($context);
             } else {
                 return $options->inverse();
             }
@@ -194,6 +208,12 @@ class VM {
         $this->helpers['each'] = function($context, $options = null) use ($self) {
             if( func_num_args() < 2 ) {
                 throw new Exception('Must pass iterator to #each');
+            }
+            $contextPath = null;
+            if( $options->data !== null && $options->ids !== null ) {
+                $contextPath = (isset($options['data']['contextPath']) ? 
+                                $options['data']['contextPath'] . '.' : 
+                                '') . $options->ids[0] . '.';
             }
             if( is_callable($context) ) {
                 $context = call_user_func($context, $options->scope);
@@ -209,6 +229,10 @@ class VM {
                     $data['key'] = $k;
                     $data['first'] = ($i === 0);
                     $data['last'] = ($i === $len);
+                    
+                    if( $contextPath ) {
+                      $data['contextPath'] = $contextPath . $k;
+                    }
                     
                     $ret .= $options->fn($value, array('data' => $data));
                     $i++;
@@ -656,7 +680,7 @@ class VM {
         $hash = $this->hashStack->pop();
         
         if( $this->trackIds ) {
-            $this->push($hash->trackIds);
+            $this->push($hash->ids);
         }
         if( $this->stringParams ) {
             $this->push($hash->contexts);
@@ -676,12 +700,25 @@ class VM {
         $this->hashStack->push(new Hash);
     }
     
+    private function pushId($type, $name)
+    {
+        if( $type === 'ID' || $type === 'DATA' ) {
+          $this->pushString($name);
+        } else if( $type === 'sexpr' ) {
+          $this->pushLiteral('true');
+        } else {
+          $this->pushLiteral('null');
+        }
+    }
+    
     private function pushLiteral($literal)
     {
         if( $literal === 'true' ) {
             $this->push(true);
         } else if( $literal === 'false' ) {
             $this->push(false);
+        } else if( $literal === 'null' ) {
+            $this->push(null);
         //} else if( is_numeric($literal) ) {
         } else {
             $this->push($literal);
