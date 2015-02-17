@@ -158,6 +158,9 @@ class VM {
             return call_user_func($ifHelper, $conditional, $newOptions);
         };
         $this->helpers['blockHelperMissing'] = function($context, $options) use ($self) {
+            if( is_callable($context) ) {
+                $context = call_user_func($context, $options);
+            }
             if( $context === true ) {
                 return $options->fn($options->scope);
             } else if( $context === false || $context === null || empty($context) ) {
@@ -168,6 +171,14 @@ class VM {
             } else {
                 // @todo data/ids?
                 return $options->fn($context, $options);
+            }
+        };
+        $this->helpers['helperMissing'] = function() use ($self) {
+            if( func_num_args() === 1 ) {
+                return null;
+            } else {
+                $options = func_get_arg(func_num_args() - 1);
+                throw new Exception("Helper missing: " . $options->name);
             }
         };
         $this->helpers['with'] = function($context, $options) use ($self) {
@@ -501,15 +512,13 @@ class VM {
         if( $helper && $helper['name'] ) {
             $params = array();
             $helperFn = $this->getHelper($helper['name']);
-            if( $helper['paramsInit'] ) {
-                $result = call_user_func_array($helperFn, $helper['callParams']);
-            } else {
-                $result = call_user_func_array($helperFn, $helper['callParams']);
-            }
+            $result = call_user_func_array($helperFn, $helper['callParams']);
             $this->buffer .= $result;
             //$this->push($result);
         } else {
-            // @todo?
+            $helperFn = $this->getHelper('helperMissing');
+            $result = call_user_func_array($helperFn, $helper['callParams']);
+            $this->buffer .= $result;
             $this->push($nonhelper);
         }
     }
@@ -641,7 +650,14 @@ class VM {
     
     private function pushLiteral($literal)
     {
-        $this->push($literal);
+        if( $literal === 'true' ) {
+            $this->push(true);
+        } else if( $literal === 'false' ) {
+            $this->push(false);
+        //} else if( is_numeric($literal) ) {
+        } else {
+            $this->push($literal);
+        }
     }
     
     private function pushProgram($program)

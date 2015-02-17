@@ -3,7 +3,11 @@
 $opcodesDir = __DIR__ . '/spec/handlebars/opcodes/';
 $opcodesOutputDir = __DIR__ . '/tests/Spec';
 $specialSuites = array('parser', 'tokenizer');
-$skipTests = array('testDataPassedToHelpersEach1');
+$skipTests = array(
+    'testDataPassedToHelpersEach1',
+    'testTheHelpersHashIsAvailableIsNestedContextsHelpersHash1',
+    'testFailsWithMultipleAndArgsRegistration1'
+);
 
 
 
@@ -97,6 +101,9 @@ EOF;
         
         // Generate helpers
         $helpers = $test['helpers'];
+        if( !empty($test['globalHelpers']) ) {
+            $helpers += $test['globalHelpers'];
+        }
         convertLambdas($helpers);
         $parts[] = i(2) . '$helpers = ' . i_var_export(2, $helpers) . ";";
         /*
