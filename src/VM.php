@@ -304,8 +304,9 @@ class VM {
         $options->name = $helper;
         $options->hash = $this->pop();
         $options->scope = $this->contextStack->top();
+        
         if( $this->trackIds ) {
-            $options->trackIds = $this->pop();
+            $options->hashIds = $this->pop();
         }
         if( $this->stringParams ) {
             $options->hashTypes = $this->pop();
@@ -341,12 +342,28 @@ class VM {
         $options->inverse = $inverse;
         
         $i = $paramSize;
+        $ids = $types = $contexts = array();
         while($i--) {
             $param = $this->pop();
             $params[$i] = $param;
+            if( $this->trackIds) {
+                $ids[$i] = $this->pop();
+            }
+            if( $this->stringParams ) {
+                $types[$i] = $this->pop();
+                $contexts[$i] = $this->pop();
+            }
         }
         ksort($params);
         
+        if( $this->trackIds) {
+          $options->ids = $ids;
+        }
+        if( $this->stringParams ) {
+          $options->types = $types;
+          $options->contexts = $contexts;
+        }
+    
         // This might not work right?
         if( $this->dataStack->count() &&
                 ($top = $this->dataStack->top()) &&
@@ -490,8 +507,15 @@ class VM {
     
     private function emptyHash()
     {
-        // cough
         $this->push(array());
+        
+        if( $this->trackIds ) {
+            $this->push(array());
+        }
+        if( $this->stringParams ) {
+            $this->push(array());
+            $this->push(array());
+        }
     }
     
     private function getContext($depth)
@@ -672,6 +696,18 @@ class VM {
     private function pushString($string)
     {
         $this->push($string);
+    }
+    
+    private function pushStringParam($string, $type)
+    {
+        $this->pushContext();
+        $this->pushString($type);
+        
+        // If it's a subexpression, the string result
+        // will be pushed after this opcode.
+        if ($type !== 'sexpr') {
+            $this->push($string);
+        }
     }
     
     private function resolvePossibleLambda()
