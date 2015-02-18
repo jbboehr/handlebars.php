@@ -129,11 +129,6 @@ function hbs_generate_test_vars($test) {
     }
     $parts[] = i(2) . '$options = ' . i_var_export(2, $options) . ";";
     
-    // Generate throws
-    if( !empty($test['exception']) ) {
-        $parts[] = i(2) . "\$this->setExpectedException('\\Handlebars\\Exception');";
-    }
-    
     return join("\n", $parts);
 }
 
@@ -146,4 +141,32 @@ function hbs_generate_write_file($fileName, $contents) {
         mkdir(dirname($fileName), 0755, true);
     }
     file_put_contents($fileName, $contents);
+}
+
+function hbs_generate_function_name($test, &$usedNames) {
+    $functionName = 'test' .  str_replace(' ', '', ucwords(preg_replace('/[^a-zA-Z0-9]+/', ' ', $test['it'] . '-' . $test['description'])));
+    if( isset($usedNames[$functionName]) ) {
+        $id = ++$usedNames[$functionName];
+    } else {
+        $id = $usedNames[$functionName] = 1;
+    }
+    $functionName .= $id;
+    return $functionName;
+}
+
+function hbs_generate_function_header($test, $functionName) {
+    return <<<EOF
+    /**
+     * {$test['description']} - {$test['it']}
+     */
+    public function $functionName() {
+EOF;
+}
+
+function hbs_generate_function_footer() {
+    return '    }';
+}
+
+function hbs_generate_class_footer() {
+    return "\n}\n";
 }

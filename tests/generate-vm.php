@@ -39,26 +39,6 @@ class $className extends PHPUnit_Framework_TestCase {
 EOF;
 }
 
-function hbs_generate_vm_function_name($test, &$usedNames) {
-    $functionName = 'test' .  str_replace(' ', '', ucwords(preg_replace('/[^a-zA-Z0-9]+/', ' ', $test['it'] . '-' . $test['description'])));
-    if( isset($usedNames[$functionName]) ) {
-        $id = ++$usedNames[$functionName];
-    } else {
-        $id = $usedNames[$functionName] = 1;
-    }
-    $functionName .= $id;
-    return $functionName;
-}
-    
-function hbs_generate_vm_function_header($test, $functionName) {
-    return <<<EOF
-    /**
-     * {$test['description']} - {$test['it']}
-     */
-    public function $functionName() {
-EOF;
-}
-
 function hbs_generate_vm_function_body($test) {
     // Generate opcodes
     $parts[] = i(2) . '$opcodes = ' . i_var_export(2, $test['opcodes']) . ";";
@@ -75,14 +55,6 @@ function hbs_generate_vm_function_body($test) {
     return join("\n", $parts);
 }
 
-function hbs_generate_vm_function_footer() {
-    return '    }';
-}
-
-function hbs_generate_vm_class_footer() {
-    return "\n}\n";
-}
-
 function hbs_generate_vm_test($suiteName, $test, &$usedNames) {
     global $vmSkipSuites, $vmSkipTests;
     
@@ -90,8 +62,8 @@ function hbs_generate_vm_test($suiteName, $test, &$usedNames) {
     
     hbs_generate_patch_test_object($test);
     
-    $functionName = hbs_generate_vm_function_name($test, $usedNames);
-    $parts[] = hbs_generate_vm_function_header($test, $functionName);
+    $functionName = hbs_generate_function_name($test, $usedNames);
+    $parts[] = hbs_generate_function_header($test, $functionName);
     
     // Mark skipped
     if( in_array($functionName, $vmSkipTests) || in_array($suiteName, $vmSkipSuites) ) {
@@ -99,8 +71,14 @@ function hbs_generate_vm_test($suiteName, $test, &$usedNames) {
     }
     
     $parts[] = hbs_generate_test_vars($test);
+    
+    // Generate throws
+    if( !empty($test['exception']) ) {
+        $parts[] = i(2) . "\$this->setExpectedException('\\Handlebars\\Exception');";
+    }
+    
     $parts[] = hbs_generate_vm_function_body($test);
-    $parts[] = hbs_generate_vm_function_footer();
+    $parts[] = hbs_generate_function_footer();
     
     return "\n" . join("\n", $parts) . "\n";
 }
@@ -112,7 +90,7 @@ function hbs_generate_vm_class($suiteName, $tests) {
     foreach( $tests as $test ) {
         $output .= hbs_generate_vm_test($suiteName, $test, $usedNames);
     }
-    $output .= hbs_generate_vm_class_footer();
+    $output .= hbs_generate_class_footer();
     
     return $output;
 }

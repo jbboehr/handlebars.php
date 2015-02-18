@@ -36,6 +36,12 @@ foreach( $exportFiles as $filePath ) {
         continue;
     }
     
+    // Compiler
+    $compilerTestFile = hbs_generate_test_file('Compiler', $suiteName);
+    $compilerOutput = hbs_generate_compiler_class($suiteName, $tests);
+    hbs_generate_write_file($compilerTestFile, $compilerOutput);
+    
+    
     // VM
     $vmTestFile = hbs_generate_test_file('VM', $suiteName);
     $vmOutput = hbs_generate_vm_class($suiteName, $tests);

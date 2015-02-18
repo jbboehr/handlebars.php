@@ -80,7 +80,7 @@ class VM {
     
     public function __call($method, $args)
     {
-        throw new Exception('Undefined method: ' . $method);
+        throw new RuntimeException('Undefined method: ' . $method);
     }
     
     
@@ -100,7 +100,7 @@ class VM {
         // Push the program stack
         $top = $this->programStack->top();
         if( !isset($top['children'][$program]['opcodes']) ) {
-            throw new Exception('sigh');
+            throw new RuntimeException('Assertion failed: opcodes empty');
         }
         $opcodes = $top['children'][$program]['opcodes'];
         $this->programStack->push($top['children'][$program]);
@@ -188,7 +188,7 @@ class VM {
                 return null;
             } else {
                 $options = func_get_arg(func_num_args() - 1);
-                throw new Exception("Helper missing: " . $options->name);
+                throw new RuntimeException("Helper missing: " . $options->name);
             }
         };
         $this->helpers['with'] = function($context, $options) use ($self) {
@@ -209,7 +209,7 @@ class VM {
         };
         $this->helpers['each'] = function($context, $options = null) use ($self) {
             if( func_num_args() < 2 ) {
-                throw new Exception('Must pass iterator to #each');
+                throw new RuntimeException('Must pass iterator to #each');
             }
             $contextPath = null;
             if( $options->data !== null && $options->ids !== null ) {
@@ -256,7 +256,7 @@ class VM {
     
     private function contextName($context)
     {
-        throw new Exception('reimplementing');
+        throw new RuntimeException('not in use');
     }
     
     private function pop()
@@ -275,7 +275,7 @@ class VM {
     
     private function pushStackLiteral($item)
     {
-        throw new Exception('reimplementing');
+        throw new Exception('not in use');
     }
     
     private function replace($value)
@@ -406,7 +406,7 @@ class VM {
     {
         $options = $this->setupOptions($helperName, $paramSize, $params);
         //if( $useRegister ) {
-            //throw new Exception('Not yet implemented');
+            //throw new RuntimeException('Not yet implemented');
         //} else {
             $params[] = $options;
         //}
@@ -476,7 +476,7 @@ class VM {
             $top = join(',', $top);
         }
         if( !is_scalar($top) ) {
-            throw new Exception('Top of stack was not scalar or lambda, was: ' . gettype($top));
+            throw new RuntimeException('Top of stack was not scalar or lambda, was: ' . gettype($top));
         }
         
         // Stringify booleans
@@ -594,7 +594,7 @@ class VM {
         
         
         if( !is_callable($fn) ) {
-            throw new Exception('helper was not callable: ' . $name);
+            throw new RuntimeException('helper was not callable: ' . $name);
         }
         
         $result = call_user_func_array($fn, $helper['callParams']);
@@ -607,7 +607,7 @@ class VM {
         $helper = $this->setupHelper($paramSize, $name);
         $helperFn = $this->getHelper($helper['name']);
         if( !$helperFn ) {
-            throw new Exception("Unknown helper: " . $name);
+            throw new RuntimeException("Unknown helper: " . $name);
         }
         $result = call_user_func_array($helperFn, $helper['callParams']);
         //$this->buffer .= $result;
@@ -617,7 +617,7 @@ class VM {
     private function lookupData($depth, $parts)
     {
         if( $depth >= $this->dataStack->count() ) {
-            //throw new Exception('Hit the bottom of the data stack');
+            //throw new RuntimeException('Hit the bottom of the data stack');
             $data = array();
         } else if( $depth === 0 ) {
             $data = $this->dataStack->top();
@@ -680,7 +680,7 @@ class VM {
     private function invokePartial($name, $indent)
     {
         if( !isset($this->partialOpcodes[$name]) ) {
-            throw new Exception('Missing partial: ' + $name);
+            throw new RuntimeException('Missing partial: ' + $name);
         }
         $opcodes = $this->partialOpcodes[$name];
         $context = $this->pop();
