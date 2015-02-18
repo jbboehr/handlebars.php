@@ -1,7 +1,8 @@
 <?php
 
-$opcodesDir = __DIR__ . '/spec/handlebars/opcodes/';
-$opcodesOutputDir = __DIR__ . '/tests/Spec';
+$exportDir = __DIR__ . '/spec/handlebars/export/';
+$vmOutputDir = __DIR__ . '/tests/SpecVM';
+
 $specialSuites = array('parser', 'tokenizer');
 $skipTests = array(
     'testDataPassedToHelpersEach1',
@@ -19,22 +20,22 @@ $skipSuites = array();
 
 
 // Load opcode files
-$opcodesFiles = array();
-foreach( scandir($opcodesDir) as $file ) {
+$exportFiles = array();
+foreach( scandir($exportDir) as $file ) {
     if( $file[0] === '.' || substr($file, -5) !== '.json' ) {
         continue;
     }
-    $opcodesFiles[] = $opcodesDir . $file;
+    $exportFiles[] = $exportDir . $file;
 }
 
-if( !is_dir($opcodesOutputDir) ) {
-    mkdir($opcodesOutputDir);
+if( !is_dir($vmOutputDir) ) {
+    mkdir($vmOutputDir);
 }
 
 
 
 // Generate opcode tests
-foreach( $opcodesFiles as $filePath ) {
+foreach( $exportFiles as $filePath ) {
     $fileName = basename($filePath);
     $suiteName = substr($fileName, 0, -strlen('.json'));
     if( in_array($suiteName, $specialSuites) ) {
