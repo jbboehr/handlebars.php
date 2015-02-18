@@ -8,7 +8,8 @@ class VM {
     // Inputs
     private $data;
     private $helpers;
-    private $partials;
+    //private $partials;
+    private $partialOpcodes;
     private $options;
     
     // Stacks
@@ -31,14 +32,15 @@ class VM {
     private $useData = false;
     private $useDepths = false;
     
-    public function execute($opcodes, $data = null, $helpers = null, $partials = null, $options = null)
+    public function execute($opcodes, $data = null, $helpers = null, $partialOpcodes = null, $options = null)
     {
         // Setup builtin helpers
         $this->setupBuiltinHelpers();
         
         $this->data = $data;
         $this->helpers = array_merge($this->helpers, $helpers);
-        $this->partials = $partials;
+        //$this->partials = $partials;
+        $this->partialOpcodes = $partialOpcodes;
         $this->options = (array) $options;
         
         // Flags
@@ -673,6 +675,39 @@ class VM {
         }
         
         $this->replace($value);
+    }
+    
+    private function invokePartial($name, $indent)
+    {
+        if( !isset($this->partialOpcodes[$name]) ) {
+            throw new Exception('Missing partial: ' + $name);
+        }
+        $opcodes = $this->partialOpcodes[$name];
+        $context = $this->pop();
+        $hash = $this->pop();
+        
+        // is this right?
+        if( is_array($hash) ) {
+            $context = array_merge($context, $hash);
+            $hash = null;
+        } else if( $hash ) {
+            //trigger_error("Hash was not null or array: " . gettype($hash) . ' ' . $hash, E_USER_WARNING);
+            // throw?
+        }
+        
+        $this->programStack->push(array('children' => array($opcodes)));
+        $result = $this->executeProgram(0, $context, $hash);
+        
+        // Indent output of partial
+        $endsInEmptyLine = $result && $result[strlen($result) - 1] === "\n";
+        $result = $indent . str_replace("\n", "\n" . $indent, rtrim($result, "\r\n"));
+        if( $endsInEmptyLine ) {
+            $result .= "\n";
+        }
+        
+        $this->programStack->pop();
+        
+        $this->buffer .= $result;
     }
     
     private function popHash()

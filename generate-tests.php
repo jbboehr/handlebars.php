@@ -9,11 +9,12 @@ $skipTests = array(
     'testFailsWithMultipleAndArgsRegistration1',
     'testGH731ZeroContextRenderingRegressions1',
     'testSubexpressionsCanTJustBePropertyLookupsSubexpressions2',
-    //'testShouldTrackContextPathForArraysEach1',
-    //'testShouldTrackContextPathForArraysBlockHelperMissing1',
-    //'testShouldTrackContextPathForKeysBlockHelperMissing1',
+    'testThrowOnMissingPartialPartials1',
+    'testShouldTrackContextPathForArraysBlockHelperMissing1',
+    'testShouldTrackContextPathForKeysBlockHelperMissing1',
+    'testShouldHandleNestingBlockHelperMissing1',
 );
-$skipSuites = array('partials');
+$skipSuites = array();
 
 
 
@@ -142,7 +143,14 @@ EOF;
         // Generate opcodes
         $parts[] = i(2) . '$opcodes = ' . i_var_export(2, (isset($test['opcodes']) ? $test['opcodes'] : null)) . ";";
         
-        $parts[] = i(2) . "\$actual = \$this->vm->execute(\$opcodes, \$data, \$helpers, \$partials, \$options);";
+        // Generate partial opcodes
+        $partialOpcodes = (isset($test['partialOpcodes']) ? $test['partialOpcodes'] : array());
+        $globalPartialOpcodes = (isset($test['globalPartialOpcodes']) ? $test['globalPartialOpcodes'] : array());
+        $partialOpcodes += $globalPartialOpcodes;
+        $parts[] = i(2) . '$partialOpcodes = ' . i_var_export(2, $partialOpcodes) . ";";
+        
+        
+        $parts[] = i(2) . "\$actual = \$this->vm->execute(\$opcodes, \$data, \$helpers, \$partialOpcodes, \$options);";
         $parts[] = i(2) . "\$this->assertEquals(\$expected, \$actual);";
         
         // Footer
