@@ -80,7 +80,12 @@ class VM {
     
     public function __call($method, $args)
     {
-        throw new RuntimeException('Undefined method: ' . $method);
+        // wtf is going on here
+        //if( method_exists($this, $method) ) {
+        //    return call_user_func_array(array($this, $method), $args);
+        //} else {
+            throw new RuntimeException('Undefined method: ' . $method);
+        //}
     }
     
     

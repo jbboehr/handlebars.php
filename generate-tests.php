@@ -3,6 +3,7 @@
 
 require __DIR__ . '/tests/generate-utils.php';
 require __DIR__ . '/tests/generate-compiler.php';
+require __DIR__ . '/tests/generate-integration.php';
 require __DIR__ . '/tests/generate-vm.php';
 
 $exportDir = __DIR__ . '/spec/handlebars/export/';
@@ -41,9 +42,13 @@ foreach( $exportFiles as $filePath ) {
     $compilerOutput = hbs_generate_compiler_class($suiteName, $tests);
     hbs_generate_write_file($compilerTestFile, $compilerOutput);
     
-    
     // VM
     $vmTestFile = hbs_generate_test_file('VM', $suiteName);
     $vmOutput = hbs_generate_vm_class($suiteName, $tests);
     hbs_generate_write_file($vmTestFile, $vmOutput);
+    
+    // Integration
+    $integrationTestFile = hbs_generate_test_file('Integration', $suiteName);
+    $integrationOutput = hbs_generate_integration_class($suiteName, $tests);
+    hbs_generate_write_file($integrationTestFile, $integrationOutput);
 }
