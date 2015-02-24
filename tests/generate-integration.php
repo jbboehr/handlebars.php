@@ -34,6 +34,7 @@ class $className extends PHPUnit_Framework_TestCase {
         \$expected = array_shift(\$args);
         \$actual = call_user_func_array(array(\$this->handlebars, 'render'), \$args);
         \$this->assertEquals(\$expected, \$actual);
+        //\$this->assertEquals(preg_replace('/\s+/', '', \$expected), preg_replace('/\s+/', '', \$actual));
     }
 
 EOF;
