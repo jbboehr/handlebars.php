@@ -100,7 +100,7 @@ function hbs_generate_patch_test_object(&$test) {
 function hbs_generate_test_vars($test) {
     $parts = array();
     
-    $data = $test['data'];
+    $data = isset($test['data']) ? $test['data'] : null;
     convertLambdas($data);
     
     // Generate general test data
