@@ -31,11 +31,23 @@ class Handlebars
             $flags |= HANDLEBARS_COMPILER_FLAG_KNOWN_HELPERS_ONLY;
         }
         
-        $opcodes = handlebars_compile($tmpl, $flags);
+        $knownHelpers = !empty($options['knownHelpers']) ? array_keys($options['knownHelpers']) : null;
+        $opcodes = handlebars_compile($tmpl, $flags, $knownHelpers);
+        if( !$opcodes ) {
+            throw new Exception('Compile error: ' . handlebars_error());
+        }
         
         $partialOpcodes = array();
         foreach( $partials as $name => $partial ) {
-            $partialOpcodes[$name] = handlebars_compile($partial, $flags);
+            if( !$partial ) {
+                $partialOpcodes[$name] = array('opcodes' => array());
+                continue;
+            }
+            $tmp = handlebars_compile($partial, $flags);;
+            if( !$tmp ) {
+                throw new Exception('Compile error: ' . handlebars_error());
+            }
+            $partialOpcodes[$name] = $tmp;
         }
         
         return $this->vm->execute($opcodes, $data, $helpers, $partialOpcodes, $options);

@@ -2,9 +2,7 @@
 
 $integrationSkipSuites = array();
 $integrationSkipTests = array(
-    'testDataPassedToHelpersEach1',
     'testTheHelpersHashIsAvailableIsNestedContextsHelpersHash1',
-    'testFailsWithMultipleAndArgsRegistration1',
     'testGH731ZeroContextRenderingRegressions1',
     'testSubexpressionsCanTJustBePropertyLookupsSubexpressions2',
     'testThrowOnMissingPartialPartials1',
