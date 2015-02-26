@@ -109,7 +109,18 @@ function hbs_generate_test_vars($test) {
     $parts[] = i(2) . '$data = ' . i_var_export(2, $data) . ";";
     $parts[] = i(2) . '$tmpl = ' . i_var_export(2, $test['template']) . ";";
     $parts[] = i(2) . '$expected = ' . i_var_export(2, $test['expected']) . ";";
-    $parts[] = i(2) . '$partials = ' . i_var_export(2, $test['partials']) . ";";
+    
+    // Generate partials
+    $partials = $test['partials'];
+    if( !empty($test['globalPartials']) ) {
+        foreach( $test['globalPartials'] as $k => $v ) {
+            if( !isset($partials[$k]) ) {
+                $partials[$k] = $v;
+            }
+        }
+        //$partials = array_merge($test['globalPartials'], $partials);
+    }
+    $parts[] = i(2) . '$partials = ' . i_var_export(2, $partials) . ";";
     
     // Generate helpers
     $helpers = $test['helpers'];

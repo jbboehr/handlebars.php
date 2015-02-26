@@ -685,7 +685,7 @@ class VM {
     private function invokePartial($name, $indent)
     {
         if( !isset($this->partialOpcodes[$name]) ) {
-            throw new RuntimeException('Missing partial: ' + $name);
+            throw new RuntimeException('Missing partial: ' . $name);
         }
         $opcodes = $this->partialOpcodes[$name];
         $context = $this->pop();
