@@ -1,6 +1,8 @@
 # handlebars.php
 
+[![Build Status](https://travis-ci.org/jbboehr/handlebars.php.svg?branch=master)](https://travis-ci.org/jbboehr/handlebars.php)
 
+PHP handlebars.js VM
 
 ## License
 
