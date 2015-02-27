@@ -1,25 +1,26 @@
 language: php
 
 before_install:
+  - git submodule update --init --recursive
   - sudo apt-get update -qq
 # install handlebars.c
   - sudo apt-get install -qq autoconf automake check bison flex gawk gcc git-core lcov libjson0-dev libtalloc-dev libtool m4 make pkg-config uthash-dev
-  - git submodule update --init --recursive
-  - git clone https://github.com/jbboehr/handlebars.c handlebars-c
+  - git clone https://github.com/jbboehr/handlebars.c.git handlebars-c --depth=5
   - cd handlebars-c
   - ./bootstrap
-  - ./configure --prefix=/usr 
+  - ./configure
   - sudo make install
   - sudo ldconfig
   - cd ..
 # install php-handlebars
   - sudo apt-get install -qq php5-dev
-  - git clone https://github.com/jbboehr/php-handlebars
+  - git clone https://github.com/jbboehr/php-handlebars.git --depth=5
   - cd php-handlebars
   - phpize
   - ./configure
   - sudo make install
   - echo "extension=handlebars.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+  - cd ..
   
 before_script:
   - composer install --no-dev --verbose
