@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/jbboehr/handlebars.php.svg?branch=master)](https://travis-ci.org/jbboehr/handlebars.php)
 
-PHP handlebars.js VM
+PHP handlebars.js VM. Use with [handlebars.c](https://github.com/jbboehr/handlebars.c) and [php-handlebars](https://github.com/jbboehr/php-handlebars).
 
 
 ## Requirements
