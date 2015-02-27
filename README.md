@@ -4,6 +4,12 @@
 
 PHP handlebars.js VM
 
+
+## Requirements
+
+[php-handlebars](https://github.com/jbboehr/php-handlebars)
+
+
 ## License
 
 This project is licensed under the [LGPLv3](http://www.gnu.org/licenses/lgpl-3.0.txt).
