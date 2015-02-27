@@ -1,4 +1,8 @@
+*.log
 /.c9
 /composer.lock
 /phpunit
+/tests/Spec
 /vendor/
+/nbproject/
+/nbproject/private/
