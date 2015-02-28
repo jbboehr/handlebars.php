@@ -38,9 +38,9 @@ class VM {
         $this->setupBuiltinHelpers();
         
         $this->data = $data;
-        $this->helpers = array_merge($this->helpers, $helpers);
+        $this->helpers = array_merge($this->helpers, (array) $helpers);
         //$this->partials = $partials;
-        $this->partialOpcodes = $partialOpcodes;
+        $this->partialOpcodes = (array) $partialOpcodes;
         $this->options = (array) $options;
         
         // Flags

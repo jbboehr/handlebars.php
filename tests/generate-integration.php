@@ -62,6 +62,19 @@ function hbs_generate_integration_test($suiteName, $test, &$usedNames) {
         $parts[] = hbs_generate_function_incomplete();
     }
     
+    // Register global helpers/partial
+    if( !empty($test['globalHelpers']) ) {
+        $globalHelpers = $test['globalHelpers'];
+        convertLambdas($globalHelpers);
+        $parts[] = i(2) . '$this->handlebars->registerHelpers(' . i_var_export(2, $globalHelpers) . ');';
+        unset($test['globalHelpers']); // maybe bad idea
+    } 
+    if( !empty($test['globalPartials']) ) {
+        $parts[] = i(2) . '$this->handlebars->registerPartials(' . i_var_export(2, $test['globalPartials']) . ');';
+        unset($test['globalPartial']); // maybe bad idea
+    }
+    
+    // Main parts
     $parts[] = hbs_generate_test_vars($test);
     
     // Generate throws
