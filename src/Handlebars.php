@@ -100,6 +100,9 @@ class Handlebars
      */
     public function render($tmpl, $data = null, $helpers = null, $partials = null, $options = null)
     {
+        settype($helpers, 'array');
+        settype($partials, 'array');
+        
         // Add global helpers and partials
         $helpers += $this->helpers;
         $partials += $this->partials;
