@@ -2,8 +2,17 @@
 
 namespace Handlebars;
 
+/**
+ * Utilities
+ */
 class Utils
 {
+	/**
+	 * Is the array a numeric array?
+	 * 
+	 * @param array $array
+	 * @return boolean
+	 */
 	static public function isIntArray($array)
 	{
         if( !is_array($array) ) {

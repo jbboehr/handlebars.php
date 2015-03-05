@@ -2,12 +2,30 @@
 
 namespace Handlebars;
 
+/**
+ * Main class
+ */
 class Handlebars
 {
+	/**
+	 * Array of global helpers
+	 * 
+	 * @var array
+	 */
     protected $helpers = array();
     
+    /**
+     * Array of global partials
+     * 
+     * @var array
+     */
     protected $partials = array();
     
+    /**
+     * VM instance
+     * 
+     * @var \Handlebars\VM
+     */
     protected $vm;
     
     /**
@@ -24,7 +42,7 @@ class Handlebars
      * @param $tmpl
      * @param $options
      * @return array
-     * @throws \Handlebars\Exception
+     * @throws \Handlebars\CompilerException
      */
     public function compile($tmpl, array $options = null)
     {
@@ -32,7 +50,7 @@ class Handlebars
         $knownHelpers = !empty($options['knownHelpers']) ? array_keys($options['knownHelpers']) : null;
         $opcodes = handlebars_compile($tmpl, $flags, $knownHelpers);
         if( !$opcodes ) {
-            throw new Exception('Compile error: ' . handlebars_error());
+            throw new CompilerException('Compile error: ' . handlebars_error());
         }
         return $opcodes;
     }
@@ -96,7 +114,8 @@ class Handlebars
      * @param $partials
      * @param $options
      * @return string
-     * @throws \Handlebars\Exception
+     * @throws \Handlebars\CompilerException
+     * @throws \Handlebars\RuntimeException
      */
     public function render($tmpl, $data = null, $helpers = null, $partials = null, $options = null)
     {

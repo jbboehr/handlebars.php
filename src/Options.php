@@ -4,19 +4,63 @@ namespace Handlebars;
 
 use ArrayAccess;
 
-class Options implements ArrayAccess {
+/**
+ * Options
+ */
+class Options implements ArrayAccess
+{
+	/**
+	 * Contains the name of the helper being called
+	 * 
+	 * @var string
+	 */
     public $name;
+    
+    /**
+     * The hash parameters
+     * 
+     * @var array
+     */
     public $hash;
+    
+    /**
+     * The program
+     * 
+     * @var callable
+     */
+    public $fn;
+    
+    /**
+     * The inverse
+     * 
+     * @var callable
+     */
+    public $inverse;
+    
+    /**
+     * The current context
+     * 
+     * @var mixed
+     */
+    public $scope;
+    
+    /**
+     * Data params (index, key, etc)
+     * 
+     * @var array
+     */
+    public $data;
+
+    public $ids;
     public $hashIds;
     public $hashTypes;
     public $hashContexts;
-    public $program;
-    public $inverse;
-    public $fn;
-    public $scope;
-    public $ids;
-    public $data;
     
+    /**
+     * Invoke the program, if set
+     * 
+     * @return mixed
+     */
     public function fn()
     {
         if( $this->fn ) {
@@ -24,15 +68,17 @@ class Options implements ArrayAccess {
         }
     }
     
+    /**
+     * Invoke the inverse, if set
+     * 
+     * @return mixed
+     */
     public function inverse()
     {
         if( $this->inverse ) {
             return call_user_func_array($this->inverse, func_get_args());
         }
     }
-    
-    
-    // b/c
     
     public function offsetExists($offset)
     {
@@ -41,9 +87,6 @@ class Options implements ArrayAccess {
     
     public function offsetGet($offset)
     {
-        if( $offset === 'fn' || $offset === 'inverse' ) {
-            throw new Exception('Do not use fn/inverse with ArrayAccess');
-        }
         if( property_exists($this, $offset) ) {
             return $this->$offset;
         } else {
@@ -53,11 +96,11 @@ class Options implements ArrayAccess {
     
     public function offsetSet($offset, $value)
     {
-        throw new \Exception('Do not use this');
+    	$this->$offset = $value;
     }
     
     public function offsetUnset($offset)
     {
-        throw new \Exception('Do not use this');
+    	unset($this->$offset);
     }
 }

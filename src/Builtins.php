@@ -2,15 +2,33 @@
 
 namespace Handlebars;
 
+/**
+ * Builtin helpers
+ */
 class Builtins
 {
+	/*
+	 * @var \Handlebars\VM
+	 */
     private $vm;
     
+    /**
+     * Constructor
+     * 
+     * @param \Handlebars\VM $vm
+     */
     public function __construct(VM $vm)
     {
         $this->vm = $vm;
     }
     
+    /**
+     * blockHelperMissing builtin
+     * 
+     * @param mixed $context
+     * @param \Handlebars\Options $options
+     * @return mixed
+     */
     public function blockHelperMissing($context, $options)
     {
         if( is_callable($context) ) {
@@ -37,7 +55,14 @@ class Builtins
             return $tmpOptions->fn($context, $options);
         }
     }
-    
+
+    /**
+     * if builtin
+     * 
+     * @param mixed $conditional
+     * @param \Handlebars\Options $options
+     * @return mixed
+     */
     public function builtinIf($conditional, $options)
     {
         if( is_callable($conditional) ) {
@@ -50,6 +75,14 @@ class Builtins
         }
     }
     
+    /**
+     * each builtin
+     * 
+     * @param mixed $context
+     * @param \Handlebars\Options $options
+     * @throws \Handlebars\RuntimeException
+     * @return string
+     */
     public function each($context, $options = null)
     {
         if( func_num_args() < 2 ) {
@@ -93,6 +126,12 @@ class Builtins
         return $ret;
     }
     
+    /**
+     * helperMissing builtin
+     * 
+     * @throws \Handlebars\RuntimeException
+     * @return NULL
+     */
     public function helperMissing()
     {
         if( func_num_args() === 1 ) {
@@ -103,11 +142,25 @@ class Builtins
         }
     }
     
+    /**
+     * lookup builtin
+     * 
+     * @param mixed $obj
+     * @param string $field
+     * @return mixed
+     */
     public function lookup($obj, $field)
     {
         return isset($obj[$field]) ? $obj[$field] : null;
     }
     
+    /**
+     * unless builtin
+     * 
+     * @param mixed $conditional
+     * @param \Handlebars\Options $options
+     * @return mixed
+     */
     public function unless($conditional, $options)
     {
         $ifHelper = $this->vm->getHelper('if');
@@ -117,6 +170,13 @@ class Builtins
         return call_user_func($ifHelper, $conditional, $newOptions);
     }
     
+    /**
+     * with builtin
+     * 
+     * @param mixed $context
+     * @param \Handlebars\Options $options
+     * @return mixed
+     */
     public function with($context, $options)
     {
         if( is_callable($context) ) {
@@ -129,7 +189,7 @@ class Builtins
                 $data['contextPath'] = (isset($options['data']['contextPath']) ? $options['data']['contextPath'] . '.' : '') . $options['ids'][0];
                 $options = array('data' => $data);
             }
-            return call_user_func($fn, $context, $options); //$options->fn($context);
+            return call_user_func($fn, $context, $options);
         } else {
             return $options->inverse();
         }

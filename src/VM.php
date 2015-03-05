@@ -4,35 +4,120 @@ namespace Handlebars;
 
 use SplStack;
 
+/**
+ * Virtual Machine
+ */
 class VM
 {
     // Inputs
+    
+    /**
+     * Original input data
+     * 
+     * @var mixed
+     */
     private $data;
+    
+    /**
+     * Input helpers
+     * 
+     * @var array
+     */
     private $helpers;
-    //private $partials;
+    
+    /**
+     * Input partial opcodes
+     * 
+     * @var array
+     */
     private $partialOpcodes;
+    
+    /**
+     * Input options
+     * 
+     * @var array
+     */
     private $options;
     
+    
     // Stacks
+    
+    /**
+     * @var \SplStack
+     */
     private $contextStack;
+    
+    /**
+     * @var \SplStack
+     */
     private $dataStack;
+    
+    /**
+     * @var \SplStack
+     */
     private $hashStack;
+    
+    /**
+     * @var \SplStack
+     */
     private $programStack;
+    
+    /**
+     * @var \SplStack
+     */
     private $stack;
     
+    
     // Internals
+    
+    /**
+     * Output buffer
+     * 
+     * @access private
+     * @var string
+     */
     /*private*/ public $buffer;
     private $lastContext;
     private $lastHash;
     private $lastHelper;
     
     // Flags
+    
+    /**
+     * In mustache compat mode?
+     * 
+     * @var boolean
+     */
     private $compat = false;
+    
+    /**
+     * Are string params enabled?
+     * 
+     * @var boolean
+     */
     private $stringParams = false;
+    
+    /**
+     * Are we tracking IDs?
+     * 
+     * @var boolean
+     */
     private $trackIds = false;
+    
     private $useData = false;
     private $useDepths = false;
     
+    /**
+     * Execute opcodes
+     * 
+     * @param array $opcodes
+     * @param mixed $data
+     * @param array $helpers
+     * @param array $partialOpcodes
+     * @param array $options
+     * @return string
+     * @throws \Handlebars\RuntimeException
+     */
     public function execute($opcodes, $data = null, $helpers = null, $partialOpcodes = null, $options = null)
     {
         // Setup builtin helpers
@@ -70,6 +155,12 @@ class VM
         return $buffer;
     }
     
+    /**
+     * Get helper by name
+     * 
+     * @param string $name
+     * @return callable
+     */
     public function getHelper($name)
     {
         if( isset($this->helpers[$name]) ) {
@@ -79,14 +170,29 @@ class VM
         }
     }
     
+    /**
+     * Magic call method
+     * 
+     * @param string $method
+     * @param array $args
+     * @throws \Handlebars\RuntimeException
+     */
     public function __call($method, $args)
     {
         throw new RuntimeException('Undefined method: ' . $method);
     }
     
-    
-    
-    /*private*/ public function executeProgram($program, $context = null, $data = null)
+    /**
+     * Execute the specified program
+     * 
+     * @access private
+     * @param integer $program
+     * @param mixed $context
+     * @param mixed $data
+     * @throws \Handlebars\RuntimeException
+     * @return string
+     */
+    public function executeProgram($program, $context = null, $data = null)
     {
         // Push the context stack
         if( $context !== null ) {
@@ -135,11 +241,20 @@ class VM
         return $buffer;
     }
     
+    /**
+     * Handle an opcode
+     * 
+     * @param array $opcode
+     * @return void
+     */
     private function accept($opcode)
     {
         return call_user_func_array(array($this, $opcode['opcode']), $opcode['args']);
     }
     
+    /**
+     * Setup the builtin helpers
+     */
     private function setupBuiltinHelpers()
     {
         $builtins = new Builtins($this);
@@ -168,11 +283,6 @@ class VM
     private function push($item)
     {
         return $this->stack->push($item);
-    }
-    
-    private function pushStackLiteral($item)
-    {
-        throw new Exception('not in use');
     }
     
     private function replace($value)
@@ -208,11 +318,6 @@ class VM
         $paramsInit = $this->setupParams($name, $paramSize, $params, $blockHelper);
         $foundHelper = isset($this->helpers[$name]) ? $name : null;
         $callParams = $params;
-        /* if( $this->contextStack->count() ) {
-            array_unshift($callParams, $this->contextStack->top());
-        } else {
-            array_unshift($callParams, null);
-        } */
         return array(
             'params' => $params,
             'paramsInit' => $paramsInit,
@@ -302,11 +407,7 @@ class VM
     private function setupParams($helperName, $paramSize, &$params, $useRegister)
     {
         $options = $this->setupOptions($helperName, $paramSize, $params);
-        //if( $useRegister ) {
-            //throw new RuntimeException('Not yet implemented');
-        //} else {
-            $params[] = $options;
-        //}
+        $params[] = $options;
     }
     
     
@@ -321,15 +422,12 @@ class VM
         $this->setupParams($this->lastHelperName, 0, $params, true);
         
         $current = $this->pop();
-        //array_unshift($params, $current); // cough
         $params[0] = $current;
         
         if( !$this->lastHelper ) {
             $helper = $this->getHelper('blockHelperMissing');
             $result = call_user_func_array($helper, $params);
             $this->buffer .= $result;
-        } else {
-            // @todo ?
         }
     }
     
@@ -420,12 +518,11 @@ class VM
         $this->setupParams($name, 0, $params, false);
         
         $current = $this->pop();
-        //array_unshift($params, $current); // cough
         $params[0] = $current;
         
         $helper = $this->getHelper('blockHelperMissing');
         $result = call_user_func_array($helper, $params);
-        $this->buffer .= $result; // @todo check
+        $this->buffer .= $result;
     }
     
     private function emptyHash()
@@ -465,7 +562,6 @@ class VM
             $helperFn = $this->getHelper($helper['name']);
             $result = call_user_func_array($helperFn, $helper['callParams']);
             $this->buffer .= $result;
-            //$this->push($result);
         } else {
             $helperFn = $this->getHelper('helperMissing');
             $result = call_user_func_array($helperFn, $helper['callParams']);
@@ -495,7 +591,6 @@ class VM
         }
         
         $result = call_user_func_array($fn, $helper['callParams']);
-        //$this->buffer .= $result;
         $this->push($result);
     }
     
@@ -507,14 +602,12 @@ class VM
             throw new RuntimeException("Unknown helper: " . $name);
         }
         $result = call_user_func_array($helperFn, $helper['callParams']);
-        //$this->buffer .= $result;
         $this->push($result);
     }
     
     private function lookupData($depth, $parts)
     {
         if( $depth >= $this->dataStack->count() ) {
-            //throw new RuntimeException('Hit the bottom of the data stack');
             $data = array();
         } else if( $depth === 0 ) {
             $data = $this->dataStack->top();
@@ -624,7 +717,7 @@ class VM
     private function pushContext()
     {
         $this->push($this->lastContext);
-        $this->lastContext = null; // is this right?
+        $this->lastContext = null;
     }
     
     private function pushHash()
@@ -651,7 +744,6 @@ class VM
             $this->push(false);
         } else if( $literal === 'null' ) {
             $this->push(null);
-        //} else if( is_numeric($literal) ) {
         } else {
             $this->push($literal);
         }
@@ -684,7 +776,6 @@ class VM
         $top = $this->top();
         if( is_callable($top) ) {
             $result = $top($this->contextStack->top());
-            //$this->buffer .= $result;
             $this->replace($result);
         }
     }
