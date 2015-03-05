@@ -3,7 +3,6 @@
 $integrationSkipSuites = array();
 $integrationSkipTests = array(
     'testSubexpressionsCanTJustBePropertyLookupsSubexpressions2',
-    'testThrowOnMissingPartialPartials1',
 );
 
 function hbs_generate_integration_class_header($suiteName) {
@@ -20,6 +19,10 @@ use \Handlebars\SafeString;
 class $className extends PHPUnit_Framework_TestCase {
     private \$handlebars;
     public function setUp() { 
+		if( !extension_loaded('handlebars') ) {
+			throw new \Exception('Handlebars extension not loaded');
+			//\$this->markTestIncomplete();
+		}
         \$this->handlebars = new \Handlebars\Handlebars();
     }
     private function execute() {

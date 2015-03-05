@@ -1,4 +1,7 @@
 *.log
+.buildpath
+.project
+.settings
 /.c9
 /composer.lock
 /phpunit

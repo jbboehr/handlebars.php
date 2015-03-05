@@ -3,7 +3,6 @@
 $vmSkipSuites = array();
 $vmSkipTests = array(
     'testSubexpressionsCanTJustBePropertyLookupsSubexpressions2',
-    'testThrowOnMissingPartialPartials1',
 );
 
 function hbs_generate_vm_class_header($suiteName) {
