@@ -2,8 +2,10 @@
 .buildpath
 .project
 .settings
-/.c9
-/composer.lock
+.c9
+composer.lock
+composer.phar
+/doc
 /phpunit
 /tests/Spec
 /vendor/
