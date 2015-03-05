@@ -2,13 +2,8 @@
 
 $integrationSkipSuites = array();
 $integrationSkipTests = array(
-    'testTheHelpersHashIsAvailableIsNestedContextsHelpersHash1',
-    'testGH731ZeroContextRenderingRegressions1',
     'testSubexpressionsCanTJustBePropertyLookupsSubexpressions2',
     'testThrowOnMissingPartialPartials1',
-    'testShouldTrackContextPathForArraysBlockHelperMissing1',
-    'testShouldTrackContextPathForKeysBlockHelperMissing1',
-    'testShouldHandleNestingBlockHelperMissing1',
 );
 
 function hbs_generate_integration_class_header($suiteName) {

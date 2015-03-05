@@ -2,15 +2,8 @@
 
 $vmSkipSuites = array();
 $vmSkipTests = array(
-    'testDataPassedToHelpersEach1',
-    'testTheHelpersHashIsAvailableIsNestedContextsHelpersHash1',
-    'testFailsWithMultipleAndArgsRegistration1',
-    'testGH731ZeroContextRenderingRegressions1',
     'testSubexpressionsCanTJustBePropertyLookupsSubexpressions2',
     'testThrowOnMissingPartialPartials1',
-    'testShouldTrackContextPathForArraysBlockHelperMissing1',
-    'testShouldTrackContextPathForKeysBlockHelperMissing1',
-    'testShouldHandleNestingBlockHelperMissing1',
 );
 
 function hbs_generate_vm_class_header($suiteName) {

@@ -170,9 +170,9 @@ class VM {
             }
             if( $context === true ) {
                 return $options->fn($options->scope);
-            } else if( $context === false || $context === null || empty($context) ) {
+            } else if( $context === false || $context === null || (empty($context) && $context !== 0) ) {
                 return $options->inverse($options->scope);
-            } else if( is_array($context) ) {
+            } else if( $this->isIntArray($context) ) {
                 if( $options->ids !== null ) {
                   $options->ids = array($options->name);
                   //$options->ids[] = $options->name;
@@ -180,12 +180,13 @@ class VM {
                 $eachHelper = $self->getHelper('each');
                 return call_user_func($eachHelper, $context, $options);
             } else {
-                if( $options->data && $options->ids ) {
+                $tmpOptions = $options;
+                if( $options->data !== null && $options->ids !== null ) {
                     $data = $options['data'];
-                    $data['contextPath'] = (isset($options['data']['contextPath']) ? $options['data']['contextPath'] . '/' : '') . $options['name'];
+                    $data['contextPath'] = (isset($options['data']['contextPath']) ? $options['data']['contextPath'] . '.' : '') . $options['name'];
                     $options = array('data' => $data);
                 }
-                return $options->fn($context, $options);
+                return $tmpOptions->fn($context, $options);
             }
         };
         $this->helpers['helperMissing'] = function() use ($self) {
@@ -225,20 +226,25 @@ class VM {
             if( is_callable($context) ) {
                 $context = call_user_func($context, $options->scope);
             }
+            
+            $data = $options->data ?: array();
+            
             // @todo distinguish integer vs assoc array?
             $ret = '';
             $i = 0;
             if( !empty($context) ) {
                 $len = count($context) - 1;
                 foreach( $context as $k => $value ) {
-                    $data = array();
+                    //$data = array();
                     $data['index'] = $i;
                     $data['key'] = $k;
                     $data['first'] = ($i === 0);
                     $data['last'] = ($i === $len);
                     
                     if( $contextPath ) {
-                      $data['contextPath'] = $contextPath . $k;
+                        $data['contextPath'] = $contextPath . $k;
+                    //} else {
+                    //    $data['contextPath'] = null;
                     }
                     
                     $ret .= $options->fn($value, array('data' => $data));
@@ -308,6 +314,23 @@ class VM {
             }
         }
         $this->push($val);
+    }
+    
+    private function isIntArray($array)
+    {
+        if( !is_array($array) ) {
+            return false;
+        }
+        
+        foreach( $array as $k => $v ) {
+            if( is_string($k) ) {
+                return false;
+            } else if( is_int($k) ) {
+                return true;
+            }
+        }
+        
+        return true;
     }
     
     private function setupHelper($paramSize, $name, $blockHelper = null)
@@ -426,7 +449,7 @@ class VM {
     private function ambiguousBlockValue()
     {
         $params = array($this->contextStack->top());
-        $this->setupParams('', 0, $params, true);
+        $this->setupParams($this->lastHelperName, 0, $params, true);
         
         $current = $this->pop();
         //array_unshift($params, $current); // cough
@@ -567,9 +590,9 @@ class VM {
         
         $helper = $this->setupHelper(0, $name, $helperCall);
         $this->lastHelper = $helper['name'];
+        $this->lastHelperName = $name;
         
         if( $helper && $helper['name'] ) {
-            $params = array();
             $helperFn = $this->getHelper($helper['name']);
             $result = call_user_func_array($helperFn, $helper['callParams']);
             $this->buffer .= $result;
