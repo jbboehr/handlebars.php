@@ -1,6 +1,8 @@
 # handlebars.php
 
 [![Build Status](https://travis-ci.org/jbboehr/handlebars.php.svg?branch=master)](https://travis-ci.org/jbboehr/handlebars.php)
+[![Latest Stable Version](https://poser.pugx.org/jbboehr/handlebars/v/stable.svg)](https://packagist.org/packages/jbboehr/handlebars)
+[![License](https://poser.pugx.org/jbboehr/handlebars/license.svg)](https://packagist.org/packages/jbboehr/handlebars)
 
 PHP handlebars.js VM. Use with [handlebars.c](https://github.com/jbboehr/handlebars.c) and [php-handlebars](https://github.com/jbboehr/php-handlebars).
 
