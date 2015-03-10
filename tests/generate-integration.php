@@ -3,8 +3,9 @@
 $integrationSkipSuites = array();
 $integrationSkipTests = array(
     'testSubexpressionsSubexpressionsCanTJustBePropertyLookups2',
+    
+    // Note: https://github.com/wycats/handlebars.js/blob/v2.0.0/spec/spec.js#L27
     'testStandaloneIndentationEachLineOfThePartialShouldBeIndentedBeforeRendering1',
-    'testNoInterpolationMustacheFreeTemplatesShouldRenderAsIs1',
 );
 
 function hbs_generate_integration_class_header($specName, $suiteName) {
