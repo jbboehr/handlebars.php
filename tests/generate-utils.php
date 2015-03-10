@@ -71,16 +71,16 @@ class ClosureHolder {
 
 
 
-function hbs_generate_class_name($suiteName) {
-    return 'Handlebars'. str_replace(' ', '', ucwords(str_replace('-', ' ', $suiteName))) . 'Test';
+function hbs_generate_class_name($specName, $suiteName) {
+    return ucfirst($specName) . str_replace(' ', '', ucwords(str_replace('-', ' ', $suiteName))) . 'Test';
 }
 
-function hbs_generate_namespace($ns) {
+function hbs_generate_namespace($specName, $ns) {
     return 'Handlebars\\Tests\\Spec\\' . $ns;
 }
 
-function hbs_generate_test_file($ns, $suiteName) {
-    $className = hbs_generate_class_name($suiteName);
+function hbs_generate_test_file($ns, $specName, $suiteName) {
+    $className = hbs_generate_class_name($specName, $suiteName);
     return 'tests/Spec/' . $ns . '/' . $className . '.php';
 }
 
@@ -138,13 +138,16 @@ function hbs_generate_test_vars($test) {
     if( isset($test['options']) ) {
         $options = array_merge($options, $test['options']);
     }
+    if( $test['specName'] === 'mustache' ) {
+        $options['compat'] = 1;
+    }
     $parts[] = i(2) . '$options = ' . i_var_export(2, $options) . ";";
     
     return join("\n", $parts);
 }
 
 function hbs_generate_function_incomplete() {
-    return i(2) . '$this->markTestIncomplete();' . "\n";;
+    return i(2) . '$this->markTestIncomplete();' . "\n";
 }
 
 function hbs_generate_write_file($fileName, $contents) {
@@ -155,7 +158,8 @@ function hbs_generate_write_file($fileName, $contents) {
 }
 
 function hbs_generate_function_name($test, &$usedNames) {
-    $functionName = 'test' .  str_replace(' ', '', ucwords(preg_replace('/[^a-zA-Z0-9]+/', ' ', $test['it'] . '-' . $test['description'])));
+    $title = hbs_generate_test_title($test);
+    $functionName = 'test' .  str_replace(' ', '', ucwords(preg_replace('/[^a-zA-Z0-9]+/', ' ', $title)));
     if( isset($usedNames[$functionName]) ) {
         $id = ++$usedNames[$functionName];
     } else {
@@ -166,9 +170,10 @@ function hbs_generate_function_name($test, &$usedNames) {
 }
 
 function hbs_generate_function_header($test, $functionName) {
+    $title = hbs_generate_test_title($test);
     return <<<EOF
     /**
-     * {$test['description']} - {$test['it']}
+     * {$title}
      */
     public function $functionName() {
 EOF;
@@ -180,4 +185,12 @@ function hbs_generate_function_footer() {
 
 function hbs_generate_class_footer() {
     return "\n}\n";
+}
+
+function hbs_generate_test_title($test) {
+    if( isset($test['desc']) && isset($test['name']) ) {
+        return $test['name'] . ' - ' . $test['desc'];
+    } else {
+        return $test['description'] . ' - ' . $test['it'];
+    }
 }

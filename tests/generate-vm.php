@@ -2,12 +2,12 @@
 
 $vmSkipSuites = array();
 $vmSkipTests = array(
-    'testSubexpressionsCanTJustBePropertyLookupsSubexpressions2',
+    'testSubexpressionsSubexpressionsCanTJustBePropertyLookups2',
 );
 
-function hbs_generate_vm_class_header($suiteName) {
-    $testNamespace = hbs_generate_namespace('VM');
-    $className = hbs_generate_class_name($suiteName);
+function hbs_generate_vm_class_header($specName, $suiteName) {
+    $testNamespace = hbs_generate_namespace('VM', $specName);
+    $className = hbs_generate_class_name($specName, $suiteName);
     return <<<EOF
 <?php
             
@@ -75,11 +75,13 @@ function hbs_generate_vm_test($suiteName, $test, &$usedNames) {
     return "\n" . join("\n", $parts) . "\n";
 }
 
-function hbs_generate_vm_class($suiteName, $tests) {
+function hbs_generate_vm_class($specName, $suiteName, $tests) {
     $usedNames = array();
     
-    $output = hbs_generate_vm_class_header($suiteName);
+    $output = hbs_generate_vm_class_header($specName, $suiteName);
     foreach( $tests as $test ) {
+        $test['specName'] = $specName;
+        $test['suiteName'] = $suiteName;
         $output .= hbs_generate_vm_test($suiteName, $test, $usedNames);
     }
     $output .= hbs_generate_class_footer();

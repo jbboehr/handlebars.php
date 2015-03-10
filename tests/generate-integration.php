@@ -2,12 +2,14 @@
 
 $integrationSkipSuites = array();
 $integrationSkipTests = array(
-    'testSubexpressionsCanTJustBePropertyLookupsSubexpressions2',
+    'testSubexpressionsSubexpressionsCanTJustBePropertyLookups2',
+    'testStandaloneIndentationEachLineOfThePartialShouldBeIndentedBeforeRendering1',
+    'testNoInterpolationMustacheFreeTemplatesShouldRenderAsIs1',
 );
 
-function hbs_generate_integration_class_header($suiteName) {
-    $testNamespace = hbs_generate_namespace('Integration');
-    $className = hbs_generate_class_name($suiteName);
+function hbs_generate_integration_class_header($specName, $suiteName) {
+    $testNamespace = hbs_generate_namespace($specName, 'Integration');
+    $className = hbs_generate_class_name($specName, $suiteName);
     return <<<EOF
 <?php
             
@@ -56,7 +58,8 @@ function hbs_generate_integration_test($suiteName, $test, &$usedNames) {
     $parts[] = hbs_generate_function_header($test, $functionName);
     
     // Mark skipped
-    if( in_array($functionName, $integrationSkipTests) || in_array($suiteName, $integrationSkipSuites) ) {
+    if( in_array($functionName, $integrationSkipTests) || 
+            in_array($suiteName, $integrationSkipSuites) ) {
         $parts[] = hbs_generate_function_incomplete();
     }
     
@@ -86,12 +89,17 @@ function hbs_generate_integration_test($suiteName, $test, &$usedNames) {
     return "\n" . join("\n", $parts) . "\n";
 }
 
-function hbs_generate_integration_class($suiteName, $tests) {
+function hbs_generate_integration_class($specName, $suiteName, $tests) {
     $usedNames = array();
     
-    $output = hbs_generate_integration_class_header($suiteName);
+    $output = hbs_generate_integration_class_header($specName, $suiteName);
     foreach( $tests as $test ) {
-        $output .= hbs_generate_integration_test($suiteName, $test, $usedNames);
+        $test['specName'] = $specName;
+        $test['suiteName'] = $suiteName;
+        $ret = hbs_generate_integration_test($suiteName, $test, $usedNames);
+        if( $ret ) {
+            $output .= $ret;
+        }
     }
     $output .= hbs_generate_class_footer();
     
