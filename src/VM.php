@@ -540,12 +540,14 @@ class VM
     
     private function getContext($depth)
     {
-        if( $depth >= $this->contextStack->count() ) {
+        $count = $this->contextStack->count();
+        if( $depth >= $count ) {
             return null;
         } else if( $depth === 0 ) {
             $this->lastContext = $this->contextStack->top();
         } else {
-            $this->lastContext = $this->contextStack->offsetGet($depth);
+            $index = defined('HHVM_VERSION') ? $count - $depth - 1 : $depth;
+            $this->lastContext = $this->contextStack->offsetGet($index);
         }
     }
     
@@ -612,7 +614,9 @@ class VM
         } else if( $depth === 0 ) {
             $data = $this->dataStack->top();
         } else {
-            $data = $this->dataStack->offsetGet($depth);
+            $count = $this->dataStack->count();
+            $index = defined('HHVM_VERSION') ? $count - $depth - 1 : $depth;
+            $data = $this->dataStack->offsetGet($index);
         }
         
         $first = array_shift($parts);
