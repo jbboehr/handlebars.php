@@ -22,3 +22,4 @@ before_install:
 
 script:
   - phpunit
+  - ./bench.php
