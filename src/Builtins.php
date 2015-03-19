@@ -17,7 +17,7 @@ class Builtins
      * 
      * @param \Handlebars\VM $vm
      */
-    public function __construct(VM $vm)
+    public function __construct(/*VM */$vm)
     {
         $this->vm = $vm;
     }
@@ -48,7 +48,7 @@ class Builtins
         } else {
             $tmpOptions = $options;
             if( $options->data !== null && $options->ids !== null ) {
-                $data = $options['data'];
+                $data = Utils::createFrame($options['data']);
                 $data['contextPath'] = (isset($options['data']['contextPath']) ? $options['data']['contextPath'] . '.' : '') . $options['name'];
                 $options = array('data' => $data);
             }
@@ -85,9 +85,14 @@ class Builtins
      */
     public function each($context, $options = null)
     {
-        if( func_num_args() < 2 ) {
+        // Temporary hack
+        if( func_num_args() === 1 && $context->scope ) {
+            $options = $context;
+            $context = $options->scope;
+        } else if( func_num_args() < 2 ) {
             throw new RuntimeException('Must pass iterator to #each');
         }
+        
         $contextPath = null;
         if( $options->data !== null && $options->ids !== null ) {
             $contextPath = (isset($options['data']['contextPath']) ? 
@@ -98,7 +103,10 @@ class Builtins
             $context = call_user_func($context, $options->scope);
         }
         
-        $data = $options->data ?: array();
+        $data = null;
+        if( $options->data ) {
+            $data = Utils::createFrame($options->data);
+        }
         
         // @todo distinguish integer vs assoc array?
         $ret = '';
@@ -185,7 +193,7 @@ class Builtins
         if( !empty($context) ) {
             $fn = $options->fn;
             if( $options->data && $options->ids ) {
-                $data = $options['data'];
+                $data = Utils::createFrame($options['data']);
                 $data['contextPath'] = (isset($options['data']['contextPath']) ? $options['data']['contextPath'] . '.' : '') . $options['ids'][0];
                 $options = array('data' => $data);
             }

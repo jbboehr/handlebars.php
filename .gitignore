@@ -6,6 +6,7 @@
 composer.lock
 composer.phar
 /doc
+/node_modules/
 /phpunit
 /tests/Spec
 /vendor/

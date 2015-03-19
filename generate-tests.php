@@ -4,6 +4,7 @@
 require __DIR__ . '/tests/generate-utils.php';
 require __DIR__ . '/tests/generate-integration.php';
 require __DIR__ . '/tests/generate-vm.php';
+require __DIR__ . '/tests/generate-compiler.php';
 
 $specialSuites = array('parser', 'tokenizer', 'delimiters', '~lambdas');
 
@@ -33,6 +34,11 @@ foreach( $exportFiles as $filePath ) {
         trigger_error("No tests in file: " . $file, E_USER_WARNING);
         continue;
     }
+    
+    // Compiler
+    $compilerTestFile = hbs_generate_test_file('Compiler', 'handlebars', $suiteName);
+    $compilerOutput = hbs_generate_compiler_class('handlebars', $suiteName, $tests);
+    hbs_generate_write_file($compilerTestFile, $compilerOutput);
     
     // VM
     $vmTestFile = hbs_generate_test_file('VM', 'handlebars', $suiteName);

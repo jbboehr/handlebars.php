@@ -568,6 +568,9 @@ class VM
             $helperFn = $this->getHelper('helperMissing');
             $result = call_user_func_array($helperFn, $helper['callParams']);
             $this->buffer .= $result;
+            if( is_callable($nonhelper) ) {
+                $nonhelper = call_user_func_array($nonhelper, $helper['callParams']);
+            }
             $this->push($nonhelper);
         }
     }

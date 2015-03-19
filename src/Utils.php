@@ -7,18 +7,29 @@ namespace Handlebars;
  */
 class Utils
 {
-	/**
-	 * Is the array a numeric array?
-	 * 
-	 * @param array $array
-	 * @return boolean
-	 */
-	static public function isIntArray($array)
-	{
+    static public function createFrame($object)
+    {
+        if( is_object($object) ) {
+            $frame = clone $object;
+            $frame->_parent = $object;
+        } else {
+            $frame = $object;
+            $frame['_parent'] = $object;
+        }
+        return $frame;
+    }
+    /**
+     * Is the array a numeric array?
+     * 
+     * @param array $array
+     * @return boolean
+     */
+    static public function isIntArray($array)
+    {
         if( !is_array($array) ) {
             return false;
         }
-        
+
         foreach( $array as $k => $v ) {
             if( is_string($k) ) {
                 return false;
@@ -26,7 +37,7 @@ class Utils
                 return true;
             }
         }
-        
+
         return true;
-	}
+    }
 }

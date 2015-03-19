@@ -76,7 +76,7 @@ function hbs_generate_class_name($specName, $suiteName) {
 }
 
 function hbs_generate_namespace($specName, $ns) {
-    return 'Handlebars\\Tests\\Spec\\' . $ns;
+    return 'Handlebars\\Tests\\Spec\\' . $specName . '\\' . $ns;
 }
 
 function hbs_generate_test_file($ns, $specName, $suiteName) {
@@ -131,17 +131,9 @@ function hbs_generate_test_vars($test) {
     $parts[] = i(2) . '$helpers = ' . i_var_export(2, $helpers) . ";";
     
     // Generate options - @todo merge compile and runtime options for now
-    $options = array();
-    if( isset($test['compileOptions']) ) {
-        $options = array_merge($options, $test['compileOptions']);
-    }
-    if( isset($test['options']) ) {
-        $options = array_merge($options, $test['options']);
-    }
-    if( $test['specName'] === 'mustache' ) {
-        $options['compat'] = 1;
-    }
-    $parts[] = i(2) . '$options = ' . i_var_export(2, $options) . ";";
+    $parts[] = i(2) . '$compileOptions = ' . i_var_export(2, isset($test['compileOptions']) ? $test['compileOptions'] : array()) . ";";
+    $parts[] = i(2) . '$options = ' . i_var_export(2, isset($test['options']) ? $test['options'] : array()) . ";";
+    $parts[] = i(2) . '$allOptions = array_merge($compileOptions, $options);';
     
     return join("\n", $parts);
 }

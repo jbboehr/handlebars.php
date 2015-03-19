@@ -18,6 +18,7 @@ namespace $testNamespace;
 
 use \PHPUnit_Framework_TestCase;
 use \Handlebars\SafeString;
+use \Handlebars\Utils;
 
 class $className extends PHPUnit_Framework_TestCase {
     private \$handlebars;
@@ -43,7 +44,7 @@ function hbs_generate_integration_function_body($test) {
     $parts = array();
     
     // Generate executor
-    $parts[] = i(2) . "\$this->execute(\$expected, \$tmpl, \$data, \$helpers, \$partials, \$options);";
+    $parts[] = i(2) . "\$this->execute(\$expected, \$tmpl, \$data, \$helpers, \$partials, \$allOptions);";
     
     return join("\n", $parts);
 }

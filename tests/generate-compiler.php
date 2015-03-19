@@ -1,12 +1,12 @@
 <?php
 
-$vmSkipSuites = array();
-$vmSkipTests = array(
+$compilerSkipSuites = array();
+$compilerSkipTests = array(
     'testSubexpressionsSubexpressionsCanTJustBePropertyLookups2',
 );
 
-function hbs_generate_vm_class_header($specName, $suiteName) {
-    $testNamespace = hbs_generate_namespace('VM', $specName);
+function hbs_generate_compiler_class_header($specName, $suiteName) {
+    $testNamespace = hbs_generate_namespace('Compiler', $specName);
     $className = hbs_generate_class_name($specName, $suiteName);
     return <<<EOF
 <?php
@@ -18,21 +18,15 @@ use \Handlebars\SafeString;
 use \Handlebars\Utils;
 
 class $className extends PHPUnit_Framework_TestCase {
-    private \$vm;
+    private \$compiler;
     public function setUp() { 
-        \$this->vm = new \Handlebars\VM();
-    }
-    private function execute() {
-        \$args = func_get_args();
-        \$expected = array_shift(\$args);
-        \$actual = call_user_func_array(array(\$this->vm, 'execute'), \$args);
-        \$this->assertEquals(\$expected, \$actual);
+        \$this->compiler = new \Handlebars\PhpCompiler();
     }
 
 EOF;
 }
 
-function hbs_generate_vm_function_body($test) {
+function hbs_generate_compiler_function_body($test) {
     // Generate opcodes
     $parts[] = i(2) . '$opcodes = ' . i_var_export(2, $test['opcodes']) . ";";
     
@@ -43,13 +37,25 @@ function hbs_generate_vm_function_body($test) {
     $parts[] = i(2) . '$partialOpcodes = ' . i_var_export(2, $partialOpcodes) . ";";
     
     // Generate executor
-    $parts[] = i(2) . "\$this->execute(\$expected, \$opcodes, \$data, \$helpers, \$partialOpcodes, \$allOptions);";
+    $parts[] = i(2) . "\$templateSpecStr = \$this->compiler->compile(\$opcodes, \$compileOptions);";
+    $parts[] = i(2) . "\$templateSpec = eval('return ' . \$templateSpecStr . ';');";
+    
+    $parts[] = i(2) . "\$partialFns = array();";
+    $parts[] = i(2) . "foreach( \$partialOpcodes as \$name => \$partialOpcode ) {";
+    $parts[] = i(3) . "\$partialFns[\$name] = new \Handlebars\Runtime(eval('return ' . \$this->compiler->compile(\$partialOpcode, \$compileOptions) . ';'));";
+    $parts[] = i(2) . '}';
+    
+    $parts[] = i(2) . "if( !\$templateSpec ) { echo \$templateSpecStr; die(); };";
+    $parts[] = i(2) . "\$fn = new \Handlebars\Runtime(\$templateSpec, \$helpers, \$partialFns);";
+    $parts[] = i(2) . "if( isset(\$compileOptions['data']) || true ) { \$options['data'] = \$data; }";
+    $parts[] = i(2) . "\$actual = \$fn(\$data, \$options);";
+    $parts[] = i(2) . "\$this->assertEquals(\$expected, \$actual);";
     
     return join("\n", $parts);
 }
 
-function hbs_generate_vm_test($suiteName, $test, &$usedNames) {
-    global $vmSkipSuites, $vmSkipTests;
+function hbs_generate_compiler_test($suiteName, $test, &$usedNames) {
+    global $compilerSkipSuites, $compilerSkipTests;
     
     $parts = array();
     
@@ -59,7 +65,7 @@ function hbs_generate_vm_test($suiteName, $test, &$usedNames) {
     $parts[] = hbs_generate_function_header($test, $functionName);
     
     // Mark skipped
-    if( in_array($functionName, $vmSkipTests) || in_array($suiteName, $vmSkipSuites) ) {
+    if( in_array($functionName, $compilerSkipTests) || in_array($suiteName, $compilerSkipSuites) ) {
         $parts[] = hbs_generate_function_incomplete();
     }
     
@@ -70,20 +76,20 @@ function hbs_generate_vm_test($suiteName, $test, &$usedNames) {
         $parts[] = i(2) . "\$this->setExpectedException('\\Handlebars\\Exception');";
     }
     
-    $parts[] = hbs_generate_vm_function_body($test);
+    $parts[] = hbs_generate_compiler_function_body($test);
     $parts[] = hbs_generate_function_footer();
     
     return "\n" . join("\n", $parts) . "\n";
 }
 
-function hbs_generate_vm_class($specName, $suiteName, $tests) {
+function hbs_generate_compiler_class($specName, $suiteName, $tests) {
     $usedNames = array();
     
-    $output = hbs_generate_vm_class_header($specName, $suiteName);
+    $output = hbs_generate_compiler_class_header($specName, $suiteName);
     foreach( $tests as $test ) {
         $test['specName'] = $specName;
         $test['suiteName'] = $suiteName;
-        $output .= hbs_generate_vm_test($suiteName, $test, $usedNames);
+        $output .= hbs_generate_compiler_test($suiteName, $test, $usedNames);
     }
     $output .= hbs_generate_class_footer();
     
