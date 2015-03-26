@@ -18,6 +18,7 @@ class Utils
         }
         return $frame;
     }
+    
     /**
      * Is the array a numeric array?
      * 
@@ -33,9 +34,9 @@ class Utils
         foreach( $array as $k => $v ) {
             if( is_string($k) ) {
                 return false;
-            } else if( is_int($k) ) {
+            } /*else if( is_int($k) ) {
                 return true;
-            }
+            }*/
         }
 
         return true;

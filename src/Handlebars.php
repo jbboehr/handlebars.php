@@ -7,11 +7,11 @@ namespace Handlebars;
  */
 class Handlebars
 {
-	/**
-	 * Array of global helpers
-	 * 
-	 * @var array
-	 */
+    /**
+     * Array of global helpers
+     * 
+     * @var array
+     */
     protected $helpers = array();
     
     /**
@@ -143,12 +143,12 @@ class Handlebars
      * @param $options
      * @return array
      */
-    private function compilePartials(array $partials = null, array $options = null)
+    public function compilePartials(array $partials = null, array $options = null)
     {
         $partialOpcodes = array();
         foreach( (array) $partials as $name => $partial ) {
             if( !$partial ) {
-                $partialOpcodes[$name] = array('opcodes' => array());
+                $partialOpcodes[$name] = array('opcodes' => array(), 'children' => array());
                 continue;
             }
             $partialOpcodes[$name] = $this->compile($partial, $options);
