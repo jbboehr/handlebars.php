@@ -296,7 +296,7 @@ class PhpCompiler
         return $this->quotedString('');
     }
     
-    /*private*/ public function nameLookup($parent, $name)
+    /*private*/ public function nameLookup($parent, $name /*, $type = null*/)
     {
         $expr = $parent . '[' . var_export($name, true) . ']';
         return 'isset(' . $expr . ') ? ' . $expr . ' : null';
@@ -745,7 +745,14 @@ class PhpCompiler
         if( !$depth ) {
             $this->pushStackLiteral('$data');
         } else {
-            $this->pushStackLiteral('$runtime->data($data, ' . $depth . ')');
+            $register = '$data' . $depth;
+            $this->useRegister($register);
+            $this->pushSource($register . ' = $runtime->data($data, ' . $depth . ');');
+            $this->pushStackLiteral($register);
+            //if( PHP_VERSION_ID < 50400 ) {
+            //    throw new Exception('Depthed lookupData requires PHP 5.4');
+            //}
+            //$this->pushStackLiteral('$runtime->data($data, ' . $depth . ')');
         }
         
         $self = $this;

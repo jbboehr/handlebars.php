@@ -395,7 +395,7 @@ class VM
         // This might not work right?
         if( $this->dataStack->count() &&
                 ($top = $this->dataStack->top()) &&
-                !empty($top['data']) ) {
+                !empty($top['data']) && is_array($top['data']) ) {
             $options->data = array_merge($this->data, $top['data']);
         } else {
             $options->data = $this->data;
