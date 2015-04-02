@@ -120,11 +120,8 @@ class VM
      */
     public function execute($opcodes, $data = null, $helpers = null, $partialOpcodes = null, $options = null)
     {
-        // Setup builtin helpers
-        $this->setupBuiltinHelpers();
-        
         $this->data = $data;
-        $this->helpers = array_merge($this->helpers, (array) $helpers);
+        $this->helpers = (array) $helpers;
         //$this->partials = $partials;
         $this->partialOpcodes = (array) $partialOpcodes;
         $this->options = (array) $options;
@@ -250,21 +247,6 @@ class VM
     private function accept($opcode)
     {
         return call_user_func_array(array($this, $opcode['opcode']), $opcode['args']);
-    }
-    
-    /**
-     * Setup the builtin helpers
-     */
-    private function setupBuiltinHelpers()
-    {
-        $builtins = new Builtins($this);
-        $this->helpers['blockHelperMissing'] = array($builtins, 'blockHelperMissing');
-        $this->helpers['each'] = array($builtins, 'each');
-        $this->helpers['helperMissing'] = array($builtins, 'helperMissing');
-        $this->helpers['if'] = array($builtins, 'builtinIf');
-        $this->helpers['lookup'] = array($builtins, 'lookup');
-        $this->helpers['unless'] = array($builtins, 'unless');
-        $this->helpers['with'] = array($builtins, 'with');
     }
     
     

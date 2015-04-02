@@ -18,7 +18,9 @@ class Common extends PHPUnit_Framework_TestCase
             throw new \Exception('Handlebars extension not loaded');
         }
         $this->compiler = new \Handlebars\PhpCompiler();
-        $this->handlebars = new \Handlebars\Handlebars();
+        $this->handlebars = new \Handlebars\Handlebars(array(
+            'mode' => \Handlebars\Handlebars::MODE_VM,
+        ));
         $this->vm = new \Handlebars\VM();
     }
 }

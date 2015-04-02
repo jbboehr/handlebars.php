@@ -4,27 +4,6 @@ namespace Handlebars;
 
 use Handlebars\CompilerException as Exception;
 
-class AppendToBuffer {
-    public $appendToBuffer = true;
-    public $content;
-    public function __construct($content)
-    {
-        $this->content = $content;
-    }
-    public function __toString()
-    {
-        return '$buffer .= $runtime->expression(' . $this->content . ');';
-    }
-}
-
-class Literal {
-    public $value;
-    public function __construct($value)
-    {
-        $this->value = $value;
-    }
-}
-
 class PhpCompiler
 {
     const VERSION = '2.0.0';

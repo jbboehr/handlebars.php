@@ -12,10 +12,16 @@ class Runtime
     private $helpers;
     private $partials;
     
-    public function __construct($templateSpec, array $helpers = array(), array $partials = array())
+    private $handlebars;
+    
+    public function __construct(\Handlebars\Handlebars $handlebars, $templateSpec)
     {
+        $this->handlebars = $handlebars;
+        $this->helpers = $handlebars->getHelpers();
+        $this->partials = $handlebars->getPartials();
+        
         if( !is_array($templateSpec) ) {
-            throw new \Exception("WTF: " . var_export($templateSpec, true));
+            throw new \Exception("Not an array: " . var_export($templateSpec, true));
         }
         
         $this->templateSpec = $templateSpec;
@@ -27,15 +33,16 @@ class Runtime
             }
         }
         
-        $this->setupBuiltinHelpers();
-        $this->helpers = array_merge($this->helpers, $helpers);
-        $this->partials = $partials;
+        //$this->partials = $partials;
     }
     
     public function __invoke($context = null, array $options = array())
     {
         if( !empty($options['partials']) ) {
-            $this->partials = array_merge($this->partials, $options['partials']);
+            // array_merge seems to blow away integer keys
+            foreach( $options['partials'] as $k => $v ) {
+                $this->partials[$k] = $v;
+            }
         }
         
         if( !empty($options['helpers']) ) {
@@ -170,6 +177,17 @@ class Runtime
     {
         if( $hash ) {
             $context = array_merge((array) $context, $hash);
+        }
+        
+        if( is_string($partial) ) {
+            if( !$partial ) {
+                $partial = function() {};
+            } else {
+                $partial = $this->handlebars->compile($partial, array(
+                    'data' => ($data !== null),
+                    'compat' => !empty($this->templateSpec['compat']),
+                ));
+            }
         }
         
         if( !is_callable($partial) ) {

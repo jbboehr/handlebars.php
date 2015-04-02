@@ -49,16 +49,25 @@ class CompilerGenerator extends Generator
         $test['testMode'] = 'integration';
         $header = $this->generateFunctionHeader($test);
         $header .= $this->generateTestVars($test);
-        $footer = $this->generateExecutor();
-        $footer .= $this->generateFunctionFooter($test);
+        //$footer = $this->generateExecutor();
+        $footer = $this->generateFunctionFooter($test);
         
         $parts = array();
-        $parts[] = '$partialOpcodes = array();';
+        $parts[] = '// @todo make runtime partials work';
+        $parts[] = '$fn = $this->handlebars->compile($tmpl, $compileOptions);';
+        $parts[] = '$options["data"] = $data;';
+        $parts[] = '$options["helpers"] = $helpers;';
+        $parts[] = '$options["partials"] = $partials;';
+        $parts[] = '$actual = $fn($data, $options);';
+        $parts[] = '$this->assertEquals($expected, $actual);';
+        
+        /*
         $parts[] = '$opcodes = $this->handlebars->compile($tmpl, $compileOptions);';
         $parts[] = '$partialOpcodes = $this->handlebars->compilePartials($partials, $compileOptions);';
         //$parts[] = 'foreach( $partials as $name => $partial ) {';
         //$parts[] = '    $partialOpcodes[$name] = $this->handlebars->compile($partial, $compileOptions);';
         //$parts[] = '}';
+        */
         
         return $header
             . $this->indent(2) . join("\n" . $this->indent(2), $parts) . "\n"
@@ -72,13 +81,15 @@ class CompilerGenerator extends Generator
         \$templateSpec = eval('return ' . \$templateSpecStr . ';');
         \$partialFns = array();
         foreach( \$partialOpcodes as \$name => \$partialOpcode ) {
-            \$partialFns[\$name] = new \Handlebars\Runtime(eval('return ' . \$this->compiler->compile(\$partialOpcode, \$compileOptions) . ';'));
+            \$partialFns[\$name] = new \Handlebars\Runtime(\$this->handlebars, eval('return ' . \$this->compiler->compile(\$partialOpcode, \$compileOptions) . ';'));
         }
         if( !\$templateSpec ) {
             echo \$templateSpecStr; exit(1);
         };
-        \$fn = new \Handlebars\Runtime(\$templateSpec, \$helpers, \$partialFns);
+        \$fn = new \Handlebars\Runtime(\$this->handlebars, \$templateSpec);
         if( isset(\$compileOptions['data']) || true ) { \$options['data'] = \$data; }
+        \$options["helpers"] = \$helpers;
+        \$options["partials"] = \$partials;
         \$actual = \$fn(\$data, \$options);
         \$this->assertEquals(\$expected, \$actual);
 

@@ -25,6 +25,24 @@ class VMGenerator extends Generator
         return $this->generateTestExport($test) . $this->generateTestIntegration($test);
     }
     
+    
+    protected function generateTestIntegration(array $test)
+    {
+        $test['testMode'] = 'integration';
+        $header = $this->generateFunctionHeader($test);
+        $header .= $this->generateTestVars($test);
+        $footer = $this->generateFunctionFooter($test);
+        
+        $parts[] = '$allOptions["helpers"] = $helpers;';
+        $parts[] = '$allOptions["partials"] = $partials;';
+        $parts[] = '$actual = $this->handlebars->render($tmpl, $data, $allOptions);';
+        $parts[] = '$this->assertEquals($expected, $actual);';
+        
+        return $header
+            . $this->indent(2) . join("\n" . $this->indent(2), $parts) . "\n"
+            . $footer;
+    }
+    
     protected function generateTestExport(array $test)
     {
         if( $this->specName === 'Mustache' ) {
@@ -36,6 +54,7 @@ class VMGenerator extends Generator
         $header .= $this->generateTestVars($test);
         $footer = $this->generateFunctionFooter($test);
         
+        $parts[] = '$helpers += $this->handlebars->getHelpers();';
         $parts[] = '$actual = $this->vm->execute($opcodes, $data, $helpers, $partialOpcodes, $allOptions);';
         $parts[] = '$this->assertEquals($expected, $actual);';
         
@@ -43,20 +62,5 @@ class VMGenerator extends Generator
             . $this->indent(2) . join("\n" . $this->indent(2), $parts) . "\n"
             . $footer;
         
-    }
-    
-    protected function generateTestIntegration(array $test)
-    {
-        $test['testMode'] = 'integration';
-        $header = $this->generateFunctionHeader($test);
-        $header .= $this->generateTestVars($test);
-        $footer = $this->generateFunctionFooter($test);
-        
-        $parts[] = '$actual = $this->handlebars->render($tmpl, $data, $helpers, $partials, $allOptions);';
-        $parts[] = '$this->assertEquals($expected, $actual);';
-        
-        return $header
-            . $this->indent(2) . join("\n" . $this->indent(2), $parts) . "\n"
-            . $footer;
     }
 }

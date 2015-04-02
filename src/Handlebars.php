@@ -7,6 +7,14 @@ namespace Handlebars;
  */
 class Handlebars
 {
+    const MODE_COMPILER = 'compiler';
+    const MODE_VM = 'vm';
+    
+    /**
+     * @var \Handlebars\Compiler
+     */
+    protected $compiler;
+    
     /**
      * Array of global helpers
      * 
@@ -15,11 +23,23 @@ class Handlebars
     protected $helpers = array();
     
     /**
+     * The default render mode (compiler or vm)
+     * 
+     * @var string
+     */
+    protected $mode;
+    
+    /**
      * Array of global partials
      * 
      * @var array
      */
     protected $partials = array();
+    
+    /**
+     * @var \Handlebars\PhpCompiler
+     */
+    protected $phpCompiler;
     
     /**
      * VM instance
@@ -31,28 +51,83 @@ class Handlebars
     /**
      * Constructor
      */
-    public function __construct()
+    public function __construct($options = array())
     {
+        if( isset($options['mode']) ) {
+            $this->mode = $options['mode'];
+        } else {
+            $this->mode = self::MODE_COMPILER;
+        }
+        
+        $this->compiler = new Compiler();
+        $this->phpCompiler = new PhpCompiler();
         $this->vm = new VM();
+        
+        $this->setupBuiltinHelpers();
     }
     
     /**
      * Compile a template
      * 
-     * @param $tmpl
-     * @param $options
+     * @param string $tmpl
+     * @param array $compileOptions
+     * @return \Handlebars\Runtime
+     * @throws CompilerException
+     */
+    public function compile($tmpl, array $compileOptions = array())
+    {
+        $opcodes = $this->compiler->compile($tmpl, $compileOptions);
+        $templateSpecString = $this->phpCompiler->compile($opcodes, $compileOptions);
+        $templateSpec = eval('return ' . $templateSpecString . ';');
+        if( !$templateSpec ) {
+            throw new CompilerException('Failed to compile template');
+        }
+        return new Runtime($this, $templateSpec);
+    }
+    
+    /**
+     * Get a registered helper by name
+     * 
+     * @param string $name
+     * @return callable
+     */
+    public function getHelper($name)
+    {
+        return $this->helpers[$name];
+    }
+    
+    /**
+     * Get the currently registered helpers
+     * 
+     * @return array
+     */
+    public function getHelpers()
+    {
+        return $this->helpers;
+    }
+    
+    /**
+     * Get the currently registered partials
+     * 
+     * @return array
+     */
+    public function getPartials()
+    {
+        return $this->partials;
+    }
+    
+    /**
+     * Precompile a template 
+     * 
+     * @param string $tmpl
+     * @param array $compileOptions
      * @return array
      * @throws \Handlebars\CompilerException
      */
-    public function compile($tmpl, array $options = null)
+    public function precompile($tmpl, array $compileOptions = array())
     {
-        $flags = $this->makeCompilerFlags($options);
-        $knownHelpers = !empty($options['knownHelpers']) ? array_keys($options['knownHelpers']) : null;
-        $opcodes = handlebars_compile($tmpl, $flags, $knownHelpers);
-        if( !$opcodes ) {
-            throw new CompilerException('Compile error: ' . handlebars_error());
-        }
-        return $opcodes;
+        $opcodes = $this->compiler->compile($tmpl, $compileOptions);
+        return $this->phpCompiler->compile($opcodes, $compileOptions);
     }
     
     /**
@@ -64,7 +139,7 @@ class Handlebars
      */
     public function registerHelper($name, $helper)
     {
-        $this->helpers[$name] = $partial;
+        $this->helpers[$name] = $helper;
         return $this;
     }
     
@@ -74,9 +149,11 @@ class Handlebars
      * @param $helpers array
      * @return self
      */
-    public function registerHelpers(array $helpers)
+    public function registerHelpers(/*array */$helpers)
     {
-        $this->helpers = array_merge($this->helpers, $helpers);
+        foreach( $helpers as $name => $helper ) {
+            $this->registerHelper($name, $helper);
+        }
         return $this;
     }
     
@@ -99,9 +176,11 @@ class Handlebars
      * @param $partials
      * @return self
      */
-    public function registerPartials(array $partials)
+    public function registerPartials(/*array */$partials)
     {
-        $this->partials = array_merge($this->partials, $partials);
+        foreach( $partials as $name => $partial ) {
+            $this->registerPartial($name, $partial);
+        }
         return $this;
     }
     
@@ -109,78 +188,87 @@ class Handlebars
      * Render a template
      * 
      * @param $tmpl
-     * @param $data
-     * @param $helpers
-     * @param $partials
+     * @param $context
      * @param $options
      * @return string
      * @throws \Handlebars\CompilerException
      * @throws \Handlebars\RuntimeException
      */
-    public function render($tmpl, $data = null, $helpers = null, $partials = null, $options = null)
+    public function render($tmpl, $context = null, $options = null)
     {
-        settype($helpers, 'array');
-        settype($partials, 'array');
-        
-        // Add global helpers and partials
-        $helpers += $this->helpers;
-        $partials += $this->partials;
-        
-        // Compile
-        $opcodes = $this->compile($tmpl, $options);
-        $partialOpcodes = $this->compilePartials($partials, $options);
-        
-        // Execute
-        return $this->vm->execute($opcodes, $data, $helpers, $partialOpcodes, $options);
+        if( $this->mode === self::MODE_VM ) {
+            return $this->renderVM($tmpl, $context, $options);
+        } else {
+            return $this->renderCompiler($tmpl, $context, $options);
+        }
     }
     
-    
+    /**
+     * Render a template in compiler mode
+     * 
+     * @param $tmpl
+     * @param $context
+     * @param $options
+     * @return string
+     * @throws \Handlebars\CompilerException
+     * @throws \Handlebars\RuntimeException
+     */
+    private function renderCompiler($tmpl, $context = null, $options = null)
+    {
+        $runtime = $this->compile($tmpl, $options);
+        return $runtime($context, $options);
+    }
     
     /**
-     * Compile an array of partials
+     * Render a template in VM mode
      * 
-     * @param $partials
+     * @param $tmpl
+     * @param $context
      * @param $options
-     * @return array
+     * @return string
+     * @throws \Handlebars\CompilerException
+     * @throws \Handlebars\RuntimeException
      */
-    public function compilePartials(array $partials = null, array $options = null)
+    private function renderVM($tmpl, $context = null, $options = null)
     {
-        $partialOpcodes = array();
-        foreach( (array) $partials as $name => $partial ) {
-            if( !$partial ) {
-                $partialOpcodes[$name] = array('opcodes' => array(), 'children' => array());
-                continue;
+        // Build helpers
+        $helpers = $this->getHelpers();
+        if( isset($options['helpers']) ) {
+            // array_merge seems to blow away integer keys
+            foreach( $options['helpers'] as $name => $helper ) {
+                $helpers[$name] = $helper;
             }
-            $partialOpcodes[$name] = $this->compile($partial, $options);
         }
-        return $partialOpcodes;
+        
+        // Build partials
+        $partials = $this->getPartials();
+        if( isset($options['partials']) ) {
+            // array_merge seems to blow away integer keys
+            foreach( $options['partials'] as $name => $partial ) {
+                $partials[$name] = $partial;
+            }
+        }
+
+        // Compile
+        $opcodes = $this->compiler->compile($tmpl, $options);
+        $partialOpcodes = $this->compiler->compileMany($partials, $options);
+
+        // Execute
+        return $this->vm->execute($opcodes, $context, $helpers, $partialOpcodes, $options);
     }
     
     /**
-     * Convert options array to integer compiler flags
-     * 
-     * @param $options
-     * @return integer
+     * Setup the builtin helpers
      */
-    private function makeCompilerFlags(array $options = null)
+    private function setupBuiltinHelpers()
     {
-        // Make flags
-        $flags = 0;
-        if( !empty($options['compat']) ) {
-            $flags |= HANDLEBARS_COMPILER_FLAG_COMPAT;
-        }
-        if( !empty($options['stringParams']) ) {
-            $flags |= HANDLEBARS_COMPILER_FLAG_STRING_PARAMS;
-        }
-        if( !empty($options['trackIds']) ) {
-            $flags |= HANDLEBARS_COMPILER_FLAG_TRACK_IDS;
-        }
-        if( !empty($options['useDepths']) ) {
-            $flags |= HANDLEBARS_COMPILER_FLAG_USE_DEPTHS;
-        }
-        if( !empty($options['knownHelpersOnly']) ) {
-            $flags |= HANDLEBARS_COMPILER_FLAG_KNOWN_HELPERS_ONLY;
-        }
-        return $flags;
+        $builtins = new Builtins($this);
+        $this->helpers['blockHelperMissing'] = array($builtins, 'blockHelperMissing');
+        $this->helpers['each'] = array($builtins, 'each');
+        $this->helpers['helperMissing'] = array($builtins, 'helperMissing');
+        $this->helpers['if'] = array($builtins, 'builtinIf');
+        $this->helpers['lookup'] = array($builtins, 'lookup');
+        $this->helpers['unless'] = array($builtins, 'unless');
+        $this->helpers['with'] = array($builtins, 'with');
     }
 }
