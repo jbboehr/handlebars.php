@@ -7,9 +7,9 @@ namespace Handlebars;
  */
 class SafeString
 {
-	/**
-	 * @var string
-	 */
+    /**
+     * @var string
+     */
     private $value;
     
     /**

@@ -1,9 +1,7 @@
 #!/usr/bin/env php
 <?php
 
-require __DIR__ . '/tests/generate-utils.php';
-require __DIR__ . '/tests/generate-integration.php';
-require __DIR__ . '/tests/generate-vm.php';
+require __DIR__ . '/vendor/autoload.php';
 
 $specialSuites = array('parser', 'tokenizer', 'delimiters', '~lambdas');
 
@@ -34,15 +32,21 @@ foreach( $exportFiles as $filePath ) {
         continue;
     }
     
-    // VM
-    $vmTestFile = hbs_generate_test_file('VM', 'handlebars', $suiteName);
-    $vmOutput = hbs_generate_vm_class('handlebars', $suiteName, $tests);
-    hbs_generate_write_file($vmTestFile, $vmOutput);
+    // VM (generator)
+    $vmGenerator = new \Handlebars\Tests\VMGenerator(array(
+        'specName' => 'Handlebars',
+        'suiteName' => $suiteName,
+        'ns' => 'VM',
+    ));
+    $vmGenerator->write($vmGenerator->generate($tests));
     
-    // Integration
-    $integrationTestFile = hbs_generate_test_file('Integration', 'handlebars', $suiteName);
-    $integrationOutput = hbs_generate_integration_class('handlebars', $suiteName, $tests);
-    hbs_generate_write_file($integrationTestFile, $integrationOutput);
+    // Compiler (generator)
+    $compilerGenerator = new \Handlebars\Tests\CompilerGenerator(array(
+        'specName' => 'Handlebars',
+        'suiteName' => $suiteName,
+        'ns' => 'Compiler',
+    ));
+    $compilerGenerator->write($compilerGenerator->generate($tests));
 }
 
 
@@ -72,13 +76,19 @@ foreach( $mustacheFiles as $filePath ) {
         continue;
     }
     
-    // VM
-    //$vmTestFile = hbs_generate_test_file('VM', 'mustache', $suiteName);
-    //$vmOutput = hbs_generate_vm_class('mustache', $suiteName, $tests['tests']);
-    //hbs_generate_write_file($vmTestFile, $vmOutput);
+    // VM (generator)
+    $vmGenerator = new \Handlebars\Tests\VMGenerator(array(
+        'specName' => 'Mustache',
+        'suiteName' => $suiteName,
+        'ns' => 'VM',
+    ));
+    $vmGenerator->write($vmGenerator->generate($tests['tests']));
     
-    // Integration
-    $integrationTestFile = hbs_generate_test_file('Integration', 'mustache', $suiteName);
-    $integrationOutput = hbs_generate_integration_class('mustache', $suiteName, $tests['tests']);
-    hbs_generate_write_file($integrationTestFile, $integrationOutput);
+    // Compiler (generator)
+    $compilerGenerator = new \Handlebars\Tests\CompilerGenerator(array(
+        'specName' => 'Mustache',
+        'suiteName' => $suiteName,
+        'ns' => 'Compiler',
+    ));
+    $compilerGenerator->write($compilerGenerator->generate($tests['tests']));
 }
