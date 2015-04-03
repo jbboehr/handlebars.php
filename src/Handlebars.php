@@ -233,7 +233,7 @@ class Handlebars
     {
         // Build helpers
         $helpers = $this->getHelpers();
-        if( isset($options['helpers']) ) {
+        if( !empty($options['helpers']) ) {
             // array_merge seems to blow away integer keys
             foreach( $options['helpers'] as $name => $helper ) {
                 $helpers[$name] = $helper;
@@ -242,7 +242,7 @@ class Handlebars
         
         // Build partials
         $partials = $this->getPartials();
-        if( isset($options['partials']) ) {
+        if( !empty($options['partials']) ) {
             // array_merge seems to blow away integer keys
             foreach( $options['partials'] as $name => $partial ) {
                 $partials[$name] = $partial;
