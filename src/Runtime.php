@@ -46,7 +46,10 @@ class Runtime
         }
         
         if( !empty($options['helpers']) ) {
-            $this->helpers = array_merge($this->helpers, $options['helpers']);
+            // array_merge seems to blow away integer keys
+            foreach( $options['helpers'] as $k => $v ) {
+                $this->helpers[$k] = $v;
+            }
         }
         
         $data = isset($options['data']) ? $options['data'] : array();

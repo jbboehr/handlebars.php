@@ -42,9 +42,15 @@ function runCompiled($test) {
     $handlebars = new \Handlebars\Handlebars();
     $fn = $handlebars->compile($tmpl, $options);
     
+    // Compile partials in advance
+    if( !empty($partials) ) {
+        foreach( $partials as $name => $partial ) {
+            $partials[$name] = $handlebars->compile($partial, $options);
+        }
+    }
+    
     $start = microtime(true);
     for( $i = 0; $i < $count; $i++ ) {
-        //$actual = $handlebars->render($tmpl, $data, $helpers, $partials, $options);
         $actual = $fn($data, array(
             'helpers' => $helpers,
             'partials' => $partials,
