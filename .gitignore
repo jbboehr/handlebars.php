@@ -3,7 +3,6 @@
 .project
 .settings
 .c9
-composer.lock
 composer.phar
 /doc
 /node_modules/
