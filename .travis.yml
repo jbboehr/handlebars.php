@@ -17,9 +17,9 @@ before_install:
   - sudo apt-add-repository -y ppa:mandel/movie-tracker
   - sudo apt-get update -qq
   - ./.travis.sh
-  - composer install --no-dev --verbose
+  - composer install --verbose
   - php generate-tests.php
 
 script:
-  - phpunit
+  - ./vendor/bin/phpunit
   - ./bench.php
