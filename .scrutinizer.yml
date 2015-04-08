@@ -1,5 +1,12 @@
 filter:
-  excluded_paths: [vendor/*, tests/*, bin/*, node_modules/*, spec/*, bench.php]
+  excluded_paths:
+    - bench.php
+    - generate-tests.php
+    - bin/*
+    - node_modules/*
+    - spec/*
+    - tests/*
+    - vendor/*
 
 checks:
   php:

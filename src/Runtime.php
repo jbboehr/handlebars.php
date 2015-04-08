@@ -2,10 +2,9 @@
 
 namespace Handlebars;
 
-use Handlebars\RuntimeException as Exception;
-
 class Runtime
 {
+    private $templateSpec;
     private $main;
     private $programs;
     private $programWrappers;
@@ -21,7 +20,7 @@ class Runtime
         $this->partials = $handlebars->getPartials();
         
         if( !is_array($templateSpec) ) {
-            throw new \Exception("Not an array: " . var_export($templateSpec, true));
+            throw new RuntimeException("Not an array: " . var_export($templateSpec, true));
         }
         if( is_object($this->helpers) ) {
             $this->helpers = clone $this->helpers;
@@ -38,8 +37,6 @@ class Runtime
                 $this->programs[$index] = $program;
             }
         }
-        
-        //$this->partials = $partials;
     }
     
     public function __invoke($context = null, array $options = array())
@@ -63,7 +60,6 @@ class Runtime
             if( !$data || !isset($data['root']) ) {
                 $data = $data ? Utils::createFrame($data) : array();
                 $data['root'] = $context;
-                //$data = array_merge($data, $data['root']);
             }
         }
         
@@ -92,7 +88,7 @@ class Runtime
             if( Utils::isIntArray($value) ) {
                 return join(',', $value);
             } else {
-                throw new \Exception('Trying to stringify assoc array');
+                throw new RuntimeException('Trying to stringify assoc array');
             }
         } else {
             return (string) $value;
@@ -116,9 +112,9 @@ class Runtime
         $programWrapper = isset($this->programWrappers[$i]) ? $this->programWrappers[$i] : null;
         $fn = $this->fn($i);
         if( $data || $depths ) {
-            $programWrapper = $this->wrapProgram($i, $fn, $data, $depths);
+            $programWrapper = $this->wrapProgram($fn, $data, $depths);
         } else if( !$programWrapper ) {
-            $programWrapper = $this->programWrappers[$i] = $this->wrapProgram($i, $fn, null, null);
+            $programWrapper = $this->programWrappers[$i] = $this->wrapProgram($fn, null, null);
         }
         return $programWrapper;
     }
@@ -143,9 +139,9 @@ class Runtime
         return $data;
     }
     
-    public function invokeAmbiguous($helper, $nonhelper, $helperMissing, $paramsInit, $callParams)
+    public function invokeAmbiguous($helper, $nonhelper, $helperMissing, $callParams)
     {
-        if( $helper !== null /*&& is_callable($helper)*/ ) {
+        if( $helper !== null ) {
             return $this->call($helper, $callParams);
         } else if( $nonhelper !== null ) {
             if( is_callable($nonhelper) ) {
@@ -153,10 +149,10 @@ class Runtime
             } else {
                 return $nonhelper;
             }
-        } else if( $helperMissing !== null /*&& is_callable($helperMissing)*/ ) {
+        } else if( $helperMissing !== null ) {
             return $this->call($helperMissing, $callParams);
         } else {
-            throw new Exception('helperMissing is missing!');
+            throw new RuntimeException('helperMissing is missing!');
         }
     }
     
@@ -173,7 +169,7 @@ class Runtime
         } else if( $helperMissing ) {
             return $this->call($helperMissing, $callParams);
         } else {
-            throw new Exception('helperMissing is missing!');
+            throw new RuntimeException('helperMissing is missing!');
         }
     }
     
@@ -200,7 +196,7 @@ class Runtime
         }
         
         if( !is_callable($partial) ) {
-            throw new Exception("Partial " . $name . " was not callable: " . $partial);
+            throw new RuntimeException("Partial " . $name . " was not callable: " . $partial);
         }
         
         $options = array(
@@ -271,14 +267,16 @@ class Runtime
         return $this->programs[$i];
     }
     
-    private function wrapProgram($i, $fn, $data, $depths)
+    private function wrapProgram($fn, $data, $depths)
     {
         $runtime = $this;
         return function($context = null, $options = null) use ($runtime, $data, $depths, $fn) {
             if( !$options ) {
                 $options = array();
             }
-            $data = isset($options['data']) ? $options['data'] : $data;
+            if( isset($options['data']) ) {
+                $data = $options['data'];
+            }
             if( $depths instanceof \SplDoublyLinkedList ) {
                 $depths = clone $depths;
                 $depths->unshift($context);
@@ -294,17 +292,5 @@ class Runtime
                     $runtime, 
                     $depths);
         };
-    }
-    
-    private function setupBuiltinHelpers()
-    {
-        $builtins = new Builtins($this);
-        $this->helpers['blockHelperMissing'] = array($builtins, 'blockHelperMissing');
-        $this->helpers['each'] = array($builtins, 'each');
-        $this->helpers['helperMissing'] = array($builtins, 'helperMissing');
-        $this->helpers['if'] = array($builtins, 'builtinIf');
-        $this->helpers['lookup'] = array($builtins, 'lookup');
-        $this->helpers['unless'] = array($builtins, 'unless');
-        $this->helpers['with'] = array($builtins, 'with');
     }
 }

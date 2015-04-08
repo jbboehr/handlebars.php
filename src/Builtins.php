@@ -8,18 +8,18 @@ namespace Handlebars;
 class Builtins
 {
     /*
-     * @var \Handlebars\VM
+     * @var \Handlebars\Handlebars
      */
-    private $vm;
+    private $handlebars;
     
     /**
      * Constructor
      * 
-     * @param \Handlebars\VM $vm
+     * @param \Handlebars\Handlebars $handlebars
      */
-    public function __construct(/*VM */$vm)
+    public function __construct(Handlebars $handlebars)
     {
-        $this->vm = $vm;
+        $this->handlebars = $handlebars;
     }
     
     /**
@@ -30,13 +30,13 @@ class Builtins
     public function getAllHelpers()
     {
         return array(
-           'blockHelperMissing' => array($this, 'blockHelperMissing'),
-           'each' => array($this, 'each'),
-           'helperMissing' => array($this, 'helperMissing'),
-           'if' => array($this, 'builtinIf'),
-           'lookup' => array($this, 'lookup'),
-           'unless' => array($this, 'unless'),
-           'with' => array($this, 'with'),
+            'blockHelperMissing' => array($this, 'blockHelperMissing'),
+            'each' => array($this, 'each'),
+            'helperMissing' => array($this, 'helperMissing'),
+            'if' => array($this, 'builtinIf'),
+            'lookup' => array($this, 'lookup'),
+            'unless' => array($this, 'unless'),
+            'with' => array($this, 'with'),
         );
     }
     
@@ -58,10 +58,9 @@ class Builtins
             return $options->inverse($options->scope);
         } else if( Utils::isIntArray($context) ) {
             if( $options->ids !== null ) {
-                $options->ids = array($options->name);
-                //$options->ids[] = $options->name;
+                $options->ids[] = $options->name;
             }
-            $eachHelper = $this->vm->getHelper('each');
+            $eachHelper = $this->handlebars->getHelper('each');
             return call_user_func($eachHelper, $context, $options);
         } else {
             $tmpOptions = $options;
@@ -132,13 +131,12 @@ class Builtins
         if( !empty($context) ) {
             $len = count($context) - 1;
             foreach( $context as $k => $value ) {
-                //$data = array();
                 $data['index'] = $i;
                 $data['key'] = $k;
                 $data['first'] = ($i === 0);
                 $data['last'] = ($i === $len);
                 
-                if( $contextPath ) {
+                if( null !== $contextPath ) {
                     $data['contextPath'] = $contextPath . $k;
                 }
                 
@@ -189,7 +187,7 @@ class Builtins
      */
     public function unless($conditional, $options)
     {
-        $ifHelper = $this->vm->getHelper('if');
+        $ifHelper = $this->handlebars->getHelper('if');
         $newOptions = clone $options;
         $newOptions->fn = $options->inverse;
         $newOptions->inverse = $options->fn;
@@ -210,7 +208,7 @@ class Builtins
         }
         if( !empty($context) ) {
             $fn = $options->fn;
-            if( $options->data && $options->ids ) {
+            if( !empty($options->data) && !empty($options->ids) ) {
                 $data = Utils::createFrame($options['data']);
                 $data['contextPath'] = (isset($options['data']['contextPath']) ? $options['data']['contextPath'] . '.' : '') . $options['ids'][0];
                 $options = array('data' => $data);

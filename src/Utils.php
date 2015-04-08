@@ -7,7 +7,7 @@ namespace Handlebars;
  */
 class Utils
 {
-    static public function createFrame($object)
+    public static function createFrame($object)
     {
         if( is_object($object) ) {
             $frame = clone $object;
@@ -25,7 +25,7 @@ class Utils
      * @param string $str
      * @return string
      */
-    static public function inflect($str)
+    public static function inflect($str)
     {
         return trim(
             str_replace(' ', '', 
@@ -38,7 +38,7 @@ class Utils
      * @param array $array
      * @return boolean
      */
-    static public function isIntArray($array)
+    public static function isIntArray($array)
     {
         if( !is_array($array) ) {
             return false;
@@ -47,9 +47,8 @@ class Utils
         foreach( $array as $k => $v ) {
             if( is_string($k) ) {
                 return false;
-            } /*else if( is_int($k) ) {
-                return true;
-            }*/
+            }
+            // Before, we were checking if int and returning true immediately
         }
 
         return true;

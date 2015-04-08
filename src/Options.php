@@ -9,11 +9,11 @@ use ArrayAccess;
  */
 class Options implements ArrayAccess
 {
-	/**
-	 * Contains the name of the helper being called
-	 * 
-	 * @var string
-	 */
+    /**
+     * Contains the name of the helper being called
+     * 
+     * @var string
+     */
     public $name;
     
     /**
@@ -55,8 +55,10 @@ class Options implements ArrayAccess
     public $hashIds;
     public $hashTypes;
     public $hashContexts;
+    public $types;
+    public $contexts;
     
-    static public function __set_state(array $props)
+    public static function __set_state(array $props)
     {
         $object = new self();
         foreach( $props as $k => $v ) {
@@ -105,11 +107,11 @@ class Options implements ArrayAccess
     
     public function offsetSet($offset, $value)
     {
-    	$this->$offset = $value;
+        $this->$offset = $value;
     }
     
     public function offsetUnset($offset)
     {
-    	unset($this->$offset);
+        unset($this->$offset);
     }
 }
