@@ -7,6 +7,10 @@ php:
   - 5.6
   - hhvm
 
+branches:
+  only:
+    - master
+
 before_install:
   - sudo rm -f /etc/apt/sources.list.d/*rabbit*
   - sudo apt-get update -qq
