@@ -42,17 +42,11 @@ class Runtime
     public function __invoke($context = null, array $options = array())
     {
         if( !empty($options['partials']) ) {
-            // array_merge seems to blow away integer keys
-            foreach( $options['partials'] as $k => $v ) {
-                $this->partials[$k] = $v;
-            }
+            Utils::arrayMerge($this->partials, $options['partials']);
         }
         
         if( !empty($options['helpers']) ) {
-            // array_merge seems to blow away integer keys
-            foreach( $options['helpers'] as $k => $v ) {
-                $this->helpers[$k] = $v;
-            }
+            Utils::arrayMerge($this->helpers, $options['helpers']);
         }
         
         $data = isset($options['data']) ? $options['data'] : array();
@@ -207,17 +201,8 @@ class Runtime
             'depths' => $depths,
         );
         $result = $partial($context, $options);
-        if( $result != null ) {
-            if( $indent ) {
-                $lines = explode("\n", $result);
-                for( $i = 0, $l = count($lines); $i < $l; $i++ ) {
-                    if( empty($lines[$i]) && $i + 1 == $l ) {
-                        break;
-                    }
-                    $lines[$i] = $indent . $lines[$i];
-                }
-                $result = join("\n", $lines);
-            }
+        if( $result != null && $indent ) {
+            $result = Utils::indent($result, $indent);
         }
         return $result;
     }

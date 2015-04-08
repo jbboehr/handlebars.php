@@ -213,9 +213,7 @@ class VM
         $this->buffer = '';
         
         // Execute the program
-        foreach( $opcodes as $opcode ) {
-            $this->accept($opcode);
-        }
+        $this->accept($opcodes);
         
         // Get the buffer
         $buffer = $this->buffer;
@@ -238,14 +236,16 @@ class VM
     }
     
     /**
-     * Handle an opcode
+     * Handle opcodes
      * 
-     * @param array $opcode
+     * @param array $opcodes
      * @return void
      */
-    private function accept($opcode)
+    private function accept($opcodes)
     {
-        return call_user_func_array(array($this, $opcode['opcode']), $opcode['args']);
+        foreach( $opcodes as $opcode ) {
+            call_user_func_array(array($this, $opcode['opcode']), $opcode['args']);
+        }
     }
     
     
@@ -322,40 +322,15 @@ class VM
             $options->hashContexts = $this->pop();
         }
         
-        $inverse = $this->pop();
-        $program = $this->pop();
-        
-        if( $program !== null || $inverse !== null ) {
-            $self = $this;
-            if( $program === null ) {
-                $program = function() {};
-            } else {
-                $programNumber = $program;
-                $program = function($arg = null, $data = null) use ($self, $options, $programNumber) {
-                    $v = $self->executeProgram($programNumber, $arg, $data);
-                    return $v;
-                };
-            }
-            if( $inverse === null ) {
-                $inverse = function() {};
-            } else {
-                $inverseNumber = $inverse;
-                $inverse = function($arg = null, $data = null) use ($self, $options, $inverseNumber) {
-                    $v = $self->executeProgram($inverseNumber, $arg, $data);
-                    return $v;
-                };
-            }
-        }
-        
-        $options->fn = $program;
-        $options->inverse = $inverse;
+        $options->inverse = $this->wrapProgram($this->pop(), $options);
+        $options->fn = $this->wrapProgram($this->pop(), $options);
         
         $i = $paramSize;
         $ids = $types = $contexts = array();
         while($i--) {
             $param = $this->pop();
             $params[$i] = $param;
-            if( $this->trackIds) {
+            if( $this->trackIds ) {
                 $ids[$i] = $this->pop();
             }
             if( $this->stringParams ) {
@@ -365,7 +340,7 @@ class VM
         }
         ksort($params);
         
-        if( $this->trackIds) {
+        if( $this->trackIds ) {
           $options->ids = $ids;
         }
         if( $this->stringParams ) {
@@ -389,6 +364,22 @@ class VM
     {
         $options = $this->setupOptions($helperName, $paramSize, $params);
         $params[] = $options;
+    }
+    
+    /**
+     * @param integer $program
+     * @param \Handlebars\Options $options
+     */
+    private function wrapProgram($program, Options $options)
+    {
+        if( $program === null ) {
+            return function() {};
+        }
+        
+        $self = $this;
+        return function($arg = null, $data = null) use ($self, $options, $program) {
+            return $self->executeProgram($program, $arg, $data);
+        };
     }
     
     

@@ -248,19 +248,13 @@ class Handlebars
         // Build helpers
         $helpers = $this->getHelpers();
         if( !empty($options['helpers']) ) {
-            // array_merge seems to blow away integer keys
-            foreach( $options['helpers'] as $name => $helper ) {
-                $helpers[$name] = $helper;
-            }
+            Utils::arrayMerge($helpers, $options['helpers']);
         }
         
         // Build partials
         $partials = $this->getPartials();
         if( !empty($options['partials']) ) {
-            // array_merge seems to blow away integer keys
-            foreach( $options['partials'] as $name => $partial ) {
-                $partials[$name] = $partial;
-            }
+            Utils::arrayMerge($partials, $options['partials']);
         }
 
         // Compile

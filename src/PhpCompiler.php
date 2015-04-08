@@ -43,19 +43,40 @@ class PhpCompiler
     {
         $this->environment = $environment;
         $this->options = $options;
-        $this->stringParams = !empty($options['stringParams']);
-        $this->trackIds = !empty($options['trackIds']);
+        $this->isChild = $context !== null;
+        $this->context = $context ?: (object) array(
+            'programs' => array(),
+            'environments' => array(),
+        );
+        
+        $this->reinit();
+        $this->compileChildren($this->environment, $options);
+        $this->useDepths |= !empty($this->environment['depths']) || !empty($options['compat']);
+        $this->accept($this->environment['opcodes']);
+        $this->pushSource('');
+        
+        if( $this->stackSlot || $this->inlineStack->count() || $this->compileStack->count() ) {
+            throw new CompilerException('Compile completed with content left on stack');
+        }
+        
+        $fn = $this->createFunctionContext();
+        if( $this->isChild ) {
+            return $fn;
+        } else {
+            return $this->createTemplateSpec($fn, $asObject);
+        }
+    }
+    
+    private function reinit()
+    {
+        $this->stringParams = !empty($this->options['stringParams']);
+        $this->trackIds = !empty($this->options['trackIds']);
         
         if( !isset($this->options['data']) ) {
             $this->options['data'] = true;
         }
         
         $this->name = isset($this->environment['name']) ? $this->environment['name'] : null; 
-        $this->isChild = $context !== null;
-        $this->context = $context ?: (object) array(
-            'programs' => array(),
-            'environments' => array(),
-        );
         
         $this->source = array();
         $this->stackSlot = 0;
@@ -65,54 +86,6 @@ class PhpCompiler
         $this->hashes = array();
         $this->compileStack = new \SplStack();
         $this->inlineStack = new \SplStack();
-        
-        $this->compileChildren($this->environment, $options);
-        
-        $this->useDepths |= !empty($this->environment['depths']) || !empty($options['compat']);
-        
-        $opcodes = $this->environment['opcodes'];
-        foreach( $opcodes as $opcode ) {
-            $this->accept($opcode);
-        }
-        
-        $this->pushSource('');
-        
-        if( $this->stackSlot || $this->inlineStack->count() || $this->compileStack->count() ) {
-            throw new CompilerException('Compile completed with content left on stack');
-        }
-        
-        
-        $fn = $this->createFunctionContext();
-        if( $this->isChild ) {
-            return $fn;
-        } else {
-            $ret = array(
-                'compiler' => $this->compilerInfo(),
-                'main' => $fn
-            );
-            foreach( $this->context->programs as $i => $program ) {
-                if( $program ) {
-                    $ret[$i] = $program;
-                }
-            }
-            if( !empty($this->environment['usePartial']) ) {
-                $ret['usePartial'] = true;
-            }
-            if( !empty($this->options['data']) ) {
-                $ret['useData'] = true;
-            }
-            if( $this->useDepths ) {
-                $ret['useDepths'] = true;
-            }
-            if( !empty($this->options['compat']) ) {
-                $ret['compat'] = true;
-            }
-            if( !$asObject ) {
-                $ret['compiler'] = var_export($ret['compiler'], true);
-                $ret = $this->objectLiteral($ret);
-            }
-            return $ret;
-        }
     }
     
     private function compileChildren(&$environment, array $options = array())
@@ -155,6 +128,36 @@ class PhpCompiler
         $source = $this->mergeSource($varDeclarations);
         
         return 'function(' . join(' = null, ', $params) . ' = null) {' . "\n  " . $source . '}';
+    }
+    
+    private function createTemplateSpec($fn, $asObject = false)
+    {
+        $ret = array(
+            'compiler' => $this->compilerInfo(),
+            'main' => $fn
+        );
+        foreach( $this->context->programs as $i => $program ) {
+            if( $program ) {
+                $ret[$i] = $program;
+            }
+        }
+        if( !empty($this->environment['usePartial']) ) {
+            $ret['usePartial'] = true;
+        }
+        if( !empty($this->options['data']) ) {
+            $ret['useData'] = true;
+        }
+        if( $this->useDepths ) {
+            $ret['useDepths'] = true;
+        }
+        if( !empty($this->options['compat']) ) {
+            $ret['compat'] = true;
+        }
+        if( !$asObject ) {
+            $ret['compiler'] = var_export($ret['compiler'], true);
+            $ret = $this->objectLiteral($ret);
+        }
+        return $ret;
     }
     
     /**
@@ -215,9 +218,11 @@ class PhpCompiler
     
     
     
-    private function accept($opcode)
+    private function accept($opcodes)
     {
-        return call_user_func_array(array($this, $opcode['opcode']), $opcode['args']);
+        foreach( $opcodes as $opcode ) {
+            call_user_func_array(array($this, $opcode['opcode']), $opcode['args']);
+        }
     }
     
     private function appendToBuffer($string)

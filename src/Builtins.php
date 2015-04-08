@@ -54,7 +54,7 @@ class Builtins
         }
         if( $context === true ) {
             return $options->fn($options->scope);
-        } else if( $context === false || $context === null || (empty($context) && $context !== 0) ) {
+        } else if( empty($context) && $context !== 0 ) {
             return $options->inverse($options->scope);
         } else if( Utils::isIntArray($context) ) {
             if( $options->ids !== null ) {
@@ -66,7 +66,7 @@ class Builtins
             $tmpOptions = $options;
             if( $options->data !== null && $options->ids !== null ) {
                 $data = Utils::createFrame($options['data']);
-                $data['contextPath'] = (isset($options['data']['contextPath']) ? $options['data']['contextPath'] . '.' : '') . $options['name'];
+                $data['contextPath'] = Utils::appendContextPath($options['data'], $options['name']);
                 $options = array('data' => $data);
             }
             return $tmpOptions->fn($context, $options);
@@ -112,9 +112,7 @@ class Builtins
         
         $contextPath = null;
         if( $options->data !== null && $options->ids !== null ) {
-            $contextPath = (isset($options['data']['contextPath']) ? 
-                $options['data']['contextPath'] . '.' : 
-                '') . $options->ids[0] . '.';
+            $contextPath = Utils::appendContextPath($options['data'], $options->ids[0]) . '.';
         }
         if( is_callable($context) ) {
             $context = call_user_func($context, $options->scope);
@@ -125,7 +123,6 @@ class Builtins
             $data = Utils::createFrame($options->data);
         }
         
-        // @todo distinguish integer vs assoc array?
         $ret = '';
         $i = 0;
         if( !empty($context) ) {
@@ -210,7 +207,7 @@ class Builtins
             $fn = $options->fn;
             if( !empty($options->data) && !empty($options->ids) ) {
                 $data = Utils::createFrame($options['data']);
-                $data['contextPath'] = (isset($options['data']['contextPath']) ? $options['data']['contextPath'] . '.' : '') . $options['ids'][0];
+                $data['contextPath'] = Utils::appendContextPath($options['data'], $options['ids'][0]);
                 $options = array('data' => $data);
             }
             return call_user_func($fn, $context, $options);
