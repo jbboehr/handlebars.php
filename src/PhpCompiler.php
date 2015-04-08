@@ -2,8 +2,6 @@
 
 namespace Handlebars;
 
-use Handlebars\CompilerException as Exception;
-
 class PhpCompiler
 {
     const VERSION = '2.0.0';
@@ -31,9 +29,14 @@ class PhpCompiler
     private $pendingContent;
     private $hash;
     
+    private $name;
+    private $isChild;
+    private $context;
+    private $lastHelper;
+    
     public function __call($method, $args)
     {
-        throw new \Exception('Undefined method: ' . $method);
+        throw new CompilerException('Undefined method: ' . $method);
     }
     
     public function compile($environment, array $options = array(), $context = null, $asObject = false)
@@ -75,11 +78,11 @@ class PhpCompiler
         $this->pushSource('');
         
         if( $this->stackSlot || $this->inlineStack->count() || $this->compileStack->count() ) {
-            throw new Exception('Compile completed with content left on stack');
+            throw new CompilerException('Compile completed with content left on stack');
         }
         
         
-        $fn = $this->createFunctionContext($asObject);
+        $fn = $this->createFunctionContext();
         if( $this->isChild ) {
             return $fn;
         } else {
@@ -133,7 +136,7 @@ class PhpCompiler
         return array(self::VERSION, self::COMPILER_REVISION);
     }
     
-    private function createFunctionContext($asObject)
+    private function createFunctionContext()
     {
         $varDeclarations = '';
         $locals = array_merge((array) $this->stackVars, array_keys($this->registers));
@@ -151,18 +154,12 @@ class PhpCompiler
         
         $source = $this->mergeSource($varDeclarations);
         
-        $fnstr = 'function(' . join(' = null, ', $params) . ' = null) {' . "\n  " . $source . '}';
-        /*if( $asObject ) {
-            $v = eval('return '. $fnstr . ';');
-            if( !$v ) {
-                throw new Exception('Failed to eval: ' . $fnstr);
-            }
-            return $v;
-        } else {*/
-            return $fnstr;
-        /* } */
+        return 'function(' . join(' = null, ', $params) . ' = null) {' . "\n  " . $source . '}';
     }
     
+    /**
+     * @param string $varDeclarations
+     */
     private function mergeSource($varDeclarations)
     {
         $buffer = '';
@@ -232,12 +229,15 @@ class PhpCompiler
         }
     }
     
+    /**
+     * @param integer $context
+     */
     private function contextName($context)
     {
         if( $this->useDepths && $context) {
-          return '$depths[' . $context . ']';
+            return '$depths[' . $context . ']';
         } else {
-          return '$depth' . $context;
+            return '$depth' . $context;
         }
     }
     
@@ -275,7 +275,12 @@ class PhpCompiler
         return $this->quotedString('');
     }
     
-    /*private*/ public function nameLookup($parent, $name /*, $type = null*/)
+    /**
+     * @param string $parent 
+     * @param string $name
+     * @access private
+     */
+    public function nameLookup($parent, $name, $type = null)
     {
         $expr = $parent . '[' . var_export($name, true) . ']';
         return 'isset(' . $expr . ') ? ' . $expr . ' : null';
@@ -288,7 +293,6 @@ class PhpCompiler
             $pairs[] = var_export($k, true) . ' => ' . ($v === null ? 'null' : $v);
         }
         return 'array(' . $this->safeJoin(', ', $pairs) . ')';
-        //return var_export($obj, true);
     }
     
     private function popStack($wrapped = false)
@@ -301,7 +305,7 @@ class PhpCompiler
         } else {
             if( !$inline ) {
                 if( !$this->stackSlot ) {
-                    throw new Exception('Invalid stack pop');
+                    throw new CompilerException('Invalid stack pop');
                 }
                 $this->stackSlot--;
             }
@@ -318,8 +322,6 @@ class PhpCompiler
     private function programExpression($guid)
     {
         $child = $this->environment['children'][$guid];
-        $depths = $child['depths'];
-        
         $programParams = array((int) $child['index'], '$data');
         
         if( $this->useDepths ) {
@@ -372,15 +374,21 @@ class PhpCompiler
         return $this->push(new Literal($item));
     }
     
+    /**
+     * @param string $string
+     */
     private function quotedString($string)
     {
         return var_export($string, true);
     }
     
+    /**
+     * @param callable $callback
+     */
     private function replaceStack($callback)
     {
         if( !count($this->inlineStack) ) {
-            throw new Exception('replaceStack on non-inline');
+            throw new CompilerException('replaceStack on non-inline');
         }
         
         $createdStack = false;
@@ -408,19 +416,21 @@ class PhpCompiler
         $this->push('(' . $prefix . $item .')');
     }
     
+    /**
+     * @param string $str
+     * @param array $params
+     */
     private function safeJoin($str, $params)
     {
         foreach( $params as $index => $param ) {
             $params[$index] = $this->safeString($param);
-            /* if( $param === null ) {
-                $params[$index] = 'null';
-            } else if( (string) $param === '' ) {
-                $params[$index] = "''";
-            } */
         }
         return join($str, $params);
     }
     
+    /**
+     * @param string $str
+     */
     private function safeString($str)
     {
         $strval = (string) $str;
@@ -450,6 +460,9 @@ class PhpCompiler
         return '$stack' . $this->stackSlot;
     }
     
+    /**
+     * @param string $name
+     */
     private function useRegister($name)
     {
         if( empty($this->registers[$name]) ) {
@@ -670,9 +683,12 @@ class PhpCompiler
         $helperName = $this->lastHelper = $this->nameLookup('$helpers', $name, 'helper');
         
         $helperMissingName = $this->nameLookup('$helpers', 'helperMissing', 'helper');
-        $this->push('$runtime->invokeAmbiguous(' . $helperName . ', ' . $nonhelper . ', ' . $helperMissingName . ', '
-                . (!empty($helper['paramsInit']) ? $helper['paramsInit'] : 'null') . ', array('
-                . $helper['callParams'] . '))');
+        if( !empty($helper['paramsInit']) ) {
+            $this->pushSource($helper['paramsInit'] . ';');
+        }
+        $this->push('$runtime->invokeAmbiguous(' . $helperName . ', ' 
+                . $nonhelper . ', ' . $helperMissingName
+                . ', array(' . $helper['callParams'] . '))');
     }
     
     private function invokeHelper($paramSize, $name, $isSimple)
@@ -681,7 +697,6 @@ class PhpCompiler
         $helper = $this->setupHelper($paramSize, $name, false);
         
         $helperMissingName = $this->nameLookup('$helpers', 'helperMissing', 'helper');
-        //$lookup = ($isSimple ? $helper['name'] . ' ?: ' : '') . $nonhelper . ' ?: ' . $helperMissingName;
         $this->push('$runtime->invokeHelper(' 
                 . ($isSimple ? $helper['name'] : 'null') . ', '
                 . $nonhelper . ', '
@@ -728,10 +743,6 @@ class PhpCompiler
             $this->useRegister($register);
             $this->pushSource($register . ' = $runtime->data($data, ' . $depth . ');');
             $this->pushStackLiteral($register);
-            //if( PHP_VERSION_ID < 50400 ) {
-            //    throw new Exception('Depthed lookupData requires PHP 5.4');
-            //}
-            //$this->pushStackLiteral('$runtime->data($data, ' . $depth . ')');
         }
         
         $self = $this;
@@ -755,7 +766,7 @@ class PhpCompiler
         
         $self = $this;
         for( ; $i < $l; $i++ ) {
-            $current = $this->replaceStack(function($current) use ($self, &$parts, &$i, $falsy) {
+            $this->replaceStack(function($current) use ($self, &$parts, &$i, $falsy) {
                $lookup = $self->nameLookup($current, $parts[$i], 'context');
                if( !$falsy ) {
                    return ' !== null ? (' . $lookup . ') : ' . $current;

@@ -2,8 +2,6 @@
 
 namespace Handlebars;
 
-use CompilerException as Exception;
-
 /**
  * Main class
  */
@@ -19,11 +17,6 @@ class Compiler
      */
     public function compile($tmpl, array $options = null)
     {
-        // Check if extension is loaded? - should be handled by composer
-        /* if( !function_exists('handlebars_compile') ) {
-            throw new Exception("Handlebars extension not loaded");
-        } */
-        
         $flags = $this->makeCompilerFlags($options);
         $knownHelpers = !empty($options['knownHelpers']) ? array_keys($options['knownHelpers']) : null;
         $opcodes = handlebars_compile($tmpl, $flags, $knownHelpers);
