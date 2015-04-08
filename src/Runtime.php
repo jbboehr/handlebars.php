@@ -23,6 +23,12 @@ class Runtime
         if( !is_array($templateSpec) ) {
             throw new \Exception("Not an array: " . var_export($templateSpec, true));
         }
+        if( is_object($this->helpers) ) {
+            $this->helpers = clone $this->helpers;
+        }
+        if( is_object($this->partials) ) {
+            $this->partials = clone $this->partials;
+        }
         
         $this->templateSpec = $templateSpec;
         $this->main = $templateSpec['main'];

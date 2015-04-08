@@ -7,9 +7,9 @@ namespace Handlebars;
  */
 class Builtins
 {
-	/*
-	 * @var \Handlebars\VM
-	 */
+    /*
+     * @var \Handlebars\VM
+     */
     private $vm;
     
     /**
@@ -20,6 +20,24 @@ class Builtins
     public function __construct(/*VM */$vm)
     {
         $this->vm = $vm;
+    }
+    
+    /**
+     * Get all helpers
+     * 
+     * @return array
+     */
+    public function getAllHelpers()
+    {
+        return array(
+           'blockHelperMissing' => array($this, 'blockHelperMissing'),
+           'each' => array($this, 'each'),
+           'helperMissing' => array($this, 'helperMissing'),
+           'if' => array($this, 'builtinIf'),
+           'lookup' => array($this, 'lookup'),
+           'unless' => array($this, 'unless'),
+           'with' => array($this, 'with'),
+        );
     }
     
     /**
