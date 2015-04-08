@@ -20,6 +20,19 @@ class Utils
     }
     
     /**
+     * Convert path-fragment to PathFragment
+     * 
+     * @param string $str
+     * @return string
+     */
+    static public function inflect($str)
+    {
+        return trim(
+            str_replace(' ', '', 
+                ucwords(preg_replace('/[^a-zA-Z0-9]+/', ' ', $str))));
+    }
+    
+    /**
      * Is the array a numeric array?
      * 
      * @param array $array

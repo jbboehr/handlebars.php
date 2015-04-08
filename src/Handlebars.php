@@ -58,6 +58,12 @@ class Handlebars
         } else {
             $this->mode = self::MODE_COMPILER;
         }
+        if( isset($options['helpers']) ) {
+            $this->helpers = $options['helpers'];
+        }
+        if( isset($options['partials']) ) {
+            $this->partials = $options['partials'];
+        }
         
         $this->compiler = new Compiler();
         $this->phpCompiler = new PhpCompiler();
@@ -76,8 +82,7 @@ class Handlebars
      */
     public function compile($tmpl, array $compileOptions = array())
     {
-        $opcodes = $this->compiler->compile($tmpl, $compileOptions);
-        $templateSpecString = $this->phpCompiler->compile($opcodes, $compileOptions);
+        $templateSpecString = $this->precompile($tmpl, $compileOptions);
         $templateSpec = eval('return ' . $templateSpecString . ';');
         if( !$templateSpec ) {
             throw new CompilerException('Failed to compile template');
@@ -126,6 +131,15 @@ class Handlebars
      */
     public function precompile($tmpl, array $compileOptions = array())
     {
+        // Add current helpers as known helpers
+        if( !isset($compileOptions['knownHelpers']) ) {
+            $compileOptions['knownHelpers'] = array();
+        }
+        foreach( $this->helpers as $name => $helper ) {
+            $compileOptions['knownHelpers'][] = $name;
+        }
+        
+        // Compile
         $opcodes = $this->compiler->compile($tmpl, $compileOptions);
         return $this->phpCompiler->compile($opcodes, $compileOptions);
     }
@@ -263,12 +277,10 @@ class Handlebars
     private function setupBuiltinHelpers()
     {
         $builtins = new Builtins($this);
-        $this->helpers['blockHelperMissing'] = array($builtins, 'blockHelperMissing');
-        $this->helpers['each'] = array($builtins, 'each');
-        $this->helpers['helperMissing'] = array($builtins, 'helperMissing');
-        $this->helpers['if'] = array($builtins, 'builtinIf');
-        $this->helpers['lookup'] = array($builtins, 'lookup');
-        $this->helpers['unless'] = array($builtins, 'unless');
-        $this->helpers['with'] = array($builtins, 'with');
+        foreach( $builtins->getAllHelpers() as $name => $helper ) {
+            if( !isset($this->helpers[$name]) ) {
+                $this->helpers[$name] = $helper;
+            }
+        }
     }
 }
