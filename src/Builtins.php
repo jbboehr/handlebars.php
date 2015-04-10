@@ -49,9 +49,6 @@ class Builtins
      */
     public function blockHelperMissing($context, $options)
     {
-        if( is_callable($context) ) {
-            $context = call_user_func($context, $options);
-        }
         if( $context === true ) {
             return $options->fn($options->scope);
         } else if( empty($context) && $context !== 0 ) {
@@ -102,11 +99,7 @@ class Builtins
      */
     public function each($context, $options = null)
     {
-        // Temporary hack
-        if( func_num_args() === 1 && $context->scope ) {
-            $options = $context;
-            $context = $options->scope;
-        } else if( func_num_args() < 2 ) {
+        if( func_num_args() < 2 ) {
             throw new RuntimeException('Must pass iterator to #each');
         }
         

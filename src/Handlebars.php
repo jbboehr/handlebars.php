@@ -84,6 +84,8 @@ class Handlebars
     {
         $templateSpecString = $this->precompile($tmpl, $compileOptions);
         $templateSpec = eval('return ' . $templateSpecString . ';');
+//        var_dump($templateSpecString);
+//        die('ok');
         if( !$templateSpec ) {
             throw new CompilerException('Failed to compile template');
         }
@@ -208,7 +210,7 @@ class Handlebars
      * @throws \Handlebars\CompilerException
      * @throws \Handlebars\RuntimeException
      */
-    public function render($tmpl, $context = null, $options = null)
+    public function render($tmpl, $context = null, $options = array())
     {
         if( $this->mode === self::MODE_VM ) {
             return $this->renderVM($tmpl, $context, $options);
@@ -227,7 +229,7 @@ class Handlebars
      * @throws \Handlebars\CompilerException
      * @throws \Handlebars\RuntimeException
      */
-    private function renderCompiler($tmpl, $context = null, $options = null)
+    private function renderCompiler($tmpl, $context = null, $options = array())
     {
         $runtime = $this->compile($tmpl, $options);
         return $runtime($context, $options);
