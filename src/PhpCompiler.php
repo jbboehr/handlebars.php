@@ -36,7 +36,7 @@ class PhpCompiler
     
     public function __call($method, $args)
     {
-        throw new CompilerException('Undefined method: ' . $method);
+        throw new CompileException('Undefined method: ' . $method);
     }
     
     public function compile($environment, array $options = array(), $context = null, $asObject = false)
@@ -56,7 +56,7 @@ class PhpCompiler
         $this->pushSource('');
         
         if( $this->stackSlot || $this->inlineStack->count() || $this->compileStack->count() ) {
-            throw new CompilerException('Compile completed with content left on stack');
+            throw new CompileException('Compile completed with content left on stack');
         }
         
         $fn = $this->createFunctionContext();
@@ -310,7 +310,7 @@ class PhpCompiler
         } else {
             if( !$inline ) {
                 if( !$this->stackSlot ) {
-                    throw new CompilerException('Invalid stack pop');
+                    throw new CompileException('Invalid stack pop');
                 }
                 $this->stackSlot--;
             }
@@ -393,7 +393,7 @@ class PhpCompiler
     private function replaceStack($callback)
     {
         if( !count($this->inlineStack) ) {
-            throw new CompilerException('replaceStack on non-inline');
+            throw new CompileException('replaceStack on non-inline');
         }
         
         $createdStack = false;

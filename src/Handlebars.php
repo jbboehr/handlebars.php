@@ -78,7 +78,7 @@ class Handlebars
      * @param string $tmpl
      * @param array $compileOptions
      * @return \Handlebars\Runtime
-     * @throws CompilerException
+     * @throws \Handlebars\CompileException
      */
     public function compile($tmpl, array $compileOptions = array())
     {
@@ -87,7 +87,7 @@ class Handlebars
 //        var_dump($templateSpecString);
 //        die('ok');
         if( !$templateSpec ) {
-            throw new CompilerException('Failed to compile template');
+            throw new CompileException('Failed to compile template');
         }
         return new Runtime($this, $templateSpec);
     }
@@ -129,7 +129,7 @@ class Handlebars
      * @param string $tmpl
      * @param array $compileOptions
      * @return array
-     * @throws \Handlebars\CompilerException
+     * @throws \Handlebars\CompileException
      */
     public function precompile($tmpl, array $compileOptions = array())
     {
@@ -207,7 +207,7 @@ class Handlebars
      * @param $context
      * @param $options
      * @return string
-     * @throws \Handlebars\CompilerException
+     * @throws \Handlebars\CompileException
      * @throws \Handlebars\RuntimeException
      */
     public function render($tmpl, $context = null, $options = array())
@@ -226,7 +226,7 @@ class Handlebars
      * @param $context
      * @param $options
      * @return string
-     * @throws \Handlebars\CompilerException
+     * @throws \Handlebars\CompileException
      * @throws \Handlebars\RuntimeException
      */
     private function renderCompiler($tmpl, $context = null, $options = array())
@@ -242,7 +242,7 @@ class Handlebars
      * @param $context
      * @param $options
      * @return string
-     * @throws \Handlebars\CompilerException
+     * @throws \Handlebars\CompileException
      * @throws \Handlebars\RuntimeException
      */
     private function renderVM($tmpl, $context = null, $options = null)

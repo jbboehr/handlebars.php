@@ -3,8 +3,8 @@
 namespace Handlebars;
 
 /**
- * Runtime exception
+ * Compiler exception
  * 
  * Note: this class is only used when the extension isn't loaded
  */
-class RuntimeException extends Exception {}
+class CompileException extends Exception {}
