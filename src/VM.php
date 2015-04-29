@@ -518,7 +518,7 @@ class VM
         } else if( $depth === 0 ) {
             $this->lastContext = $this->contextStack->top();
         } else {
-            $index = defined('HHVM_VERSION') ? $count - $depth - 1 : $depth;
+            $index = defined('HHVM_VERSION_ID') && HHVM_VERSION_ID < 30700 ? $count - $depth - 1 : $depth;
             $this->lastContext = $this->contextStack->offsetGet($index);
         }
     }
@@ -590,7 +590,7 @@ class VM
             $data = $this->dataStack->top();
         } else {
             $count = $this->dataStack->count();
-            $index = defined('HHVM_VERSION') ? $count - $depth - 1 : $depth;
+            $index = defined('HHVM_VERSION_ID') && HHVM_VERSION_ID < 30700 ? $count - $depth - 1 : $depth;
             $data = $this->dataStack->offsetGet($index);
         }
         
