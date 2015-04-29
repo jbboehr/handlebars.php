@@ -84,8 +84,6 @@ class Handlebars
     {
         $templateSpecString = $this->precompile($tmpl, $compileOptions);
         $templateSpec = eval('return ' . $templateSpecString . ';');
-//        var_dump($templateSpecString);
-//        die('ok');
         if( !$templateSpec ) {
             throw new CompileException('Failed to compile template');
         }

@@ -58,4 +58,14 @@ class HandlebarsTest extends Common
             'foo' => 'bar',
         )));
     }
+    
+    public function testRenderSupportsStdClass()
+    {
+        $handlebars = new \Handlebars\Handlebars();
+        $this->assertEquals('foo', $handlebars->render('{{bar.baz}}', array(
+            'bar' => (object) array(
+                'baz' => 'foo'
+            )
+        )));
+    }
 }

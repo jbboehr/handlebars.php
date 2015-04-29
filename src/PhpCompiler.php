@@ -287,8 +287,13 @@ class PhpCompiler
      */
     public function nameLookup($parent, $name, $type = null)
     {
-        $expr = $parent . '[' . var_export($name, true) . ']';
-        return 'isset(' . $expr . ') ? ' . $expr . ' : null';
+        if( false ) { // @todo make this a setting?
+            $expr = $parent . '[' . var_export($name, true) . ']';
+            return '(isset(' . $expr . ') ? ' . $expr . ' : null)';
+        } else {
+            $expr =  '\\Handlebars\\Utils::lookup(' . $parent . ', ' . var_export($name, true) . ')';
+            return $expr;
+        }
     }
     
     private function objectLiteral($obj)
@@ -753,7 +758,8 @@ class PhpCompiler
         $self = $this;
         foreach( $parts as $part ) {
             $this->replaceStack(function($current) use ($self, $part) {
-                return ' && ' . $self->nameLookup($current, $part, 'data');
+                $lookup = $self->nameLookup($current, $part, 'data');
+                return ' ? ' . $lookup . ' : null';
             });
         }
     }
@@ -772,12 +778,12 @@ class PhpCompiler
         $self = $this;
         for( ; $i < $l; $i++ ) {
             $this->replaceStack(function($current) use ($self, &$parts, &$i, $falsy) {
-               $lookup = $self->nameLookup($current, $parts[$i], 'context');
-               if( !$falsy ) {
-                   return ' !== null ? (' . $lookup . ') : ' . $current;
-               } else {
-                   return ' && ' . $lookup;
-               }
+                $lookup = $self->nameLookup($current, $parts[$i], 'context');
+                if( !$falsy ) {
+                    return ' !== null ? ' . $lookup . ' : ' . $current;
+                } else {
+                    return ' ? ' . $lookup . ' : null';
+                }
             });
         }
     }
