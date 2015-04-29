@@ -2,6 +2,8 @@
 
 # set -e
 
+export DEBIAN_FRONTEND=noninteractive
+
 case "$1" in
 before_install)
     sudo rm -f /etc/apt/sources.list.d/*rabbit*
@@ -43,7 +45,7 @@ before_script)
     php generate-tests.php
     ;;
 after_success)
-    if [ "$TRAVIS_PHP_VERSION" != "hhvm" ]; then
+    if [ "$TRAVIS_PHP_VERSION" != "hhvm" ] && [ "$TRAVIS_PHP_VERSION" != "7" ]; then
         wget https://scrutinizer-ci.com/ocular.phar
         php ocular.phar code-coverage:upload --format=php-clover coverage.clover
     fi

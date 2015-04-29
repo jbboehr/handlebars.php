@@ -104,4 +104,14 @@ class Utils
 
         return true;
     }
+    
+    public static function lookup($objOrArray, $field)
+    {
+        //return isset($objOrArray[$field]) ? $objOrArray[$field] : null;
+        if( is_array($objOrArray) || $objOrArray instanceof \ArrayAccess ) {
+            return isset($objOrArray[$field]) ? $objOrArray[$field] : null; 
+        } else if( is_object($objOrArray) ) {
+            return isset($objOrArray->$field) ? $objOrArray->$field : null;
+        }
+    }
 }

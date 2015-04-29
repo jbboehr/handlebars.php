@@ -13,17 +13,13 @@ class Compiler
      * @param $tmpl
      * @param $options
      * @return array
-     * @throws \Handlebars\CompilerException
+     * @throws \Handlebars\CompileException
      */
     public function compile($tmpl, array $options = null)
     {
         $flags = $this->makeCompilerFlags($options);
         $knownHelpers = !empty($options['knownHelpers']) ? array_keys($options['knownHelpers']) : null;
-        $opcodes = handlebars_compile($tmpl, $flags, $knownHelpers);
-        if( !$opcodes ) {
-            throw new CompilerException('Compile error: ' . handlebars_error());
-        }
-        return $opcodes;
+        return Native::compile($tmpl, $flags, $knownHelpers);
     }
     
     /**
@@ -57,19 +53,19 @@ class Compiler
         // Make flags
         $flags = 0;
         if( !empty($options['compat']) ) {
-            $flags |= HANDLEBARS_COMPILER_FLAG_COMPAT;
+            $flags |= COMPILER_FLAG_COMPAT;
         }
         if( !empty($options['stringParams']) ) {
-            $flags |= HANDLEBARS_COMPILER_FLAG_STRING_PARAMS;
+            $flags |= COMPILER_FLAG_STRING_PARAMS;
         }
         if( !empty($options['trackIds']) ) {
-            $flags |= HANDLEBARS_COMPILER_FLAG_TRACK_IDS;
+            $flags |= COMPILER_FLAG_TRACK_IDS;
         }
         if( !empty($options['useDepths']) ) {
-            $flags |= HANDLEBARS_COMPILER_FLAG_USE_DEPTHS;
+            $flags |= COMPILER_FLAG_USE_DEPTHS;
         }
         if( !empty($options['knownHelpersOnly']) ) {
-            $flags |= HANDLEBARS_COMPILER_FLAG_KNOWN_HELPERS_ONLY;
+            $flags |= COMPILER_FLAG_KNOWN_HELPERS_ONLY;
         }
         return $flags;
     }

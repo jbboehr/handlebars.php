@@ -36,7 +36,7 @@ class PhpCompiler
     
     public function __call($method, $args)
     {
-        throw new CompilerException('Undefined method: ' . $method);
+        throw new CompileException('Undefined method: ' . $method);
     }
     
     public function compile($environment, array $options = array(), $context = null, $asObject = false)
@@ -56,7 +56,7 @@ class PhpCompiler
         $this->pushSource('');
         
         if( $this->stackSlot || $this->inlineStack->count() || $this->compileStack->count() ) {
-            throw new CompilerException('Compile completed with content left on stack');
+            throw new CompileException('Compile completed with content left on stack');
         }
         
         $fn = $this->createFunctionContext();
@@ -287,8 +287,13 @@ class PhpCompiler
      */
     public function nameLookup($parent, $name, $type = null)
     {
-        $expr = $parent . '[' . var_export($name, true) . ']';
-        return 'isset(' . $expr . ') ? ' . $expr . ' : null';
+        if( false ) { // @todo make this a setting?
+            $expr = $parent . '[' . var_export($name, true) . ']';
+            return '(isset(' . $expr . ') ? ' . $expr . ' : null)';
+        } else {
+            $expr =  '\\Handlebars\\Utils::lookup(' . $parent . ', ' . var_export($name, true) . ')';
+            return $expr;
+        }
     }
     
     private function objectLiteral($obj)
@@ -310,7 +315,7 @@ class PhpCompiler
         } else {
             if( !$inline ) {
                 if( !$this->stackSlot ) {
-                    throw new CompilerException('Invalid stack pop');
+                    throw new CompileException('Invalid stack pop');
                 }
                 $this->stackSlot--;
             }
@@ -393,7 +398,7 @@ class PhpCompiler
     private function replaceStack($callback)
     {
         if( !count($this->inlineStack) ) {
-            throw new CompilerException('replaceStack on non-inline');
+            throw new CompileException('replaceStack on non-inline');
         }
         
         $createdStack = false;
@@ -753,7 +758,8 @@ class PhpCompiler
         $self = $this;
         foreach( $parts as $part ) {
             $this->replaceStack(function($current) use ($self, $part) {
-                return ' && ' . $self->nameLookup($current, $part, 'data');
+                $lookup = $self->nameLookup($current, $part, 'data');
+                return ' ? ' . $lookup . ' : null';
             });
         }
     }
@@ -772,12 +778,12 @@ class PhpCompiler
         $self = $this;
         for( ; $i < $l; $i++ ) {
             $this->replaceStack(function($current) use ($self, &$parts, &$i, $falsy) {
-               $lookup = $self->nameLookup($current, $parts[$i], 'context');
-               if( !$falsy ) {
-                   return ' !== null ? (' . $lookup . ') : ' . $current;
-               } else {
-                   return ' && ' . $lookup;
-               }
+                $lookup = $self->nameLookup($current, $parts[$i], 'context');
+                if( !$falsy ) {
+                    return ' !== null ? ' . $lookup . ' : ' . $current;
+                } else {
+                    return ' ? ' . $lookup . ' : null';
+                }
             });
         }
     }

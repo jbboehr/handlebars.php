@@ -23,7 +23,7 @@ class HandlebarsTest extends Common
         // Note: not testing parse error in eval because it's not possible
         // to catch the output. eval returning false should have the same
         // behaviour (minus the output)
-        $this->setExpectedException('\\Handlebars\\CompilerException');
+        $this->setExpectedException('\\Handlebars\\CompileException');
         $handlebars->compile('{{foo}}');
     }
     
@@ -56,6 +56,16 @@ class HandlebarsTest extends Common
         ));
         $this->assertEquals('bar', $handlebars->render('{{> foo}}', array(
             'foo' => 'bar',
+        )));
+    }
+    
+    public function testRenderSupportsStdClass()
+    {
+        $handlebars = new \Handlebars\Handlebars();
+        $this->assertEquals('foo', $handlebars->render('{{bar.baz}}', array(
+            'bar' => (object) array(
+                'baz' => 'foo'
+            )
         )));
     }
 }
