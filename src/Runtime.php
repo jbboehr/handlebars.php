@@ -10,17 +10,17 @@ class Runtime
     private $programWrappers;
     private $helpers;
     private $partials;
-    
+
     private $handlebars;
-    
+
     public function __construct(\Handlebars\Handlebars $handlebars, $templateSpec)
     {
         $this->handlebars = $handlebars;
         $this->helpers = $handlebars->getHelpers();
         $this->partials = $handlebars->getPartials();
-        
+
         if( !is_array($templateSpec) ) {
-            throw new RuntimeException("Not an array: " . var_export($templateSpec, true));
+            throw new RuntimeException('Not an array: ' . var_export($templateSpec, true));
         }
         if( is_object($this->helpers) ) {
             $this->helpers = clone $this->helpers;
@@ -28,27 +28,27 @@ class Runtime
         if( is_object($this->partials) ) {
             $this->partials = clone $this->partials;
         }
-        
+
         $this->templateSpec = $templateSpec;
         $this->main = $templateSpec['main'];
-        
+
         foreach( $templateSpec as $index => $program ) {
             if( is_int($index) ) {
                 $this->programs[$index] = $program;
             }
         }
     }
-    
+
     public function __invoke($context = null, array $options = array())
     {
         if( !empty($options['partials']) ) {
             Utils::arrayMerge($this->partials, $options['partials']);
         }
-        
+
         if( !empty($options['helpers']) ) {
             Utils::arrayMerge($this->helpers, $options['helpers']);
         }
-        
+
         $data = isset($options['data']) ? $options['data'] : array();
         if( empty($options['partial']) && !empty($this->templateSpec['useData']) ) {
             if( !$data || !isset($data['root']) ) {
@@ -56,10 +56,10 @@ class Runtime
                 $data['root'] = $context;
             }
         }
-        
+
         $depths = null;
         if( !empty($this->templateSpec['useDepths']) ) {
-            if( isset($options['depths']) && 
+            if( isset($options['depths']) &&
                     $options['depths'] instanceof \SplDoublyLinkedList ) {
                 $depths = clone $options['depths'];
             } else {
@@ -67,10 +67,10 @@ class Runtime
             }
             $depths->unshift($context);
         }
-        
+
         return call_user_func($this->main, $context, $this->helpers, $this->partials, $data, $this, $depths);
     }
-    
+
     public function expression($value)
     {
         if( is_bool($value) ) {
@@ -80,7 +80,7 @@ class Runtime
         } else if( is_array($value) ) {
             // javascript-style
             if( Utils::isIntArray($value) ) {
-                return join(',', $value);
+                return implode(',', $value);
             } else {
                 throw new RuntimeException('Trying to stringify assoc array');
             }
@@ -88,7 +88,7 @@ class Runtime
             return (string) $value;
         }
     }
-    
+
     public function escapeExpression($value)
     {
         if( $value instanceof SafeString ) {
@@ -100,7 +100,7 @@ class Runtime
         $value = str_replace(array('`', '&#039;'), array('&#x60;', '&#x27;'), $value);
         return $value;
     }
-    
+
     public function program($i, $data = null, $depths = null)
     {
         $programWrapper = isset($this->programWrappers[$i]) ? $this->programWrappers[$i] : null;
@@ -112,8 +112,7 @@ class Runtime
         }
         return $programWrapper;
     }
-    
-    
+
     public function call($fn, array $params = array())
     {
         // le sigh
@@ -121,10 +120,10 @@ class Runtime
             $options = $params[count($params) - 1];
             $options->scope = array_shift($params);
         }
-        
+
         return call_user_func_array($fn, $params);
     }
-    
+
     public function data($data, $depth)
     {
         while( $data && $depth-- ) {
@@ -132,7 +131,7 @@ class Runtime
         }
         return $data;
     }
-    
+
     public function invokeAmbiguous($helper, $nonhelper, $helperMissing, $callParams)
     {
         if( $helper !== null ) {
@@ -149,7 +148,7 @@ class Runtime
             throw new RuntimeException('helperMissing is missing!');
         }
     }
-    
+
     public function invokeHelper($helper, $nonHelper, $helperMissing, $callParams)
     {
         if( $helper ) {
@@ -166,21 +165,21 @@ class Runtime
             throw new RuntimeException('helperMissing is missing!');
         }
     }
-    
+
     public function invokeKnownHelper($helper, $callParams)
     {
         return $this->call($helper, $callParams);
     }
-    
+
     public function invokePartial($partial, $indent, $name, $context, $hash, $helpers, $partials, $data = null, $depths = null)
     {
         if( $hash ) {
             $context = array_merge((array) $context, $hash);
         }
-        
+
         if( is_string($partial) ) {
             if( !$partial ) {
-                $partial = function() {};
+                $partial = function () {};
             } else {
                 $partial = $this->handlebars->compile($partial, array(
                     'data' => ($data !== null),
@@ -188,11 +187,11 @@ class Runtime
                 ));
             }
         }
-        
+
         if( !is_callable($partial) ) {
-            throw new RuntimeException("Partial " . $name . " was not callable: " . $partial);
+            throw new RuntimeException('Partial ' . $name . ' was not callable: ' . $partial);
         }
-        
+
         $options = array(
             'partial' => true,
             'helpers' => $helpers,
@@ -206,7 +205,7 @@ class Runtime
         }
         return $result;
     }
-    
+
     public function lambda($current, $context)
     {
         if( is_callable($current) ) {
@@ -215,7 +214,7 @@ class Runtime
             return $current;
         }
     }
-    
+
     public function lookup($depths, $name)
     {
         foreach( $depths as $depth ) {
@@ -224,38 +223,33 @@ class Runtime
             }
         }
     }
-    
+
     public function getHelpers()
     {
         return $this->helpers;
     }
-    
+
     public function getHelper($name)
     {
         if( isset($this->helpers[$name]) ) {
             return $this->helpers[$name];
-        } else {
-            return null;
         }
     }
-    
+
     public function getPartials()
     {
         return $this->partials;
     }
-    
-    
-    
-    
+
     private function fn($i)
     {
         return $this->programs[$i];
     }
-    
+
     private function wrapProgram($fn, $data, $depths)
     {
         $runtime = $this;
-        return function($context = null, $options = null) use ($runtime, $data, $depths, $fn) {
+        return function ($context = null, $options = null) use ($runtime, $data, $depths, $fn) {
             if( !$options ) {
                 $options = array();
             }
@@ -269,12 +263,12 @@ class Runtime
                 array_unshift($depths, $context);
             }
             // @todo fix depths
-            return call_user_func($fn, 
-                    $context, 
-                    $runtime->getHelpers(), 
-                    $runtime->getPartials(), 
-                    $data, 
-                    $runtime, 
+            return call_user_func($fn,
+                    $context,
+                    $runtime->getHelpers(),
+                    $runtime->getPartials(),
+                    $data,
+                    $runtime,
                     $depths);
         };
     }

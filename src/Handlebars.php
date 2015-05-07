@@ -9,45 +9,45 @@ class Handlebars
 {
     const MODE_COMPILER = 'compiler';
     const MODE_VM = 'vm';
-    
+
     /**
      * @var \Handlebars\Compiler
      */
     protected $compiler;
-    
+
     /**
      * Array of global helpers
-     * 
+     *
      * @var array
      */
     protected $helpers = array();
-    
+
     /**
      * The default render mode (compiler or vm)
-     * 
+     *
      * @var string
      */
     protected $mode;
-    
+
     /**
      * Array of global partials
-     * 
+     *
      * @var array
      */
     protected $partials = array();
-    
+
     /**
      * @var \Handlebars\PhpCompiler
      */
     protected $phpCompiler;
-    
+
     /**
      * VM instance
-     * 
+     *
      * @var \Handlebars\VM
      */
     protected $vm;
-    
+
     /**
      * Constructor
      */
@@ -64,17 +64,17 @@ class Handlebars
         if( isset($options['partials']) ) {
             $this->partials = $options['partials'];
         }
-        
+
         $this->compiler = new Compiler();
         $this->phpCompiler = new PhpCompiler();
         $this->vm = new VM();
-        
+
         $this->setupBuiltinHelpers();
     }
-    
+
     /**
      * Compile a template
-     * 
+     *
      * @param string $tmpl
      * @param array $compileOptions
      * @return \Handlebars\Runtime
@@ -89,10 +89,10 @@ class Handlebars
         }
         return new Runtime($this, $templateSpec);
     }
-    
+
     /**
      * Get a registered helper by name
-     * 
+     *
      * @param string $name
      * @return callable
      */
@@ -100,30 +100,30 @@ class Handlebars
     {
         return $this->helpers[$name];
     }
-    
+
     /**
      * Get the currently registered helpers
-     * 
+     *
      * @return array
      */
     public function getHelpers()
     {
         return $this->helpers;
     }
-    
+
     /**
      * Get the currently registered partials
-     * 
+     *
      * @return array
      */
     public function getPartials()
     {
         return $this->partials;
     }
-    
+
     /**
-     * Precompile a template 
-     * 
+     * Precompile a template
+     *
      * @param string $tmpl
      * @param array $compileOptions
      * @return array
@@ -138,15 +138,15 @@ class Handlebars
         foreach( $this->helpers as $name => $helper ) {
             $compileOptions['knownHelpers'][] = $name;
         }
-        
+
         // Compile
         $opcodes = $this->compiler->compile($tmpl, $compileOptions);
         return $this->phpCompiler->compile($opcodes, $compileOptions);
     }
-    
+
     /**
      * Register a global helper
-     * 
+     *
      * @param $name string
      * @param $helper callable
      * @return self
@@ -156,10 +156,10 @@ class Handlebars
         $this->helpers[$name] = $helper;
         return $this;
     }
-    
+
     /**
      * Register global helpers
-     * 
+     *
      * @param $helpers array
      * @return self
      */
@@ -170,10 +170,10 @@ class Handlebars
         }
         return $this;
     }
-    
+
     /**
      * Register a global partial
-     * 
+     *
      * @param $name string
      * @param $partial string
      * @return self
@@ -183,10 +183,10 @@ class Handlebars
         $this->partials[$name] = $partial;
         return $this;
     }
-    
+
     /**
      * Register an array of partials.
-     * 
+     *
      * @param $partials
      * @return self
      */
@@ -197,10 +197,10 @@ class Handlebars
         }
         return $this;
     }
-    
+
     /**
      * Render a template
-     * 
+     *
      * @param $tmpl
      * @param $context
      * @param $options
@@ -216,10 +216,10 @@ class Handlebars
             return $this->renderCompiler($tmpl, $context, $options);
         }
     }
-    
+
     /**
      * Render a template in compiler mode
-     * 
+     *
      * @param $tmpl
      * @param $context
      * @param $options
@@ -232,10 +232,10 @@ class Handlebars
         $runtime = $this->compile($tmpl, $options);
         return $runtime($context, $options);
     }
-    
+
     /**
      * Render a template in VM mode
-     * 
+     *
      * @param $tmpl
      * @param $context
      * @param $options
@@ -250,7 +250,7 @@ class Handlebars
         if( !empty($options['helpers']) ) {
             Utils::arrayMerge($helpers, $options['helpers']);
         }
-        
+
         // Build partials
         $partials = $this->getPartials();
         if( !empty($options['partials']) ) {
@@ -264,7 +264,7 @@ class Handlebars
         // Execute
         return $this->vm->execute($opcodes, $context, $helpers, $partialOpcodes, $options);
     }
-    
+
     /**
      * Setup the builtin helpers
      */

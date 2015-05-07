@@ -9,7 +9,7 @@ class Utils
 {
     /**
      * Append the specified identifier to the context path
-     * 
+     *
      * @param string $contextPath
      * @param string $id
      * @return string
@@ -27,7 +27,7 @@ class Utils
 
     /**
      * Merge all of the entries of array2 into array1
-     * 
+     *
      * @param array $array
      * @return array
      */
@@ -38,7 +38,7 @@ class Utils
         }
         return $array1;
     }
-    
+
     public static function createFrame($object)
     {
         if( is_object($object) ) {
@@ -50,10 +50,10 @@ class Utils
         }
         return $frame;
     }
-    
+
     /**
      * Indent a multi-line string
-     * 
+     *
      * @param string $str
      * @param string $indent
      * @return string
@@ -67,25 +67,25 @@ class Utils
             }
             $lines[$i] = $indent . $lines[$i];
         }
-        return join("\n", $lines);
+        return implode("\n", $lines);
     }
-    
+
     /**
      * Convert path-fragment to PathFragment
-     * 
+     *
      * @param string $str
      * @return string
      */
     public static function inflect($str)
     {
         return trim(
-            str_replace(' ', '', 
+            str_replace(' ', '',
                 ucwords(preg_replace('/[^a-zA-Z0-9]+/', ' ', $str))));
     }
-    
+
     /**
      * Is the array a numeric array?
-     * 
+     *
      * @param array $array
      * @return boolean
      */
@@ -104,12 +104,12 @@ class Utils
 
         return true;
     }
-    
+
     public static function lookup($objOrArray, $field)
     {
         //return isset($objOrArray[$field]) ? $objOrArray[$field] : null;
         if( is_array($objOrArray) || $objOrArray instanceof \ArrayAccess ) {
-            return isset($objOrArray[$field]) ? $objOrArray[$field] : null; 
+            return isset($objOrArray[$field]) ? $objOrArray[$field] : null;
         } else if( is_object($objOrArray) ) {
             return isset($objOrArray->$field) ? $objOrArray->$field : null;
         }

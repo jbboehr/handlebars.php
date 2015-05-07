@@ -6,9 +6,8 @@ class SilentArray extends \SplDoublyLinkedList
 {
     public function offsetGet($index)
     {
-        if( !$this->offsetExists($index) ) {
-            return null;
+        if( $this->offsetExists($index) ) {
+            return parent::offsetGet($index);
         }
-        return parent::offsetGet($index);
     }
 }

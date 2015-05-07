@@ -9,7 +9,7 @@ class Compiler
 {
     /**
      * Compile a template
-     * 
+     *
      * @param $tmpl
      * @param $options
      * @return array
@@ -21,10 +21,10 @@ class Compiler
         $knownHelpers = !empty($options['knownHelpers']) ? array_keys($options['knownHelpers']) : null;
         return Native::compile($tmpl, $flags, $knownHelpers);
     }
-    
+
     /**
      * Compile an array of templates (for use with partials, typically)
-     * 
+     *
      * @param $tmpls
      * @param $options
      * @return array
@@ -41,10 +41,10 @@ class Compiler
         }
         return $opcodes;
     }
-    
+
     /**
      * Convert options array to integer compiler flags
-     * 
+     *
      * @param $options
      * @return integer
      */
