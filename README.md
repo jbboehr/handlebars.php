@@ -26,12 +26,12 @@ composer require jbboehr/handlebars
 
 ``` php
 $handlebars = new Handlebars\Handlebars();
+
 $fn = $handlebars->compile('{{foo}}');
 echo $fn(array(
     'foo' => 'bar',
 ));
 
-$handlebars = new Handlebars\Handlebars();
 echo $handlebars->render('{{foo}}', array(
     'foo' => 'bar',
 ));
