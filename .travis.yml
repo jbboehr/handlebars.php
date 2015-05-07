@@ -34,4 +34,4 @@ script:
   - ./bench.php
 
 after_success:
-  - ./.travis.sh after_success
+  - travis_retry ./.travis.sh after_success
