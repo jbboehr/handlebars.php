@@ -20,6 +20,8 @@ branches:
 
 sudo: required
 
+env: NO_INTERACTION=1
+
 before_install:
   - travis_retry ./.travis.sh before_install
 
