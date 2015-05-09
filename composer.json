@@ -15,6 +15,7 @@
     "homepage": "http://github.com/jbboehr/handlebars.php",
     "name" : "jbboehr/handlebars",
     "keywords" : [
+        "handlebars"
     ],
     "license": "LGPLv3",
     "suggest" : {
@@ -24,8 +25,10 @@
         "php" : ">=5.3.0"
     },
     "require-dev": {
+        "fabpot/php-cs-fixer": "~1.8",
         "pear/console_table": "~1.2.1",
-        "phpunit/phpunit": "~4.5.0"
+        "phpunit/phpunit": "~4.5",
+        "scrutinizer/ocular": "~1.1"
     },
     "type" : "library"
 }

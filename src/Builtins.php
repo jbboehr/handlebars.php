@@ -11,20 +11,20 @@ class Builtins
      * @var \Handlebars\Handlebars
      */
     private $handlebars;
-    
+
     /**
      * Constructor
-     * 
+     *
      * @param \Handlebars\Handlebars $handlebars
      */
     public function __construct(Handlebars $handlebars)
     {
         $this->handlebars = $handlebars;
     }
-    
+
     /**
      * Get all helpers
-     * 
+     *
      * @return array
      */
     public function getAllHelpers()
@@ -39,10 +39,10 @@ class Builtins
             'with' => array($this, 'with'),
         );
     }
-    
+
     /**
      * blockHelperMissing builtin
-     * 
+     *
      * @param mixed $context
      * @param \Handlebars\Options $options
      * @return mixed
@@ -72,7 +72,7 @@ class Builtins
 
     /**
      * if builtin
-     * 
+     *
      * @param mixed $conditional
      * @param \Handlebars\Options $options
      * @return mixed
@@ -88,10 +88,10 @@ class Builtins
             return $options->inverse($options->scope);
         }
     }
-    
+
     /**
      * each builtin
-     * 
+     *
      * @param mixed $context
      * @param \Handlebars\Options $options
      * @throws \Handlebars\RuntimeException
@@ -102,7 +102,7 @@ class Builtins
         if( func_num_args() < 2 ) {
             throw new RuntimeException('Must pass iterator to #each');
         }
-        
+
         $contextPath = null;
         if( $options->data !== null && $options->ids !== null ) {
             $contextPath = Utils::appendContextPath($options['data'], $options->ids[0]) . '.';
@@ -110,12 +110,12 @@ class Builtins
         if( is_callable($context) ) {
             $context = call_user_func($context, $options->scope);
         }
-        
+
         $data = null;
         if( $options->data ) {
             $data = Utils::createFrame($options->data);
         }
-        
+
         $ret = '';
         $i = 0;
         if( !empty($context) ) {
@@ -125,11 +125,11 @@ class Builtins
                 $data['key'] = $k;
                 $data['first'] = ($i === 0);
                 $data['last'] = ($i === $len);
-                
+
                 if( null !== $contextPath ) {
                     $data['contextPath'] = $contextPath . $k;
                 }
-                
+
                 $ret .= $options->fn($value, array('data' => $data));
                 $i++;
             }
@@ -139,26 +139,26 @@ class Builtins
         }
         return $ret;
     }
-    
+
     /**
      * helperMissing builtin
-     * 
+     *
      * @throws \Handlebars\RuntimeException
      * @return NULL
      */
     public function helperMissing()
     {
         if( func_num_args() === 1 ) {
-            return null;
+            return;
         } else {
             $options = func_get_arg(func_num_args() - 1);
-            throw new RuntimeException("Helper missing: " . $options->name);
+            throw new RuntimeException('Helper missing: ' . $options->name);
         }
     }
-    
+
     /**
      * lookup builtin
-     * 
+     *
      * @param mixed $obj
      * @param string $field
      * @return mixed
@@ -167,10 +167,10 @@ class Builtins
     {
         return isset($obj[$field]) ? $obj[$field] : null;
     }
-    
+
     /**
      * unless builtin
-     * 
+     *
      * @param mixed $conditional
      * @param \Handlebars\Options $options
      * @return mixed
@@ -183,10 +183,10 @@ class Builtins
         $newOptions->inverse = $options->fn;
         return call_user_func($ifHelper, $conditional, $newOptions);
     }
-    
+
     /**
      * with builtin
-     * 
+     *
      * @param mixed $context
      * @param \Handlebars\Options $options
      * @return mixed

@@ -1,4 +1,4 @@
 main: Handlebars
-destination: doc
+destination: docs
 source: src
 googleAnalytics: UA-7764958-4

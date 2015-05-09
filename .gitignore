@@ -5,7 +5,7 @@
 .settings
 .c9
 composer.phar
-/doc
+/docs
 /node_modules/
 /phpunit
 /report*/
