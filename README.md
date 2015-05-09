@@ -41,7 +41,7 @@ echo $handlebars->render('{{foo}}', array(
 ## Testing
 
 ``` bash
-phpunit
+make test
 ```
 
 
