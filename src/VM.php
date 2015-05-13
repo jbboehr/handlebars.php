@@ -317,7 +317,7 @@ class VM
 
         $i = $paramSize;
         $ids = $types = $contexts = array();
-        while($i--) {
+        while( $i-- ) {
             $param = $this->pop();
             $params[$i] = $param;
             if( $this->trackIds ) {
@@ -331,11 +331,11 @@ class VM
         ksort($params);
 
         if( $this->trackIds ) {
-          $options->ids = $ids;
+            $options->ids = $ids;
         }
         if( $this->stringParams ) {
-          $options->types = $types;
-          $options->contexts = $contexts;
+            $options->types = $types;
+            $options->contexts = $contexts;
         }
 
         // This might not work right?
@@ -363,7 +363,8 @@ class VM
     private function wrapProgram($program, Options $options)
     {
         if( $program === null ) {
-            return function () {};
+            return function () {
+            };
         }
 
         $self = $this;
@@ -614,7 +615,7 @@ class VM
 
         $value = $this->top();
 
-        for (; $i < $len; $i++) {
+        for( ; $i < $len; $i++ ) {
             if( !is_array($value) ) {
                 $value = null;
                 break;
@@ -687,11 +688,11 @@ class VM
     private function pushId($type, $name)
     {
         if( $type === 'ID' || $type === 'DATA' ) {
-          $this->pushString($name);
+            $this->pushString($name);
         } else if( $type === 'sexpr' ) {
-          $this->pushLiteral('true');
+            $this->pushLiteral('true');
         } else {
-          $this->pushLiteral('null');
+            $this->pushLiteral('null');
         }
     }
 
@@ -725,7 +726,7 @@ class VM
 
         // If it's a subexpression, the string result
         // will be pushed after this opcode.
-        if ($type !== 'sexpr') {
+        if( $type !== 'sexpr' ) {
             $this->push($string);
         }
     }

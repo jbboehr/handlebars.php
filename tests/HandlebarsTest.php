@@ -41,7 +41,9 @@ class HandlebarsTest extends Common
     {
         $handlebars = new \Handlebars\Handlebars(array(
             'helpers' => array(
-                'foo' => function() { return 'bar'; }
+                'foo' => function () {
+                    return 'bar';
+                }
             )
         ));
         $this->assertEquals('bar', $handlebars->render('{{foo}}'));

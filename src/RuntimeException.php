@@ -7,4 +7,6 @@ namespace Handlebars;
  *
  * Note: this class is only used when the extension isn't loaded
  */
-class RuntimeException extends Exception {}
+class RuntimeException extends Exception
+{
+}

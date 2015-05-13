@@ -2,12 +2,15 @@
 
 namespace Handlebars\Tests;
 
-class ClosureHolder {
+class ClosureHolder
+{
     private $closureText;
-    public function __construct($closureText) {
+    public function __construct($closureText)
+    {
         $this->closureText = $closureText;
     }
-    public function __toString() {
+    public function __toString()
+    {
         return $this->closureText;
     }
 }

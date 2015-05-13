@@ -10,7 +10,7 @@ class OptionsTest extends Common
     public function testFnWithFunction()
     {
         $called = false;
-        $fn = function() use (&$called) {
+        $fn = function () use (&$called) {
             return $called = true;
         };
         $options = new Options();
@@ -22,7 +22,7 @@ class OptionsTest extends Common
     public function testInverseWithFunction()
     {
         $called = false;
-        $fn = function() use (&$called) {
+        $fn = function () use (&$called) {
             return $called = true;
         };
         $options = new Options();
