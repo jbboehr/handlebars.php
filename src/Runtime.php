@@ -179,7 +179,8 @@ class Runtime
 
         if( is_string($partial) ) {
             if( !$partial ) {
-                $partial = function () {};
+                $partial = function () {
+                };
             } else {
                 $partial = $this->handlebars->compile($partial, array(
                     'data' => ($data !== null),
@@ -263,13 +264,15 @@ class Runtime
                 array_unshift($depths, $context);
             }
             // @todo fix depths
-            return call_user_func($fn,
-                    $context,
-                    $runtime->getHelpers(),
-                    $runtime->getPartials(),
-                    $data,
-                    $runtime,
-                    $depths);
+            return call_user_func(
+                $fn,
+                $context,
+                $runtime->getHelpers(),
+                $runtime->getPartials(),
+                $data,
+                $runtime,
+                $depths
+            );
         };
     }
 }

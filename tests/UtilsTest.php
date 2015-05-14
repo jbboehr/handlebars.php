@@ -61,15 +61,15 @@ class UtilsTest extends Common
     public function testIndent()
     {
         $this->assertEquals(
-            " blah", 
+            " blah",
             Utils::indent("blah", ' ')
         );
         $this->assertEquals(
-            "  blah\n  blah", 
+            "  blah\n  blah",
             Utils::indent("blah\nblah", '  ')
         );
         $this->assertEquals(
-            "   \n   \n   \n", 
+            "   \n   \n   \n",
             Utils::indent("\n\n\n", '   ')
         );
     }
@@ -77,15 +77,15 @@ class UtilsTest extends Common
     public function testInflect()
     {
         $this->assertEquals(
-            "Baz", 
+            "Baz",
             Utils::inflect("baz")
         );
         $this->assertEquals(
-            "FooBar", 
+            "FooBar",
             Utils::inflect("foo bar")
         );
         $this->assertEquals(
-            "FooBar", 
+            "FooBar",
             Utils::inflect(" foo bar ")
         );
     }

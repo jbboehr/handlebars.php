@@ -2,7 +2,8 @@
 
 namespace Handlebars;
 
-class Hash {
+class Hash
+{
     public $contexts;
     public $types;
     public $ids;

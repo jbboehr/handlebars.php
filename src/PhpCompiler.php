@@ -585,7 +585,7 @@ class PhpCompiler
 
         $blockHelperMissingName = $this->nameLookup('$helpers', 'blockHelperMissing', 'helper');
         $this->pushSource('if( !(' . $this->lastHelper . ') ) { ' . $current . ' = '
-        . '$runtime->call(' . $blockHelperMissingName . ', array(' . $this->safeJoin(', ', $params) . ')); }' );
+        . '$runtime->call(' . $blockHelperMissingName . ', array(' . $this->safeJoin(', ', $params) . ')); }');
     }
 
     private function append()
@@ -646,7 +646,7 @@ class PhpCompiler
         array_splice($params, 1, 0, array($blockName));
 
         $blockHelperMissingName = $this->nameLookup('$helpers', 'blockHelperMissing', 'helper');
-        $this->push('$runtime->call(' . $blockHelperMissingName . ', array(' . $this->safeJoin(', ', $params) . '));' );
+        $this->push('$runtime->call(' . $blockHelperMissingName . ', array(' . $this->safeJoin(', ', $params) . '));');
     }
 
     private function emptyHash()

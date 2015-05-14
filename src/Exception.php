@@ -7,4 +7,6 @@ use Exception as BaseException;
 /**
  * Base exception
  */
-class Exception extends BaseException {}
+class Exception extends BaseException
+{
+}

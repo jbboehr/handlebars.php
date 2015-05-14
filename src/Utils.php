@@ -14,7 +14,8 @@ class Utils
      * @param string $id
      * @return string
      */
-    public static function appendContextPath($contextPath, $id) {
+    public static function appendContextPath($contextPath, $id)
+    {
         if( is_array($contextPath) ) {
             if( isset($contextPath['contextPath']) ) {
                 $contextPath = $contextPath['contextPath'];
@@ -79,8 +80,12 @@ class Utils
     public static function inflect($str)
     {
         return trim(
-            str_replace(' ', '',
-                ucwords(preg_replace('/[^a-zA-Z0-9]+/', ' ', $str))));
+            str_replace(
+                ' ',
+                '',
+                ucwords(preg_replace('/[^a-zA-Z0-9]+/', ' ', $str))
+            )
+        );
     }
 
     /**

@@ -21,12 +21,12 @@ abstract class Generator
         $this->specName = $options['specName'];
         
         // Make namespace
-        $this->namespace = 'Handlebars\\Tests\\Spec\\' 
+        $this->namespace = 'Handlebars\\Tests\\Spec\\'
                 . $options['ns'];
         
         // Make class name
-        $this->className = ucfirst($this->specName) 
-            . str_replace(' ', '', ucwords(str_replace('-', ' ', $this->suiteName))) 
+        $this->className = ucfirst($this->specName)
+            . str_replace(' ', '', ucwords(str_replace('-', ' ', $this->suiteName)))
             . 'Test';
         
         // Make output file
@@ -123,7 +123,7 @@ EOF;
         }
         
         $title = $this->generateTestTitle($test);
-        $functionName = 'test' 
+        $functionName = 'test'
                 . (isset($test['testMode']) ? ucfirst($test['testMode']) : '')
                 .  str_replace(' ', '', ucwords(preg_replace('/[^a-zA-Z0-9]+/', ' ', $title)));
         if( isset($this->usedNames[$functionName]) ) {
@@ -188,7 +188,7 @@ EOF;
                 $this->convertLambdas($globalHelpers);
                 $parts[] = '$this->handlebars->registerHelpers(' . $this->indentVarExport(2, $globalHelpers) . ');';
                 unset($test['globalHelpers']); // maybe bad idea
-            } 
+            }
             if( !empty($test['globalPartials']) ) {
                 $parts[] = '$this->handlebars->registerPartials(' . $this->indentVarExport(2, $test['globalPartials']) . ');';
                 unset($test['globalPartial']); // maybe bad idea
@@ -226,7 +226,8 @@ EOF;
     
     
     
-    protected function convertLambdas(&$data) {
+    protected function convertLambdas(&$data)
+    {
         if( !is_array($data) ) {
             return;
         }
@@ -279,8 +280,8 @@ EOF;
                 $output = "array(\n";
                 $isNormalArray = Utils::isIntArray($var);
                 foreach( $var as $k => $v ) {
-                    $output .= $this->indent($indent + 1) 
-                            . (!$isNormalArray ? var_export($k, true) 
+                    $output .= $this->indent($indent + 1)
+                            . (!$isNormalArray ? var_export($k, true)
                             . ' => ' : '' )
                             . $this->varExport($v, $indent + 1) . ",\n";
                 }
