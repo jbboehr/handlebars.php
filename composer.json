@@ -7,8 +7,12 @@
     ],
     "autoload" : {
         "psr-4" : {
-            "Handlebars\\": "src/",
-            "Handlebars\\Tests\\" : "tests/"
+            "Handlebars\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Handlebars\\Tests\\": "tests"
         }
     },
     "description" : "",
@@ -30,6 +34,9 @@
         "phpunit/phpunit": "~4.5",
         "scrutinizer/ocular": "~1.1",
         "squizlabs/php_codesniffer": "~2.3.2"
+    },
+    "scripts": {
+        "test": "phpunit"
     },
     "type" : "library"
 }
