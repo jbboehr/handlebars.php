@@ -28,7 +28,8 @@ install)
         cd ..
     else
         sudo apt-get update -qq
-        sudo apt-get install -qq libhandlebars-dev libtalloc-dev hhvm hhvm-dev g++-4.8 gcc-4.8 libboost1.49-dev libgoogle-glog-dev libjemalloc-dev
+        sudo apt-get install -qq libhandlebars-dev libtalloc-dev g++-4.8 gcc-4.8 libboost1.49-dev libgoogle-glog-dev libjemalloc-dev
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" -y -q hhvm hhvm-dev
         sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 90
         git clone https://github.com/jbboehr/hhvm-handlebars.git
         cd hhvm-handlebars
