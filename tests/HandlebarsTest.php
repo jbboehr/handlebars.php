@@ -2,8 +2,10 @@
             
 namespace Handlebars\Tests;
 
-use \Handlebars\Tests\Common;
-use \Handlebars\Compiler;
+use Handlebars\Compiler;
+use Handlebars\Handlebars;
+use Handlebars\Tests\Common;
+use ReflectionObject;
 
 class HandlebarsTest extends Common
 {
@@ -14,8 +16,8 @@ class HandlebarsTest extends Common
         $stub->method('compile')
             ->willReturn(false);
         
-        $handlebars = new \Handlebars\Handlebars;
-        $r = new \ReflectionObject($handlebars);
+        $handlebars = new Handlebars;
+        $r = new ReflectionObject($handlebars);
         $rp = $r->getProperty('phpCompiler');
         $rp->setAccessible(true);
         $rp->setValue($handlebars, $stub);
@@ -29,8 +31,8 @@ class HandlebarsTest extends Common
     
     public function testCompilerRenderMode()
     {
-        $handlebars = new \Handlebars\Handlebars(array(
-            'mode' => \Handlebars\Handlebars::MODE_COMPILER,
+        $handlebars = new Handlebars(array(
+            'mode' => Handlebars::MODE_COMPILER,
         ));
         $this->assertEquals('bar', $handlebars->render('{{foo}}', array(
             'foo' => 'bar',
@@ -39,7 +41,7 @@ class HandlebarsTest extends Common
     
     public function testHelpersSpecifiedAtConstruction()
     {
-        $handlebars = new \Handlebars\Handlebars(array(
+        $handlebars = new Handlebars(array(
             'helpers' => array(
                 'foo' => function () {
                     return 'bar';
@@ -51,7 +53,7 @@ class HandlebarsTest extends Common
     
     public function testPartialsSpecifiedAtConstruction()
     {
-        $handlebars = new \Handlebars\Handlebars(array(
+        $handlebars = new Handlebars(array(
             'partials' => array(
                 'foo' => '{{foo}}'
             )
@@ -63,7 +65,7 @@ class HandlebarsTest extends Common
     
     public function testRenderSupportsStdClass()
     {
-        $handlebars = new \Handlebars\Handlebars();
+        $handlebars = new Handlebars();
         $this->assertEquals('foo', $handlebars->render('{{bar.baz}}', array(
             'bar' => (object) array(
                 'baz' => 'foo'

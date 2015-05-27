@@ -245,17 +245,9 @@ class Handlebars
      */
     private function renderVM($tmpl, $context = null, $options = null)
     {
-        // Build helpers
-        $helpers = $this->getHelpers();
-        if( !empty($options['helpers']) ) {
-            Utils::arrayMerge($helpers, $options['helpers']);
-        }
-
-        // Build partials
-        $partials = $this->getPartials();
-        if( !empty($options['partials']) ) {
-            Utils::arrayMerge($partials, $options['partials']);
-        }
+        // Build helpers and partials
+        $helpers = Utils::arrayMerge($this->getHelpers(), Utils::lookup($options, 'helpers'));
+        $partials = Utils::arrayMerge($this->getPartials(), Utils::lookup($options, 'partials'));
 
         // Compile
         $opcodes = $this->compiler->compile($tmpl, $options);
@@ -266,7 +258,7 @@ class Handlebars
     }
 
     /**
-     * Setup the builtin helpers
+     * Setup the built-in helpers
      */
     private function setupBuiltinHelpers()
     {

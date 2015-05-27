@@ -1,7 +1,12 @@
 #!/usr/bin/env php
 <?php
 
-require __DIR__ . '/../vendor/autoload.php';
+foreach( array(__DIR__ . '/../../autoload.php', __DIR__ . '/../vendor/autoload.php', __DIR__ . '/vendor/autoload.php') as $file ) {
+    if( file_exists($file) ) {
+        require $file;
+        break;
+    }
+}
 
 $opts = getopt('t:jp', array(
   'template:',
@@ -19,7 +24,10 @@ if( isset($opts['t']) ) {
     exit(1);
 }
 if( $templateFile === '-' ) {
-    $template = stream_get_contents(fopen('php://input', 'r'));
+    $template = '';
+    while( false !== ($line = fgets(STDIN)) ) {
+        $template .= $line;
+    }
 } else {
     $template = file_get_contents($templateFile);
 }

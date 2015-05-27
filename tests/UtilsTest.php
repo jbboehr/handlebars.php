@@ -2,8 +2,8 @@
             
 namespace Handlebars\Tests;
 
-use \Handlebars\Tests\Common;
-use \Handlebars\Utils;
+use Handlebars\Utils;
+use Handlebars\Tests\Common;
 
 class UtilsTest extends Common
 {
@@ -27,17 +27,50 @@ class UtilsTest extends Common
         );
     }
     
+    public function testArrayCopyWithArray()
+    {
+        $a = array('a' => 'b');
+        $b = Utils::arrayCopy($a);
+        $this->assertEquals($a, $b);
+        $a['c'] = 'd';
+        $this->assertNotSame($a, $b);
+    }
+    
+    public function testArrayCopyWithArrayObject()
+    {
+        $a = new \ArrayObject();
+        $a['b'] = 'c';
+        $b = Utils::arrayCopy($a);
+        $this->assertEquals($a, $b);
+        $this->assertNotSame($a, $b);
+        $b['c'] = 'd';
+        $this->assertNotEquals($a, $b);
+    }
+    
     public function testArrayMerge()
     {
         $arr1 = array('a' => 'b');
-        Utils::arrayMerge($arr1, array('c' => 'd'));
+        $arr1b = Utils::arrayMerge($arr1, array('c' => 'd'));
+        $this->assertEquals(array('a' => 'b'), $arr1);
+        $this->assertEquals(array('a' => 'b', 'c' => 'd'), $arr1b);
+        
+        $arr2 = new \ArrayObject(array('a' => 'b'));
+        $arr2b = Utils::arrayMerge($arr2, array('c' => 'd'));
+        $this->assertEquals(array('a' => 'b'), $arr2->getArrayCopy());
+        $this->assertEquals(array('a' => 'b', 'c' => 'd'), $arr2b->getArrayCopy());
+    }
+    
+    public function testArrayMergeByRef()
+    {
+        $arr1 = array('a' => 'b');
+        Utils::arrayMergeByRef($arr1, array('c' => 'd'));
         $this->assertEquals(
             array('a' => 'b', 'c' => 'd'),
             $arr1
         );
         
         $arr2 = new \ArrayObject(array('a' => 'b'));
-        Utils::arrayMerge($arr2, array('c' => 'd'));
+        Utils::arrayMergeByRef($arr2, array('c' => 'd'));
         $this->assertEquals(
             array('a' => 'b', 'c' => 'd'),
             $arr2->getArrayCopy()

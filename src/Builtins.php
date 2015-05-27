@@ -165,7 +165,7 @@ class Builtins
      */
     public function lookup($obj, $field)
     {
-        return isset($obj[$field]) ? $obj[$field] : null;
+        return Utils::lookup($obj, $field);
     }
 
     /**

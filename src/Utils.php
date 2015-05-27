@@ -2,6 +2,10 @@
 
 namespace Handlebars;
 
+use ArrayAccess;
+use SplDoublyLinkedList;
+use Traversable;
+
 /**
  * Utilities
  */
@@ -25,19 +29,76 @@ class Utils
         }
         return ($contextPath ? $contextPath . '.' : '') . $id;
     }
-
+    
     /**
-     * Merge all of the entries of array2 into array1
+     * Make a copy of an array or array object.
+     *
+     * @param mixed $array
+     * @return mixed
+     */
+    public static function arrayCopy($array)
+    {
+        if( is_object($array) ) {
+            return clone $array;
+        } else {
+            return $array;
+        }
+    }
+    
+    /**
+     * Merge all of the entries of array2 into array1, by value.
      *
      * @param array $array
      * @return array
      */
-    public static function arrayMerge(&$array1, $array2)
+    public static function arrayMerge($array1, $array2)
+    {
+        $array = self::arrayCopy($array1);
+        foreach( $array2 as $k => $v ) {
+            $array[$k] = $v;
+        }
+        return $array;
+    }
+
+    /**
+     * Merge all of the entries of array2 into array1, by reference.
+     *
+     * @param array $array
+     * @return array
+     */
+    public static function arrayMergeByRef(&$array1, $array2)
     {
         foreach( $array2 as $k => $v ) {
             $array1[$k] = $v;
         }
         return $array1;
+    }
+    
+    /**
+     * Unshift a single element onto the beginning of a copy of an array.
+     * Returns null if not given an array.
+     *
+     * @param array|\Traversable $array
+     * @return array|\Traversable
+     */
+    public static function arrayUnshift($array, $value)
+    {
+        if( is_array($array) ) {
+            array_unshift($array, $value);
+        } else if( $array instanceof SplDoublyLinkedList ) {
+            $array = clone $array;
+            $array->unshift($value);
+        } else if( $array instanceof Traversable ) {
+            $newArray = array($value);
+            foreach( $array as $item ) {
+                $newArray[] = $item;
+            }
+            $array = $newArray;
+        } else {
+            $array = null;
+        }
+        
+        return $array;
     }
 
     public static function createFrame($object)
@@ -113,10 +174,22 @@ class Utils
     public static function lookup($objOrArray, $field)
     {
         //return isset($objOrArray[$field]) ? $objOrArray[$field] : null;
-        if( is_array($objOrArray) || $objOrArray instanceof \ArrayAccess ) {
+        if( is_array($objOrArray) || $objOrArray instanceof ArrayAccess ) {
             return isset($objOrArray[$field]) ? $objOrArray[$field] : null;
         } else if( is_object($objOrArray) ) {
             return isset($objOrArray->$field) ? $objOrArray->$field : null;
         }
+    }
+    
+    /**
+     * Returns an empty closure
+     *
+     * @return \Closure
+     */
+    public static function noop()
+    {
+        return function () {
+            
+        };
     }
 }

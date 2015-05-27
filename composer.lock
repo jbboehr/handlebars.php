@@ -1,7 +1,7 @@
 {
     "_readme": [
         "This file locks the dependencies of your project to a known state",
-        "Read more about it at http://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
     "hash": "bc6e15c596f5039322e9822739ce7fc6",
@@ -284,15 +284,16 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/jbboehr/CodingStandard.git",
-                "reference": "fcba2b2a0fb26cfeac61fc5c15c0ccc8930e1c75"
+                "reference": "8570591db0185f386af8ba1dfa253e2b0d6d4952"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jbboehr/CodingStandard/zipball/fcba2b2a0fb26cfeac61fc5c15c0ccc8930e1c75",
-                "reference": "fcba2b2a0fb26cfeac61fc5c15c0ccc8930e1c75",
+                "url": "https://api.github.com/repos/jbboehr/CodingStandard/zipball/8570591db0185f386af8ba1dfa253e2b0d6d4952",
+                "reference": "8570591db0185f386af8ba1dfa253e2b0d6d4952",
                 "shasum": ""
             },
             "require-dev": {
+                "phpunit/phpunit": "~4.5.0",
                 "squizlabs/php_codesniffer": "~2.0"
             },
             "type": "library",
@@ -316,7 +317,7 @@
                 "PHP_CodeSniffer",
                 "codesniffer"
             ],
-            "time": "2015-05-13 21:11:27"
+            "time": "2015-05-21 21:52:34"
         },
         {
             "name": "jms/metadata",
