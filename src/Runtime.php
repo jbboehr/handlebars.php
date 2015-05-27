@@ -189,21 +189,21 @@ class Runtime
      * Invoke ambiguous runtime helper
      *
      * @param callable $helper
-     * @param mixed $nonhelper
+     * @param mixed $nonHelper
      * @param callable $helperMissing
      * @param array $callParams
      * @return string
      * @throws \Handlebars\RuntimeException on a missing helper, and helperMissing is not defined.
      */
-    public function invokeAmbiguous($helper, $nonhelper, $helperMissing, $callParams)
+    public function invokeAmbiguous($helper, $nonHelper, $helperMissing, $callParams)
     {
         if( $helper !== null ) {
             return $this->call($helper, $callParams);
-        } else if( $nonhelper !== null ) {
-            if( is_callable($nonhelper) ) {
-                return $this->call($nonhelper, $callParams);
+        } else if( $nonHelper !== null ) {
+            if( is_callable($nonHelper) ) {
+                return $this->call($nonHelper, $callParams);
             } else {
-                return $nonhelper;
+                return $nonHelper;
             }
         } else if( $helperMissing !== null ) {
             return $this->call($helperMissing, $callParams);
@@ -216,7 +216,7 @@ class Runtime
      * Invoke helper runtime helper
      *
      * @param callable $helper
-     * @param mixed $nonhelper
+     * @param mixed $nonHelper
      * @param callable $helperMissing
      * @param array $callParams
      * @return string
@@ -274,7 +274,7 @@ class Runtime
 
         $partial = $this->compilePartial($partial, $data);
         if( !is_callable($partial) ) {
-            throw new RuntimeException('Partial ' . $name . ' was not callable: ' . $partial);
+            throw new RuntimeException('Partial ' . $name . ' was not callable');
         }
 
         $options = array(
@@ -355,6 +355,8 @@ class Runtime
                     'compat' => !empty($this->options['compat']),
                 ));
             }
+        } else if( $partial instanceof self ) {
+            return $partial;
         }
     }
     

@@ -174,13 +174,13 @@ class PhpCompiler
 
         foreach( $this->source as $line ) {
             if( $line instanceof AppendToBuffer ) {
-                if( $buffer ) {
+                if( strlen($buffer) > 0 ) {
                     $buffer .= "\n    . " . $line->getContent();
                 } else {
                     $buffer = $line->getContent();
                 }
             } else {
-                if( $buffer ) {
+                if( strlen($buffer) > 0 ) {
                     if( !$source ) {
                         $appendFirst = true;
                         $source = $buffer . ";\n  ";
@@ -198,12 +198,12 @@ class PhpCompiler
         }
 
         if( $appendOnly ) {
-            if( $buffer || $source ) {
+            if( $source || strlen($buffer) > 0 ) {
                 $source .= 'return ' . ($buffer ?: '""') . ";\n";
             }
         } else {
             $varDeclarations .= '; $buffer = ' . ($appendFirst ? '' : $this->initializeBuffer());
-            if( $buffer ) {
+            if( strlen($buffer) > 0 ) {
                 $source .= 'return $buffer . ' . $buffer . ";\n";
             } else {
                 $source .= 'return $buffer;' . "\n";

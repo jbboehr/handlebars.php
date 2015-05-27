@@ -54,8 +54,10 @@ class Utils
     public static function arrayMerge($array1, $array2)
     {
         $array = self::arrayCopy($array1);
-        foreach( $array2 as $k => $v ) {
-            $array[$k] = $v;
+        if( $array2 ) {
+            foreach( $array2 as $k => $v ) {
+                $array[$k] = $v;
+            }
         }
         return $array;
     }
@@ -63,7 +65,8 @@ class Utils
     /**
      * Merge all of the entries of array2 into array1, by reference.
      *
-     * @param array $array
+     * @param array $array1
+     * @param array $array2
      * @return array
      */
     public static function arrayMergeByRef(&$array1, $array2)
