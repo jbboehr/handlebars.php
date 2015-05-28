@@ -48,7 +48,8 @@ class Utils
     /**
      * Merge all of the entries of array2 into array1, by value.
      *
-     * @param array $array
+     * @param array $array1
+     * @param array $array2
      * @return array
      */
     public static function arrayMerge($array1, $array2)
@@ -79,7 +80,8 @@ class Utils
     
     /**
      * Unshift a single element onto the beginning of a copy of an array.
-     * Returns null if not given an array.
+     * SplDoublyLinkedList is cloned, otherwise Array objects are reduced to
+     * simple arrays. Returns null if not given an array.
      *
      * @param array|\Traversable $array
      * @return array|\Traversable
@@ -173,10 +175,16 @@ class Utils
 
         return true;
     }
-
+    
+    /**
+     * Lookup a field in an object, an array, or an array object.
+     *
+     * @param mixed $objOrArray
+     * @param string $field
+     * @return mixed
+     */
     public static function lookup($objOrArray, $field)
     {
-        //return isset($objOrArray[$field]) ? $objOrArray[$field] : null;
         if( is_array($objOrArray) || $objOrArray instanceof ArrayAccess ) {
             return isset($objOrArray[$field]) ? $objOrArray[$field] : null;
         } else if( is_object($objOrArray) ) {

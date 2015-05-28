@@ -77,6 +77,33 @@ class UtilsTest extends Common
         );
     }
     
+    public function testArrayUnshiftWithArray()
+    {
+        $arr1 = array('a');
+        $arr2 = Utils::arrayUnshift($arr1, 'b');
+        $this->assertSame($arr1, array('a'));
+        $this->assertSame($arr2, array('b', 'a'));
+    }
+    
+    public function testArrayUnshiftWithArrayObject()
+    {
+        $arr3 = new \ArrayObject(array('a'));
+        $arr4 = Utils::arrayUnshift($arr3, 'b');
+        $this->assertSame($arr3->getArrayCopy(), array('a'));
+        $this->assertSame($arr4, array('b', 'a'));
+    }
+    
+    public function testArrayUnshiftWithSplDoublyLinkedList()
+    {
+        $arr5 = new \SplDoublyLinkedList();
+        $arr5->push('a');
+        $arr6 = Utils::arrayUnshift($arr5, 'b');
+        $this->assertNotSame($arr5, $arr6);
+        $this->assertEquals($arr5[0], 'a');
+        $this->assertEquals($arr6[0], 'b');
+        $this->assertEquals($arr6[1], 'a');
+    }
+    
     public function testCreateFrame()
     {
         $obj1 = new \stdClass;

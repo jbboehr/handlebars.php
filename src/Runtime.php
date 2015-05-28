@@ -103,20 +103,24 @@ class Runtime
      */
     public function expression($value)
     {
-        if( is_bool($value) ) {
+        if( !is_scalar($value) ) {
+            if( is_array($value) ) {
+                // javascript-style array-to-string conversion
+                if( Utils::isIntArray($value) ) {
+                    return implode(',', $value);
+                } else {
+                    throw new RuntimeException('Trying to stringify assoc array');
+                }
+            } else if( is_object($value) && !method_exists($value, '__toString') ) {
+                throw new RuntimeException('Trying to stringify object');
+            }
+        } else if( is_bool($value) ) {
             return $value ? 'true' : 'false';
         } else if( $value === 0 ) {
             return '0';
-        } else if( is_array($value) ) {
-            // javascript-style array-to-string conversion
-            if( Utils::isIntArray($value) ) {
-                return implode(',', $value);
-            } else {
-                throw new RuntimeException('Trying to stringify assoc array');
-            }
-        } else {
-            return (string) $value;
         }
+        
+        return (string) $value;
     }
 
     /**
@@ -230,6 +234,7 @@ class Runtime
             if( is_callable($nonHelper) ) {
                 return $this->call($nonHelper, $callParams);
             } else {
+                // @todo is this unnecessary, or should this throw?
                 return $nonHelper;
             }
         } else if( $helperMissing ) {
