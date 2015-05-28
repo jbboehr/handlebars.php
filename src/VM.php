@@ -605,17 +605,15 @@ class VM
     private function lookupOnContext($parts, $falsy, $scoped)
     {
         $i = 0;
-        $len = count($parts);
 
         if( !$scoped && !empty($this->options['compat']) ) {
             $this->depthedLookup($parts[$i++]);
         } else {
             $this->pushContext();
         }
-
+        
         $value = $this->top();
-
-        for( ; $i < $len; $i++ ) {
+        for( $len = count($parts); $i < $len; $i++ ) {
             if( !is_array($value) ) {
                 $value = null;
                 break;

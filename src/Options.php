@@ -68,7 +68,7 @@ class Options implements ArrayAccess
     }
 
     /**
-     * Invoke the program, if set
+     * Invoke the program, if set.
      *
      * @return mixed
      */
@@ -91,11 +91,25 @@ class Options implements ArrayAccess
         }
     }
 
+    /**
+     * Returns whether the requested index exists.
+     * Proxies to object properties for compatibility reasons.
+     *
+     * @param string $offset
+     * @return mixed
+     */
     public function offsetExists($offset)
     {
         return property_exists($this, $offset);
     }
 
+    /**
+     * Returns the value at the specified index.
+     * Proxies to object properties for compatibility reasons.
+     *
+     * @param string $offset
+     * @return mixed
+     */
     public function offsetGet($offset)
     {
         if( property_exists($this, $offset) ) {
@@ -103,11 +117,26 @@ class Options implements ArrayAccess
         }
     }
 
+    /**
+     * Sets the value at the specified index to value.
+     * Proxies to object properties for compatibility reasons.
+     *
+     * @param string $offset
+     * @param mixed $value
+     * @return void
+     */
     public function offsetSet($offset, $value)
     {
         $this->$offset = $value;
     }
 
+    /**
+     * Unsets the value at the specified index.
+     * Proxies to object properties for compatibility reasons.
+     *
+     * @param string $offset
+     * @return void
+     */
     public function offsetUnset($offset)
     {
         unset($this->$offset);

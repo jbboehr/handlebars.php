@@ -2,6 +2,8 @@
 
 namespace Handlebars;
 
+use SplStack;
+
 class PhpCompiler
 {
     const VERSION = '2.0.0';
@@ -84,15 +86,15 @@ class PhpCompiler
         $this->aliases = array();
         $this->registers = array();
         $this->hashes = array();
-        $this->compileStack = new \SplStack();
-        $this->inlineStack = new \SplStack();
+        $this->compileStack = new SplStack();
+        $this->inlineStack = new SplStack();
     }
 
     private function compileChildren(&$environment, array $options = array())
     {
         foreach( $environment['children'] as $i => &$child ) {
             $compiler = new self();
-            // $ivar index = this.matchExistingProgram(child);
+
             $this->context->programs[] = '';
             $index = count($this->context->programs);
             $child['index'] = $index;
@@ -172,13 +174,13 @@ class PhpCompiler
 
         foreach( $this->source as $line ) {
             if( $line instanceof AppendToBuffer ) {
-                if( $buffer ) {
-                    $buffer .= "\n    . " . $line->content;
+                if( strlen($buffer) > 0 ) {
+                    $buffer .= "\n    . " . $line->getContent();
                 } else {
-                    $buffer = $line->content;
+                    $buffer = $line->getContent();
                 }
             } else {
-                if( $buffer ) {
+                if( strlen($buffer) > 0 ) {
                     if( !$source ) {
                         $appendFirst = true;
                         $source = $buffer . ";\n  ";
@@ -196,12 +198,12 @@ class PhpCompiler
         }
 
         if( $appendOnly ) {
-            if( $buffer || $source ) {
+            if( $source || strlen($buffer) > 0 ) {
                 $source .= 'return ' . ($buffer ?: '""') . ";\n";
             }
         } else {
             $varDeclarations .= '; $buffer = ' . ($appendFirst ? '' : $this->initializeBuffer());
-            if( $buffer ) {
+            if( strlen($buffer) > 0 ) {
                 $source .= 'return $buffer . ' . $buffer . ";\n";
             } else {
                 $source .= 'return $buffer;' . "\n";
@@ -236,7 +238,7 @@ class PhpCompiler
      */
     private function contextName($context)
     {
-        if( $this->useDepths && $context) {
+        if( $this->useDepths && $context ) {
             return '$depths[' . $context . ']';
         } else {
             return '$depth' . $context;
@@ -252,7 +254,7 @@ class PhpCompiler
     {
         if( count($this->inlineStack) ) {
             $inlineStack = $this->inlineStack;
-            $this->inlineStack = new \SplStack();
+            $this->inlineStack = new SplStack();
             foreach( $inlineStack as $i => $entry ) {
                 if( $entry instanceof Literal ) {
                     $this->compileStack->push($entry);
@@ -284,13 +286,7 @@ class PhpCompiler
      */
     public function nameLookup($parent, $name, $type = null)
     {
-        if( false ) { // @todo make this a setting?
-            $expr = $parent . '[' . var_export($name, true) . ']';
-            return '(isset(' . $expr . ') ? ' . $expr . ' : null)';
-        } else {
-            $expr = '\\Handlebars\\Utils::lookup(' . $parent . ', ' . var_export($name, true) . ')';
-            return $expr;
-        }
+        return '\\Handlebars\\Utils::lookup(' . $parent . ', ' . var_export($name, true) . ')';
     }
 
     private function objectLiteral($obj)
@@ -308,7 +304,7 @@ class PhpCompiler
         $item = $inline ? $this->inlineStack->pop() : $this->compileStack->pop();
 
         if( !$wrapped && $item instanceof Literal ) {
-            return $item->value;
+            return $item->getValue();
         } else {
             if( !$inline ) {
                 if( !$this->stackSlot ) {
@@ -403,7 +399,7 @@ class PhpCompiler
         $top = $this->popStack(true);
 
         if( $top instanceof Literal ) {
-            $prefix = $stack = $top->value;
+            $prefix = $stack = $top->getValue();
             $usedLiteral = true;
         } else {
             $createdStack = !$this->stackSlot;
@@ -456,7 +452,7 @@ class PhpCompiler
         $item = $stack->top(); // @todo make sure this is right
 
         if( $item instanceof Literal ) {
-            return $item->value;
+            return $item->getValue();
         } else {
             return $item;
         }
@@ -753,7 +749,6 @@ class PhpCompiler
     private function lookupOnContext($parts, $falsy, $scoped)
     {
         $i = 0;
-        $l = count($parts);
 
         if( !$scoped && !empty($this->options['compat']) && !$this->lastContext ) {
             $this->push($this->depthedLookup($parts[$i++]));
@@ -762,7 +757,7 @@ class PhpCompiler
         }
 
         $self = $this;
-        for( ; $i < $l; $i++ ) {
+        for( $l = count($parts); $i < $l; $i++ ) {
             $this->replaceStack(function ($current) use ($self, &$parts, &$i, $falsy) {
                 $lookup = $self->nameLookup($current, $parts[$i], 'context');
                 if( !$falsy ) {

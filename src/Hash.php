@@ -2,15 +2,13 @@
 
 namespace Handlebars;
 
+/**
+ * Internal hash value class
+ */
 class Hash
 {
-    public $contexts;
-    public $types;
-    public $ids;
-    public $values;
-
-    public function __construct()
-    {
-        $this->contexts = $this->types = $this->ids = $this->values = array();
-    }
+    public $contexts = array();
+    public $types = array();
+    public $ids = array();
+    public $values = array();
 }

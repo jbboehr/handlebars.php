@@ -3,7 +3,7 @@
 namespace Handlebars;
 
 /**
- * Main class
+ * Compile wrapper class
  */
 class Compiler
 {
@@ -18,7 +18,10 @@ class Compiler
     public function compile($tmpl, array $options = null)
     {
         $flags = $this->makeCompilerFlags($options);
-        $knownHelpers = !empty($options['knownHelpers']) ? array_keys($options['knownHelpers']) : null;
+        $knownHelpers = null;
+        if( !empty($options['knownHelpers']) ) {
+            $knownHelpers = array_keys($options['knownHelpers']);
+        }
         return Native::compile($tmpl, $flags, $knownHelpers);
     }
 
@@ -34,10 +37,13 @@ class Compiler
         $opcodes = array();
         foreach( (array) $tmpls as $index => $tmpl ) {
             if( !$tmpl ) {
-                $opcodes[$index] = array('opcodes' => array(), 'children' => array());
-                continue;
+                $opcodes[$index] = array(
+                    'opcodes' => array(),
+                    'children' => array()
+                );
+            } else {
+                $opcodes[$index] = $this->compile($tmpl, $options);
             }
-            $opcodes[$index] = $this->compile($tmpl, $options);
         }
         return $opcodes;
     }

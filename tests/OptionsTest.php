@@ -2,8 +2,8 @@
             
 namespace Handlebars\Tests;
 
-use \Handlebars\Tests\Common;
-use \Handlebars\Options;
+use Handlebars\Options;
+use Handlebars\Tests\Common;
 
 class OptionsTest extends Common
 {
