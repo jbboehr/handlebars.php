@@ -9,8 +9,6 @@ use SplStack;
  */
 class VM
 {
-    // Inputs
-
     /**
      * Original input data
      *
@@ -39,8 +37,6 @@ class VM
      */
     private $options;
 
-    // Stacks
-
     /**
      * @var \SplStack
      */
@@ -66,15 +62,12 @@ class VM
      */
     private $stack;
 
-    // Internals
-
     /**
      * Output buffer
      *
-     * @access private
      * @var string
      */
-    public $buffer;
+    private $buffer;
 
     /**
      * @var mixed
@@ -90,8 +83,6 @@ class VM
      * @var string
      */
     private $lastHelperName;
-
-    // Flags
 
     /**
      * In mustache compat mode?
@@ -170,6 +161,7 @@ class VM
     /**
      * Get helper by name
      *
+     * @internal
      * @param string $name
      * @return callable
      */
@@ -183,6 +175,7 @@ class VM
     /**
      * Magic call method
      *
+     * @internal
      * @param string $method
      * @param array $args
      * @throws \Handlebars\RuntimeException
@@ -195,7 +188,7 @@ class VM
     /**
      * Execute the specified program
      *
-     * @access private
+     * @internal
      * @param integer $program
      * @param mixed $context
      * @param mixed $data

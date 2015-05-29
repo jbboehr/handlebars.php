@@ -15,7 +15,7 @@ coverage: vendor
 cs: vendor
 	./vendor/bin/phpcs $(PHPCS_OPTS)
 
-docs: src/*
+docs: apigen.neon src/*
 	rm -rf docs
 	apigen generate
 	@touch -c docs

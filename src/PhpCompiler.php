@@ -11,7 +11,15 @@ class PhpCompiler
 {
     const VERSION = '2.0.0';
     const COMPILER_REVISION = 6;
+
+    /**
+     * @internal
+     */
     const INDENT = '    ';
+    
+    /**
+     * @internal
+     */
     const EOL = "\n";
 
     /**
@@ -35,6 +43,7 @@ class PhpCompiler
     private $trackIds = false;
 
     /**
+     * @internal
      * @access private
      * @var boolean
      */
@@ -123,6 +132,7 @@ class PhpCompiler
     /**
      * Magic call method
      *
+     * @internal
      * @param string $method
      * @param array $args
      * @throws \Handlebars\CompileException
@@ -435,9 +445,9 @@ class PhpCompiler
     }
 
     /**
+     * @internal
      * @param string $parent
      * @param string $name
-     * @access private
      * @return string
      */
     public function nameLookup($parent, $name, $type = null)

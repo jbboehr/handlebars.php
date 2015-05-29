@@ -2,6 +2,9 @@
 
 namespace Handlebars;
 
+/**
+ * @internal
+ */
 class Literal
 {
     /**

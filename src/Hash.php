@@ -4,6 +4,8 @@ namespace Handlebars;
 
 /**
  * Internal hash value class
+ * 
+ * @internal
  */
 class Hash
 {
