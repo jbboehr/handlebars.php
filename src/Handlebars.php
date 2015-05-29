@@ -50,6 +50,8 @@ class Handlebars
 
     /**
      * Constructor
+     * 
+     * @param array $options
      */
     public function __construct($options = array())
     {
@@ -149,7 +151,7 @@ class Handlebars
      *
      * @param $name string
      * @param $helper callable
-     * @return self
+     * @return \Handlebars\Handlebars
      */
     public function registerHelper($name, $helper)
     {
@@ -160,10 +162,10 @@ class Handlebars
     /**
      * Register global helpers
      *
-     * @param $helpers array
-     * @return self
+     * @param array|\Traversable $helpers
+     * @return \Handlebars\Handlebars
      */
-    public function registerHelpers(/*array */$helpers)
+    public function registerHelpers($helpers)
     {
         foreach( $helpers as $name => $helper ) {
             $this->registerHelper($name, $helper);
@@ -176,7 +178,7 @@ class Handlebars
      *
      * @param $name string
      * @param $partial string
-     * @return self
+     * @return \Handlebars\Handlebars
      */
     public function registerPartial($name, $partial)
     {
@@ -187,10 +189,10 @@ class Handlebars
     /**
      * Register an array of partials.
      *
-     * @param $partials
-     * @return self
+     * @param array|\Traversable $partials
+     * @return \Handlebars\Handlebars
      */
-    public function registerPartials(/*array */$partials)
+    public function registerPartials($partials)
     {
         foreach( $partials as $name => $partial ) {
             $this->registerPartial($name, $partial);
@@ -259,6 +261,8 @@ class Handlebars
 
     /**
      * Setup the built-in helpers
+     * 
+     * @return void
      */
     private function setupBuiltinHelpers()
     {

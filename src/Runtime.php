@@ -143,18 +143,6 @@ class Runtime
         return $value;
     }
 
-    public function program($i, $data = null, $depths = null)
-    {
-        $programWrapper = isset($this->programWrappers[$i]) ? $this->programWrappers[$i] : null;
-        $fn = $this->programs[$i];
-        if( $data || $depths ) {
-            $programWrapper = $this->wrapProgram($fn, $data, $depths);
-        } else if( !$programWrapper ) {
-            $programWrapper = $this->programWrappers[$i] = $this->wrapProgram($fn, null, null);
-        }
-        return $programWrapper;
-    }
-
     /**
      * Compatability for javascript's Function.call (technically, it would
      * be Function.apply). The first argument (this) is assigned to
@@ -189,6 +177,26 @@ class Runtime
         return $data;
     }
 
+    /**
+     * Get registered helpers
+     *
+     * @return array
+     */
+    public function getHelpers()
+    {
+        return $this->helpers;
+    }
+
+    /**
+     * Get registered partials
+     *
+     * @return array
+     */
+    public function getPartials()
+    {
+        return $this->partials;
+    }
+    
     /**
      * Invoke ambiguous runtime helper
      *
@@ -314,13 +322,21 @@ class Runtime
     }
 
     /**
+     * Deprecated, use lookupData
+     */
+    public function lookup($depths, $name)
+    {
+        return $this->lookupData($depths, $name);
+    }
+    
+    /**
      * Lookup recursively the specified field in the depths list
      *
      * @param array $depths
      * @param string $name
      * @return mixed
      */
-    public function lookup($depths, $name)
+    public function lookupData($depths, $name)
     {
         foreach( $depths as $depth ) {
             if( isset($depth[$name]) ) {
@@ -328,26 +344,55 @@ class Runtime
             }
         }
     }
-
-    public function getHelpers()
-    {
-        return $this->helpers;
-    }
-
-    public function getHelper($name)
-    {
-        if( isset($this->helpers[$name]) ) {
-            return $this->helpers[$name];
-        }
-    }
-
-    public function getPartials()
-    {
-        return $this->partials;
-    }
-
-
     
+    /**
+     * Alias for Utils::lookup()
+     *
+     * @param mixed $objOrArray
+     * @param string $field
+     * @return mixed
+     */
+    public function nameLookup($objOrArray, $field)
+    {
+        return Utils::lookup($objOrArray, $field);
+    }
+
+    /**
+     * Get a function for the specified program ID
+     *
+     * @param integer $i
+     * @param mixed $data
+     * @param mixed $depths
+     * @return callable
+     */
+    public function program($i, $data = null, $depths = null)
+    {
+        $programWrapper = isset($this->programWrappers[$i]) ? $this->programWrappers[$i] : null;
+        $fn = $this->programs[$i];
+        if( $data || $depths ) {
+            $programWrapper = $this->wrapProgram($fn, $data, $depths);
+        } else if( !$programWrapper ) {
+            $programWrapper = $this->programWrappers[$i] = $this->wrapProgram($fn, null, null);
+        }
+        return $programWrapper;
+    }
+    
+    /**
+     * Create a new options object from an array
+     *
+     * @param array $options
+     * @return \Handlebars\Options
+     */
+    public function setupOptions(array $options)
+    {
+        return new Options($options);
+    }
+
+    /**
+     * @param mixed $partial
+     * @param mixed $data
+     * @return callable
+     */
     private function compilePartial($partial, $data)
     {
         // Maybe allow closures
@@ -364,7 +409,12 @@ class Runtime
             return $partial;
         }
     }
-    
+
+    /**
+     * @param array $options
+     * @param mixed $context
+     * @return array
+     */
     private function processDataOption($options, $context)
     {
         $data = isset($options['data']) ? $options['data'] : array();
@@ -376,7 +426,12 @@ class Runtime
         }
         return $data;
     }
-    
+
+    /**
+     * @param array $options
+     * @param mixed $context
+     * @return \Handlebars\DepthList
+     */
     private function processDepthsOption($options, $context)
     {
         if( empty($this->options['useDepths']) ) {
@@ -392,6 +447,12 @@ class Runtime
         return $depths;
     }
 
+    /**
+     * @param callable $fn
+     * @param mixed $data
+     * @param \Handlebars\DepthList $depths
+     * @return \Closure
+     */
     private function wrapProgram($fn, $data, $depths)
     {
         $runtime = $this;

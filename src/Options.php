@@ -57,14 +57,19 @@ class Options implements ArrayAccess
     public $hashContexts;
     public $types;
     public $contexts;
-
-    public static function __set_state(array $props)
+    
+    /**
+     * Constructor
+     *
+     * @param array $props
+     */
+    public function __construct(array $props = null)
     {
-        $object = new self();
-        foreach( $props as $k => $v ) {
-            $object->$k = $v;
+        if( null !== $props ) {
+            foreach( $props as $k => $v ) {
+                $this->$k = $v;
+            }
         }
-        return $object;
     }
 
     /**
