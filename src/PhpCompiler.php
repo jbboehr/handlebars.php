@@ -4,43 +4,152 @@ namespace Handlebars;
 
 use SplStack;
 
+/**
+ * PHP compiler
+ */
 class PhpCompiler
 {
     const VERSION = '2.0.0';
     const COMPILER_REVISION = 6;
 
+    /**
+     * @internal
+     */
+    const INDENT = '    ';
+    
+    /**
+     * @internal
+     */
+    const EOL = "\n";
+
+    /**
+     * @var array
+     */
     private $environment;
 
+    /**
+     * @var array
+     */
     private $options;
-    private $stringParams;
-    private $trackIds;
 
+    /**
+     * @var boolean
+     */
+    private $stringParams = false;
+
+    /**
+     * @var boolean
+     */
+    private $trackIds = false;
+
+    /**
+     * @internal
+     * @access private
+     * @var boolean
+     */
+    public $useDepths = false;
+
+    /**
+     * @var boolean
+     */
+    private $forceBuffer = false;
+    
+    /**
+     * @var integer
+     */
     private $lastContext;
-    private $source;
-    public $useDepths;
 
+    /**
+     * @var array
+     */
+    private $source;
+
+    /**
+     * @var integer
+     */
     private $stackSlot = 0;
+
+    /**
+     * @var array
+     */
     private $stackVars;
+
+    /**
+     * @var array
+     */
     private $aliases;
+
+    /**
+     * @var array
+     */
     private $registers;
+
+    /**
+     * @var array
+     */
     private $hashes;
+
+    /**
+     * @var \SplStack
+     */
     private $compileStack;
+
+    /**
+     * @var \SplStack
+     */
     private $inlineStack;
 
-    private $forceBuffer;
+    /**
+     * @var string
+     */
     private $pendingContent;
+
+    /**
+     * @var \Handlebars\Hash
+     */
     private $hash;
 
+    /**
+     * @var string
+     */
     private $name;
+
+    /**
+     * @var boolean
+     */
     private $isChild;
+
+    /**
+     * @var \stdClass
+     */
     private $context;
+
+    /**
+     * @var string
+     */
     private $lastHelper;
 
+    /**
+     * Magic call method
+     *
+     * @internal
+     * @param string $method
+     * @param array $args
+     * @throws \Handlebars\CompileException
+     */
     public function __call($method, $args)
     {
         throw new CompileException('Undefined method: ' . $method);
     }
 
+    /**
+     * @param array $environment
+     * @param array $options
+     * @param mixed $context
+     * @param boolean $asObject
+     * @return array|string
+     * @throws \Handlebars\CompileException
+     */
     public function compile($environment, array $options = array(), $context = null, $asObject = false)
     {
         $this->environment = $environment;
@@ -69,6 +178,9 @@ class PhpCompiler
         }
     }
 
+    /**
+     * @return void
+     */
     private function reinit()
     {
         $this->stringParams = !empty($this->options['stringParams']);
@@ -90,6 +202,11 @@ class PhpCompiler
         $this->inlineStack = new SplStack();
     }
 
+    /**
+     * @param array $environment
+     * @param array $options
+     * @return void
+     */
     private function compileChildren(&$environment, array $options = array())
     {
         foreach( $environment['children'] as $i => &$child ) {
@@ -106,17 +223,23 @@ class PhpCompiler
         }
     }
 
+    /**
+     * @return array
+     */
     private function compilerInfo()
     {
         return array(self::VERSION, self::COMPILER_REVISION);
     }
 
+    /**
+     * @return string
+     */
     private function createFunctionContext()
     {
         $varDeclarations = '';
         $locals = array_merge((array) $this->stackVars, array_keys($this->registers));
         if( !empty($locals) ) {
-            $varDeclarations .= implode(' = null' . '; ', $locals) . ' = null';
+            $varDeclarations .= implode(' = null' . ';' . self::EOL . $this->i(1), $locals) . ' = null';
         }
 
         // @todo aliases?
@@ -129,9 +252,14 @@ class PhpCompiler
 
         $source = $this->mergeSource($varDeclarations);
 
-        return 'function(' . implode(' = null, ', $params) . ' = null) {' . "\n  " . $source . '}';
+        return 'function(' . implode(' = null, ', $params) . ' = null) {' . self::EOL . $this->i(1) . $source . '}';
     }
 
+    /**
+     * @param string $fn
+     * @param boolean $asObject
+     * @return array
+     */
     private function createTemplateSpec($fn, $asObject = false)
     {
         $ret = array(
@@ -164,6 +292,7 @@ class PhpCompiler
 
     /**
      * @param string $varDeclarations
+     * @return string
      */
     private function mergeSource($varDeclarations)
     {
@@ -175,7 +304,7 @@ class PhpCompiler
         foreach( $this->source as $line ) {
             if( $line instanceof AppendToBuffer ) {
                 if( strlen($buffer) > 0 ) {
-                    $buffer .= "\n    . " . $line->getContent();
+                    $buffer .= " . " . $line->getContent();
                 } else {
                     $buffer = $line->getContent();
                 }
@@ -183,13 +312,13 @@ class PhpCompiler
                 if( strlen($buffer) > 0 ) {
                     if( !$source ) {
                         $appendFirst = true;
-                        $source = $buffer . ";\n  ";
+                        $source = $buffer . ';' . self::EOL . $this->i(1);
                     } else {
-                        $source .= '$buffer .= ' . $buffer . ";\n  ";
+                        $source .= '$buffer .= ' . $buffer . ';' . self::EOL . $this->i(1);
                     }
                     $buffer = null;
                 }
-                $source .= $line . "\n  ";
+                $source .= $line . "\n    ";
 
                 if( empty($this->environment['isSimple']) ) {
                     $appendOnly = false;
@@ -199,24 +328,31 @@ class PhpCompiler
 
         if( $appendOnly ) {
             if( $source || strlen($buffer) > 0 ) {
-                $source .= 'return ' . ($buffer ?: '""') . ";\n";
+                $source .= 'return ' . ($buffer ?: '""') . ';' . self::EOL;
             }
         } else {
-            $varDeclarations .= '; $buffer = ' . ($appendFirst ? '' : $this->initializeBuffer());
+            $varDeclarations .= ';' . "\n    "
+                . '$buffer = ' . ($appendFirst ? '' : $this->initializeBuffer());
             if( strlen($buffer) > 0 ) {
-                $source .= 'return $buffer . ' . $buffer . ";\n";
+                $source .= 'return $buffer . ' . $buffer . ';' . self::EOL;
             } else {
-                $source .= 'return $buffer;' . "\n";
+                $source .= 'return $buffer;' . self::EOL;
             }
         }
 
         if( $varDeclarations ) {
-            $source = $varDeclarations . ($appendFirst ? '' : ";\n  ") . $source;
+            $source = $varDeclarations
+                . ($appendFirst ? '' : ';' . self::EOL . $this->i(1))
+                . $source;
         }
 
         return $source;
     }
 
+    /**
+     * @param array $opcodes
+     * @return void
+     */
     private function accept($opcodes)
     {
         foreach( $opcodes as $opcode ) {
@@ -224,6 +360,10 @@ class PhpCompiler
         }
     }
 
+    /**
+     * @param string $string
+     * @return string|\Handlebars\AppendToBuffer
+     */
     private function appendToBuffer($string)
     {
         if( !empty($this->environment['isSimple']) ) {
@@ -245,11 +385,18 @@ class PhpCompiler
         }
     }
 
+    /**
+     * @param string $name
+     * @return string
+     */
     private function depthedLookup($name)
     {
-        return '$runtime->lookup($depths, ' . var_export($name, true) . ')';
+        return '$runtime->lookupData($depths, ' . var_export($name, true) . ')';
     }
 
+    /**
+     * @return void
+     */
     private function flushInline()
     {
         if( count($this->inlineStack) ) {
@@ -265,6 +412,20 @@ class PhpCompiler
         }
     }
 
+    /**
+     * Produce an indent of the specified number
+     *
+     * @param integer $n
+     * @return string
+     */
+    private function i($n = 1)
+    {
+        return str_repeat(self::INDENT, $n);
+    }
+
+    /**
+     * @return string
+     */
     private function incrStack()
     {
         $this->stackSlot++;
@@ -274,21 +435,29 @@ class PhpCompiler
         return $this->topStackName();
     }
 
+    /**
+     * @return string
+     */
     private function initializeBuffer()
     {
         return $this->quotedString('');
     }
 
     /**
+     * @internal
      * @param string $parent
      * @param string $name
-     * @access private
+     * @return string
      */
     public function nameLookup($parent, $name, $type = null)
     {
-        return '\\Handlebars\\Utils::lookup(' . $parent . ', ' . var_export($name, true) . ')';
+        return '$runtime->nameLookup(' . $parent . ', ' . var_export($name, true) . ')';
     }
 
+    /**
+     * @param mixed $obj
+     * @return string
+     */
     private function objectLiteral($obj)
     {
         $pairs = array();
@@ -298,6 +467,11 @@ class PhpCompiler
         return 'array(' . $this->safeJoin(', ', $pairs) . ')';
     }
 
+    /**
+     * @param boolean $wrapped
+     * @return mixed
+     * @throws \Handlebars\CompileException
+     */
     private function popStack($wrapped = false)
     {
         $inline = count($this->inlineStack);
@@ -305,23 +479,30 @@ class PhpCompiler
 
         if( !$wrapped && $item instanceof Literal ) {
             return $item->getValue();
-        } else {
-            if( !$inline ) {
-                if( !$this->stackSlot ) {
-                    throw new CompileException('Invalid stack pop');
-                }
-                $this->stackSlot--;
-            }
-            return $item;
         }
+        
+        if( !$inline ) {
+            if( !$this->stackSlot ) {
+                throw new CompileException('Invalid stack pop');
+            }
+            $this->stackSlot--;
+        }
+        return $item;
     }
 
+    /**
+     * @return void
+     */
     private function preamble()
     {
         $this->lastContext = 0;
         $this->source = array();
     }
 
+    /**
+     * @param integer $guid
+     * @return string
+     */
     private function programExpression($guid)
     {
         $child = $this->environment['children'][$guid];
@@ -334,12 +515,21 @@ class PhpCompiler
         return '$runtime->program(' . $this->safeJoin(', ', $programParams) . ')';
     }
 
+    /**
+     * @param mixed $expr
+     * @return mixed
+     */
     private function push($expr)
     {
         $this->inlineStack->push($expr);
         return $expr;
     }
 
+    /**
+     * @param string $type
+     * @param string $name
+     * @return void
+     */
     private function pushId($type, $name)
     {
         if( $type === 'ID' || $type === 'DATA' ) {
@@ -351,6 +541,10 @@ class PhpCompiler
         }
     }
 
+    /**
+     * @param mixed $item
+     * @return string
+     */
     private function pushStack($item)
     {
         $this->flushInline();
@@ -361,6 +555,10 @@ class PhpCompiler
         return $stack;
     }
 
+    /**
+     * @param string|\Handlebars\AppendToBuffer $source
+     * @return void
+     */
     private function pushSource($source)
     {
         if( $this->pendingContent ) {
@@ -372,6 +570,10 @@ class PhpCompiler
         }
     }
 
+    /**
+     * @param string $item
+     * @return void
+     */
     private function pushStackLiteral($item)
     {
         return $this->push(new Literal($item));
@@ -379,6 +581,7 @@ class PhpCompiler
 
     /**
      * @param string $string
+     * @return string
      */
     private function quotedString($string)
     {
@@ -387,6 +590,8 @@ class PhpCompiler
 
     /**
      * @param callable $callback
+     * @return void
+     * @throws \Handlebars\CompileException
      */
     private function replaceStack($callback)
     {
@@ -446,6 +651,9 @@ class PhpCompiler
         }
     }
 
+    /**
+     * @return string
+     */
     private function topStack()
     {
         $stack = count($this->inlineStack) ? $this->inlineStack : $this->compileStack;
@@ -458,6 +666,9 @@ class PhpCompiler
         }
     }
 
+    /**
+     * @return string
+     */
     private function topStackName()
     {
         return '$stack' . $this->stackSlot;
@@ -465,6 +676,7 @@ class PhpCompiler
 
     /**
      * @param string $name
+     * @return void
      */
     private function useRegister($name)
     {
@@ -473,6 +685,12 @@ class PhpCompiler
         }
     }
 
+    /**
+     * @param integer $paramSize
+     * @param string $name
+     * @param boolean $blockHelper
+     * @return array
+     */
     private function setupHelper($paramSize, $name, $blockHelper)
     {
         $params = array();
@@ -487,6 +705,12 @@ class PhpCompiler
         );
     }
 
+    /**
+     * @param string $helper
+     * @param integer $paramSize
+     * @param array $params
+     * @return array
+     */
     private function setupOptions($helper, $paramSize, &$params)
     {
         $options = array();
@@ -553,9 +777,16 @@ class PhpCompiler
         return $options;
     }
 
+    /**
+     * @param string $helperName
+     * @param integer $paramSize
+     * @param array $params
+     * @param boolean $useRegister
+     * @return string
+     */
     private function setupParams($helperName, $paramSize, &$params, $useRegister)
     {
-        $options = '\\Handlebars\\Options::__set_state('
+        $options = '$runtime->setupOptions('
             . $this->objectLiteral($this->setupOptions($helperName, $paramSize, $params))
             . ')';
 
@@ -569,6 +800,9 @@ class PhpCompiler
         }
     }
 
+    /**
+     * @return void
+     */
     private function ambiguousBlockValue()
     {
         $params = array($this->contextName(0));
@@ -580,20 +814,33 @@ class PhpCompiler
         array_splice($params, 1, 0, array($current));
 
         $blockHelperMissingName = $this->nameLookup('$helpers', 'blockHelperMissing', 'helper');
-        $this->pushSource('if( !(' . $this->lastHelper . ') ) { ' . $current . ' = '
-        . '$runtime->call(' . $blockHelperMissingName . ', array(' . $this->safeJoin(', ', $params) . ')); }');
+        $this->pushSource('if( !' . $this->lastHelper . ' ) {' . self::EOL
+            . $this->i(2) . $current . ' = ' . '$runtime->call(' . $blockHelperMissingName . ','
+            . ' array(' . $this->safeJoin(', ', $params) . '));' . self::EOL
+            . $this->i(1) . '}');
     }
 
+    /**
+     * @return void
+     */
     private function append()
     {
         $this->flushInline();
         $local = $this->popStack();
-        $this->pushSource('if( ' . $local . ' !== null ) { ' . $this->appendToBuffer($local) . ' }');
+        $this->pushSource('if( ' . $local . ' !== null ) {' . self::EOL
+            . $this->i(2) . $this->appendToBuffer($local) . self::EOL
+            . $this->i(1) . '}');
         if( !empty($this->environment['isSimple']) ) {
-            $this->pushSource(' else {' . $this->appendToBuffer("''") . ' }');
+            $this->pushSource(' else {' . self::EOL
+                . $this->i(2). $this->appendToBuffer("''")  . self::EOL
+                . $this->i(1). '}');
         }
     }
 
+    /**
+     * @param string $content
+     * @return void
+     */
     private function appendContent($content)
     {
         if( $this->pendingContent ) {
@@ -602,11 +849,18 @@ class PhpCompiler
         $this->pendingContent = $content;
     }
 
+    /**
+     * @return void
+     */
     private function appendEscaped()
     {
-        return $this->pushSource($this->appendToBuffer('$runtime->escapeExpression(' . $this->popStack() . ')'));
+        $this->pushSource($this->appendToBuffer('$runtime->escapeExpression(' . $this->popStack() . ')'));
     }
 
+    /**
+     * @param string $key
+     * @return void
+     */
     private function assignToHash($key)
     {
         $value = $this->popStack();
@@ -633,6 +887,10 @@ class PhpCompiler
         $hash->values[] = var_export($key, true) . ' => ' . $this->safeString($value);
     }
 
+    /**
+     * @param string $name
+     * @return void
+     */
     private function blockValue($name)
     {
         $params = array($this->contextName(0));
@@ -645,6 +903,9 @@ class PhpCompiler
         $this->push('$runtime->call(' . $blockHelperMissingName . ', array(' . $this->safeJoin(', ', $params) . '));');
     }
 
+    /**
+     * @return void
+     */
     private function emptyHash()
     {
         $this->pushStackLiteral('array()');
@@ -659,11 +920,20 @@ class PhpCompiler
         }
     }
 
+    /**
+     * @param integer $depth
+     * @return void
+     */
     private function getContext($depth)
     {
         $this->lastContext = $depth;
     }
 
+    /**
+     * @param string $name
+     * @param boolean $helperCall
+     * @return void
+     */
     private function invokeAmbiguous($name, $helperCall)
     {
         $this->useRegister('$helper');
@@ -678,30 +948,53 @@ class PhpCompiler
         if( !empty($helper['paramsInit']) ) {
             $this->pushSource($helper['paramsInit'] . ';');
         }
-        $this->push('$runtime->invokeAmbiguous(' . $helperName . ', '
-                . $nonhelper . ', ' . $helperMissingName
-                . ', array(' . $helper['callParams'] . '))');
+        $this->push('$runtime->invokeAmbiguous(' . self::EOL
+            . $this->i(2) . $helperName . ', ' . self::EOL
+            . $this->i(2) . $nonhelper . ', ' . self::EOL
+            . $this->i(2) . $helperMissingName . ', ' . self::EOL
+            . $this->i(2) . 'array(' . $helper['callParams'] . ')' . self::EOL
+            . $this->i(1) . ')');
     }
 
+    /**
+     * @param integer $paramSize
+     * @param string $name
+     * @param boolean $isSimple
+     * @return void
+     */
     private function invokeHelper($paramSize, $name, $isSimple)
     {
         $nonhelper = $this->popStack();
         $helper = $this->setupHelper($paramSize, $name, false);
 
         $helperMissingName = $this->nameLookup('$helpers', 'helperMissing', 'helper');
-        $this->push('$runtime->invokeHelper('
-                . ($isSimple ? $helper['name'] : 'null') . ', '
-                . $nonhelper . ', '
-                . $helperMissingName . ', '
-                . 'array(' . $helper['callParams'] . '))');
+        $this->push('$runtime->invokeHelper(' . self::EOL
+            . $this->i(2) . ($isSimple ? $helper['name'] : 'null') . ',' . self::EOL
+            . $this->i(2) . $nonhelper . ',' . self::EOL
+            . $this->i(2) . $helperMissingName . ',' . self::EOL
+            . $this->i(2) . 'array(' . $helper['callParams'] . ')'
+            . $this->i(1) . ')');
     }
 
+    /**
+     * @param integer $paramSize
+     * @param string $name
+     * @return void
+     */
     private function invokeKnownHelper($paramSize, $name)
     {
         $helper = $this->setupHelper($paramSize, $name, false);
-        $this->push('$runtime->invokeKnownHelper(' . $helper['name'] . ', array(' . $helper['callParams'] . '))');
+        $this->push('$runtime->invokeKnownHelper(' . self::EOL
+            . $this->i(2) . $helper['name'] . ',' . self::EOL
+            . $this->i(2) . 'array(' . $helper['callParams'] . ')' . self::EOL
+            . $this->i(1) . ')');
     }
 
+    /**
+     * @param string $name
+     * @param string $indent
+     * @return void
+     */
     private function invokePartial($name, $indent)
     {
         $params = array(
@@ -723,9 +1016,16 @@ class PhpCompiler
             $params[] = '$depths';
         }
 
-        $this->push('$runtime->invokePartial(' . $this->safeJoin(', ', $params) . ')');
+        $this->push('$runtime->invokePartial(' . self::EOL
+            . $this->i(2) . $this->safeJoin(',' . self::EOL . $this->i(2), $params) . self::EOL
+            . $this->i(1) . ')');
     }
 
+    /**
+     * @param integer $depth
+     * @param array $parts
+     * @return void
+     */
     private function lookupData($depth, $parts)
     {
         if( !$depth ) {
@@ -746,6 +1046,12 @@ class PhpCompiler
         }
     }
 
+    /**
+     * @param array $parts
+     * @param boolean $falsy
+     * @param boolean $scoped
+     * @return void
+     */
     private function lookupOnContext($parts, $falsy, $scoped)
     {
         $i = 0;
@@ -769,6 +1075,9 @@ class PhpCompiler
         }
     }
 
+    /**
+     * @return void
+     */
     private function popHash()
     {
         $hash = $this->hash;
@@ -785,11 +1094,17 @@ class PhpCompiler
         $this->push("array(\n    " . $this->safeJoin(",\n    ", $hash->values) . "\n  )");
     }
 
+    /**
+     * @return void
+     */
     private function pushContext()
     {
         $this->pushStackLiteral($this->contextName($this->lastContext));
     }
 
+    /**
+     * @return void
+     */
     private function pushHash()
     {
         if( $this->hash ) {
@@ -798,11 +1113,19 @@ class PhpCompiler
         $this->hash = new Hash();
     }
 
+    /**
+     * @param string $value
+     * @return void
+     */
     private function pushLiteral($value)
     {
         $this->pushStackLiteral($value);
     }
 
+    /**
+     * @param integer $guid
+     * @return void
+     */
     private function pushProgram($guid)
     {
         if( $guid !== null ) {
@@ -812,11 +1135,20 @@ class PhpCompiler
         }
     }
 
+    /**
+     * @param string $string
+     * @return void
+     */
     private function pushString($string)
     {
         $this->pushStackLiteral($this->quotedString($string));
     }
 
+    /**
+     * @param string $string
+     * @param string $type
+     * @return void
+     */
     private function pushStringParam($string, $type)
     {
         $this->pushContext();
@@ -831,6 +1163,9 @@ class PhpCompiler
         }
     }
 
+    /**
+     * @return void
+     */
     private function resolvePossibleLambda()
     {
         $this->push('$runtime->lambda(' . $this->popStack() . ', ' . $this->contextName(0) . ')');

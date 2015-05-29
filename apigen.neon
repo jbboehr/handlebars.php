@@ -2,3 +2,6 @@ main: Handlebars
 destination: docs
 source: src
 googleAnalytics: UA-7764958-4
+accessLevels:
+ - protected
+ - public

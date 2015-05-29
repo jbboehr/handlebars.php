@@ -9,8 +9,6 @@ use SplStack;
  */
 class VM
 {
-    // Inputs
-
     /**
      * Original input data
      *
@@ -39,8 +37,6 @@ class VM
      */
     private $options;
 
-    // Stacks
-
     /**
      * @var \SplStack
      */
@@ -66,20 +62,27 @@ class VM
      */
     private $stack;
 
-    // Internals
-
     /**
      * Output buffer
      *
-     * @access private
      * @var string
      */
-    public $buffer;
-    private $lastContext;
-    private $lastHelper;
-    private $lastHelperName;
+    private $buffer;
 
-    // Flags
+    /**
+     * @var mixed
+     */
+    private $lastContext;
+
+    /**
+     * @var string
+     */
+    private $lastHelper;
+
+    /**
+     * @var string
+     */
+    private $lastHelperName;
 
     /**
      * In mustache compat mode?
@@ -101,8 +104,15 @@ class VM
      * @var boolean
      */
     private $trackIds = false;
-
+    
+    /**
+     * @var boolean
+     */
     private $useData = false;
+    
+    /**
+     * @var boolean
+     */
     private $useDepths = false;
 
     /**
@@ -151,6 +161,7 @@ class VM
     /**
      * Get helper by name
      *
+     * @internal
      * @param string $name
      * @return callable
      */
@@ -164,6 +175,7 @@ class VM
     /**
      * Magic call method
      *
+     * @internal
      * @param string $method
      * @param array $args
      * @throws \Handlebars\RuntimeException
@@ -176,7 +188,7 @@ class VM
     /**
      * Execute the specified program
      *
-     * @access private
+     * @internal
      * @param integer $program
      * @param mixed $context
      * @param mixed $data
@@ -255,18 +267,28 @@ class VM
         }
     }
 
+    /**
+     * @param mixed $item
+     * @return void
+     */
     private function push($item)
     {
-        return $this->stack->push($item);
+        $this->stack->push($item);
     }
 
+    /**
+     * @param mixed $value
+     * @return void
+     */
     private function replace($value)
     {
-        $prev = $this->stack->pop();
+        $this->stack->pop();
         $this->stack->push($value);
-        return $prev;
     }
 
+    /**
+     * @return mixed
+     */
     private function top()
     {
         return $this->stack->top();
@@ -274,6 +296,10 @@ class VM
 
     // Utils
 
+    /**
+     * @param string $key
+     * @return void
+     */
     private function depthedLookup($key)
     {
         $val = null;
@@ -286,6 +312,11 @@ class VM
         $this->push($val);
     }
 
+    /**
+     * @param integer $paramSize
+     * @param string $name
+     * @return array
+     */
     private function setupHelper($paramSize, $name)
     {
         $params = array();
@@ -297,6 +328,12 @@ class VM
         );
     }
 
+    /**
+     * @param string $helper
+     * @param integer $paramSize
+     * @param array $params
+     * @return \Handlebars\Options
+     */
     private function setupOptions($helper, $paramSize, &$params)
     {
         $options = new Options();
@@ -350,6 +387,12 @@ class VM
         return $options;
     }
 
+    /**
+     * @param string $helperName
+     * @param integer $paramSize
+     * @param array $params
+     * @return void
+     */
     private function setupParams($helperName, $paramSize, &$params)
     {
         $options = $this->setupOptions($helperName, $paramSize, $params);
@@ -359,6 +402,7 @@ class VM
     /**
      * @param integer $program
      * @param \Handlebars\Options $options
+     * @return \Closure
      */
     private function wrapProgram($program, Options $options)
     {
@@ -375,6 +419,9 @@ class VM
 
     // Opcodes
 
+    /**
+     * @return void
+     */
     private function ambiguousBlockValue()
     {
         $params = array($this->contextStack->top());
@@ -390,6 +437,9 @@ class VM
         }
     }
 
+    /**
+     * @return void
+     */
     private function append()
     {
         $local = $this->pop();
@@ -402,11 +452,18 @@ class VM
         }
     }
 
+    /**
+     * @param string $content
+     * @return void
+     */
     private function appendContent($content)
     {
         $this->buffer .= $content;
     }
 
+    /**
+     * @return void
+     */
     private function appendEscaped()
     {
         // Get top of stack
@@ -444,6 +501,10 @@ class VM
         $this->buffer .= $v;
     }
 
+    /**
+     * @param string $key
+     * @return void
+     */
     private function assignToHash($key)
     {
         $context = $type = $id = null;
@@ -471,6 +532,10 @@ class VM
         $hash->values[$key] = $value;
     }
 
+    /**
+     * @param string $name
+     * @return void
+     */
     private function blockValue($name)
     {
         $params = array($this->contextStack->top());
@@ -484,6 +549,9 @@ class VM
         $this->buffer .= $result;
     }
 
+    /**
+     * @return void
+     */
     private function emptyHash()
     {
         $this->push(array());
@@ -497,6 +565,10 @@ class VM
         }
     }
 
+    /**
+     * @param integer $depth
+     * @return void
+     */
     private function getContext($depth)
     {
         $count = $this->contextStack->count();
@@ -510,6 +582,10 @@ class VM
         }
     }
 
+    /**
+     * @param string $name
+     * @return void
+     */
     private function invokeAmbiguous($name)
     {
         $nonhelper = $this->pop();
@@ -534,6 +610,12 @@ class VM
         }
     }
 
+    /**
+     * @param integer $paramSize
+     * @param string $name
+     * @param boolean $isSimple
+     * @return void
+     */
     private function invokeHelper($paramSize, $name, $isSimple)
     {
         $nonhelper = $this->pop();
@@ -557,6 +639,11 @@ class VM
         $this->push($result);
     }
 
+    /**
+     * @param integer $paramSize
+     * @param string $name
+     * @return void
+     */
     private function invokeKnownHelper($paramSize, $name)
     {
         $helper = $this->setupHelper($paramSize, $name);
@@ -568,6 +655,11 @@ class VM
         $this->push($result);
     }
 
+    /**
+     * @param integer $depth
+     * @param array $parts
+     * @return void
+     */
     private function lookupData($depth, $parts)
     {
         if( $depth >= $this->dataStack->count() ) {
@@ -602,6 +694,12 @@ class VM
         $this->push($val);
     }
 
+    /**
+     * @param array $parts
+     * @param boolean $falsy
+     * @param boolean $scoped
+     * @return void
+     */
     private function lookupOnContext($parts, $falsy, $scoped)
     {
         $i = 0;
@@ -629,6 +727,11 @@ class VM
         $this->replace($value);
     }
 
+    /**
+     * @param string $name
+     * @param string $indent
+     * @return void
+     */
     private function invokePartial($name, $indent)
     {
         if( !isset($this->partialOpcodes[$name]) ) {
@@ -658,6 +761,9 @@ class VM
         $this->buffer .= $result;
     }
 
+    /**
+     * @return void
+     */
     private function popHash()
     {
         $hash = $this->hashStack->pop();
@@ -672,17 +778,28 @@ class VM
         $this->push($hash->values);
     }
 
+    /**
+     * @return void
+     */
     private function pushContext()
     {
         $this->push($this->lastContext);
         $this->lastContext = null;
     }
 
+    /**
+     * @return void
+     */
     private function pushHash()
     {
         $this->hashStack->push(new Hash());
     }
 
+    /**
+     * @param string $type
+     * @param string $name
+     * @return void
+     */
     private function pushId($type, $name)
     {
         if( $type === 'ID' || $type === 'DATA' ) {
@@ -694,6 +811,10 @@ class VM
         }
     }
 
+    /**
+     * @param string $literal
+     * @return void
+     */
     private function pushLiteral($literal)
     {
         if( $literal === 'true' ) {
@@ -707,16 +828,29 @@ class VM
         }
     }
 
+    /**
+     * @param integer $program
+     * @return void
+     */
     private function pushProgram($program)
     {
         $this->push($program);
     }
 
+    /**
+     * @param string $string
+     * @return void
+     */
     private function pushString($string)
     {
         $this->push($string);
     }
 
+    /**
+     * @param string $string
+     * @param string $type
+     * @return void
+     */
     private function pushStringParam($string, $type)
     {
         $this->pushContext();
@@ -729,6 +863,9 @@ class VM
         }
     }
 
+    /**
+     * @return void
+     */
     private function resolvePossibleLambda()
     {
         $top = $this->top();
