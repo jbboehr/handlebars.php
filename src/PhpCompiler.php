@@ -304,7 +304,6 @@ class PhpCompiler
         foreach( $this->source as $line ) {
             if( $line instanceof AppendToBuffer ) {
                 if( strlen($buffer) > 0 ) {
-                    //$buffer .= self::EOL . $this->i(1) . ". " . $line->getContent();
                     $buffer .= " . " . $line->getContent();
                 } else {
                     $buffer = $line->getContent();
@@ -1024,7 +1023,7 @@ class PhpCompiler
 
     /**
      * @param integer $depth
-     * @param string $part
+     * @param array $parts
      * @return void
      */
     private function lookupData($depth, $parts)

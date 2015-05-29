@@ -50,7 +50,7 @@ class Handlebars
 
     /**
      * Constructor
-     * 
+     *
      * @param array $options
      */
     public function __construct($options = array())
@@ -261,7 +261,7 @@ class Handlebars
 
     /**
      * Setup the built-in helpers
-     * 
+     *
      * @return void
      */
     private function setupBuiltinHelpers()

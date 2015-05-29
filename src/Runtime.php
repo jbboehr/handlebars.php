@@ -450,7 +450,7 @@ class Runtime
     /**
      * @param callable $fn
      * @param mixed $data
-     * @param \Handlebars\DepthList $depths
+     * @param \Handlebars\DepthList|null $depths
      * @return \Closure
      */
     private function wrapProgram($fn, $data, $depths)

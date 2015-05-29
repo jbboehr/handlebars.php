@@ -55,7 +55,7 @@ class Utils
     public static function arrayMerge($array1, $array2)
     {
         $array = self::arrayCopy($array1);
-        if( $array2 ) {
+        if( is_array($array2) || is_object($array2) ) {
             foreach( $array2 as $k => $v ) {
                 $array[$k] = $v;
             }
