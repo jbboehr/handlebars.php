@@ -8,6 +8,8 @@ class PhpCompiler
 {
     const VERSION = '2.0.0';
     const COMPILER_REVISION = 6;
+    const INDENT = '    ';
+    const EOL = "\n";
 
     private $environment;
 
@@ -116,7 +118,7 @@ class PhpCompiler
         $varDeclarations = '';
         $locals = array_merge((array) $this->stackVars, array_keys($this->registers));
         if( !empty($locals) ) {
-            $varDeclarations .= implode(' = null' . '; ', $locals) . ' = null';
+            $varDeclarations .= implode(' = null' . ';' . self::EOL . $this->i(1), $locals) . ' = null';
         }
 
         // @todo aliases?
@@ -129,7 +131,7 @@ class PhpCompiler
 
         $source = $this->mergeSource($varDeclarations);
 
-        return 'function(' . implode(' = null, ', $params) . ' = null) {' . "\n  " . $source . '}';
+        return 'function(' . implode(' = null, ', $params) . ' = null) {' . self::EOL . $this->i(1) . $source . '}';
     }
 
     private function createTemplateSpec($fn, $asObject = false)
@@ -175,7 +177,8 @@ class PhpCompiler
         foreach( $this->source as $line ) {
             if( $line instanceof AppendToBuffer ) {
                 if( strlen($buffer) > 0 ) {
-                    $buffer .= "\n    . " . $line->getContent();
+                    //$buffer .= self::EOL . $this->i(1) . ". " . $line->getContent();
+                    $buffer .= " . " . $line->getContent();
                 } else {
                     $buffer = $line->getContent();
                 }
@@ -183,13 +186,13 @@ class PhpCompiler
                 if( strlen($buffer) > 0 ) {
                     if( !$source ) {
                         $appendFirst = true;
-                        $source = $buffer . ";\n  ";
+                        $source = $buffer . ';' . self::EOL . $this->i(1);
                     } else {
-                        $source .= '$buffer .= ' . $buffer . ";\n  ";
+                        $source .= '$buffer .= ' . $buffer . ';' . self::EOL . $this->i(1);
                     }
                     $buffer = null;
                 }
-                $source .= $line . "\n  ";
+                $source .= $line . "\n    ";
 
                 if( empty($this->environment['isSimple']) ) {
                     $appendOnly = false;
@@ -199,19 +202,22 @@ class PhpCompiler
 
         if( $appendOnly ) {
             if( $source || strlen($buffer) > 0 ) {
-                $source .= 'return ' . ($buffer ?: '""') . ";\n";
+                $source .= 'return ' . ($buffer ?: '""') . ';' . self::EOL;
             }
         } else {
-            $varDeclarations .= '; $buffer = ' . ($appendFirst ? '' : $this->initializeBuffer());
+            $varDeclarations .= ';' . "\n    "
+                . '$buffer = ' . ($appendFirst ? '' : $this->initializeBuffer());
             if( strlen($buffer) > 0 ) {
-                $source .= 'return $buffer . ' . $buffer . ";\n";
+                $source .= 'return $buffer . ' . $buffer . ';' . self::EOL;
             } else {
-                $source .= 'return $buffer;' . "\n";
+                $source .= 'return $buffer;' . self::EOL;
             }
         }
 
         if( $varDeclarations ) {
-            $source = $varDeclarations . ($appendFirst ? '' : ";\n  ") . $source;
+            $source = $varDeclarations
+                . ($appendFirst ? '' : ';' . self::EOL . $this->i(1))
+                . $source;
         }
 
         return $source;
@@ -263,6 +269,11 @@ class PhpCompiler
                 }
             }
         }
+    }
+    
+    private function i($n = 1)
+    {
+        return str_repeat(self::INDENT, $n);
     }
 
     private function incrStack()
@@ -580,17 +591,23 @@ class PhpCompiler
         array_splice($params, 1, 0, array($current));
 
         $blockHelperMissingName = $this->nameLookup('$helpers', 'blockHelperMissing', 'helper');
-        $this->pushSource('if( !(' . $this->lastHelper . ') ) { ' . $current . ' = '
-        . '$runtime->call(' . $blockHelperMissingName . ', array(' . $this->safeJoin(', ', $params) . ')); }');
+        $this->pushSource('if( !(' . $this->lastHelper . ') ) {' . self::EOL
+            . $this->i(2) . $current . ' = ' . '$runtime->call(' . $blockHelperMissingName . ','
+            . ' array(' . $this->safeJoin(', ', $params) . '));' . self::EOL
+            . $this->i(1) . '}');
     }
 
     private function append()
     {
         $this->flushInline();
         $local = $this->popStack();
-        $this->pushSource('if( ' . $local . ' !== null ) { ' . $this->appendToBuffer($local) . ' }');
+        $this->pushSource('if( ' . $local . ' !== null ) {' . self::EOL
+            . $this->i(2) . $this->appendToBuffer($local) . self::EOL
+            . $this->i(1) . '}');
         if( !empty($this->environment['isSimple']) ) {
-            $this->pushSource(' else {' . $this->appendToBuffer("''") . ' }');
+            $this->pushSource(' else {' . self::EOL
+                . $this->i(2). $this->appendToBuffer("''")  . self::EOL
+                . $this->i(1). '}');
         }
     }
 
@@ -678,9 +695,12 @@ class PhpCompiler
         if( !empty($helper['paramsInit']) ) {
             $this->pushSource($helper['paramsInit'] . ';');
         }
-        $this->push('$runtime->invokeAmbiguous(' . $helperName . ', '
-                . $nonhelper . ', ' . $helperMissingName
-                . ', array(' . $helper['callParams'] . '))');
+        $this->push('$runtime->invokeAmbiguous(' . self::EOL
+            . $this->i(2) . $helperName . ', ' . self::EOL
+            . $this->i(2) . $nonhelper . ', ' . self::EOL
+            . $this->i(2) . $helperMissingName . ', ' . self::EOL
+            . $this->i(2) . 'array(' . $helper['callParams'] . ')' . self::EOL
+            . $this->i(1) . ')');
     }
 
     private function invokeHelper($paramSize, $name, $isSimple)
@@ -689,17 +709,21 @@ class PhpCompiler
         $helper = $this->setupHelper($paramSize, $name, false);
 
         $helperMissingName = $this->nameLookup('$helpers', 'helperMissing', 'helper');
-        $this->push('$runtime->invokeHelper('
-                . ($isSimple ? $helper['name'] : 'null') . ', '
-                . $nonhelper . ', '
-                . $helperMissingName . ', '
-                . 'array(' . $helper['callParams'] . '))');
+        $this->push('$runtime->invokeHelper(' . self::EOL
+            . $this->i(2) . ($isSimple ? $helper['name'] : 'null') . ',' . self::EOL
+            . $this->i(2) . $nonhelper . ',' . self::EOL
+            . $this->i(2) . $helperMissingName . ',' . self::EOL
+            . $this->i(2) . 'array(' . $helper['callParams'] . ')'
+            . $this->i(1) . ')');
     }
 
     private function invokeKnownHelper($paramSize, $name)
     {
         $helper = $this->setupHelper($paramSize, $name, false);
-        $this->push('$runtime->invokeKnownHelper(' . $helper['name'] . ', array(' . $helper['callParams'] . '))');
+        $this->push('$runtime->invokeKnownHelper(' . self::EOL
+            . $this->i(2) . $helper['name'] . ',' . self::EOL
+            . $this->i(2) . 'array(' . $helper['callParams'] . ')' . self::EOL
+            . $this->i(1) . ')');
     }
 
     private function invokePartial($name, $indent)
