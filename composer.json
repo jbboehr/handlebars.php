@@ -15,7 +15,8 @@
             "Handlebars\\Tests\\": "tests"
         }
     },
-    "description" : "",
+    "bin": ["bin/handlebars.php"],
+    "description" : "PHP handlebars compiler and VM",
     "homepage": "http://github.com/jbboehr/handlebars.php",
     "name" : "jbboehr/handlebars",
     "keywords" : [
@@ -26,7 +27,8 @@
         "ext-handlebars": ">=0.3.0"
     },
     "require" : {
-        "php" : ">=5.3.0"
+        "php" : ">=5.3.0",
+        "ext-spl" : "*"
     },
     "require-dev": {
         "jbboehr/coding-standard": "1.0.*@dev",
