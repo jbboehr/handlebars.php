@@ -405,7 +405,7 @@ class Runtime
                     'compat' => !empty($this->options['compat']),
                 ));
             }
-        } else if( $partial instanceof self ) {
+        } else if( is_callable($partial) ) {
             return $partial;
         }
     }
