@@ -10,7 +10,7 @@ class CompilerTest extends Common
     public function testInvalidTemplate()
     {
         $compiler = new Compiler();
-        $this->setExpectedException('\\Handlebars\\CompileException');
+        $this->setExpectedException('\\Handlebars\\ParseException');
         $compiler->compile('{{foo');
     }
     
