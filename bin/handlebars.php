@@ -13,6 +13,12 @@ $opts = getopt('t:jp', array(
   'compile',
   'lex',
   'parse',
+  'disable-js-compat::',
+  'compat::',
+  'string-params::',
+  'track-ids::',
+  'use-depths::',
+  'known-helpers-only::',
 ));
 
 if( isset($opts['t']) ) {
@@ -32,14 +38,23 @@ if( $templateFile === '-' ) {
     $template = file_get_contents($templateFile);
 }
 
+$compileOptions = array(
+    'disableJsCompat' => isset($opts['disable-js-compat']),
+    'compat' => isset($opts['compat']),
+    'stringParams' => isset($opts['string-params']),
+    'trackIds' => isset($opts['track-ids']),
+    'useDepths' => isset($opts['use-depths']),
+    'knownHelpersOnly' => isset($opts['known-helpers-only']),
+);
+
 if( isset($opts['compile']) ) {
     // compile
     if( isset($opts['j']) ) {
-        echo json_encode(handlebars_compile($template), constant('JSON_PRETTY_PRINT'));
+        echo json_encode(handlebars_compile($template, $compileOptions), constant('JSON_PRETTY_PRINT'));
     } else if( isset($opts['p']) ) {
-        var_export(handlebars_compile($template));
+        var_export(handlebars_compile($template, $compileOptions));
     } else {
-        echo handlebars_compile_print($template);
+        echo handlebars_compile_print($template, $compileOptions);
     }
 } else if( isset($opts['parse']) ) {
     // parse
@@ -61,7 +76,6 @@ if( isset($opts['compile']) ) {
     }
 } else {
     // precompile
-    $compileOptions = array();
     $handlebars = new \Handlebars\Handlebars();
     echo $handlebars->precompile($template, $compileOptions);
 }

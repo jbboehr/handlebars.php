@@ -122,9 +122,9 @@ class Runtime
         
         return (string) $value;
     }
-
+    
     /**
-     * Escape an expression for the output buffer. Handles certain
+     * Escape an expression for the output buffer. Does not handle certain
      * javascript behaviours.
      *
      * @param mixed $value
@@ -136,30 +136,27 @@ class Runtime
         if( $value instanceof SafeString ) {
             return $value->__toString();
         }
+        return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+    }
+
+    /**
+     * Escape an expression for the output buffer. Handles certain
+     * javascript behaviours.
+     *
+     * @param mixed $value
+     * @retrun string
+     * @throws \Handlebars\RuntimeException
+     */
+    public function escapeExpressionCompat($value)
+    {
+        if( $value instanceof SafeString ) {
+            return $value->__toString();
+        }
         $value = $this->expression($value);
         $value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
         // Handlebars uses hex entities >.>
         $value = str_replace(array('`', '&#039;'), array('&#x60;', '&#x27;'), $value);
         return $value;
-    }
-
-    /**
-     * Compatability for javascript's Function.call (technically, it would
-     * be Function.apply). The first argument (this) is assigned to
-     * $options->scope
-     *
-     * @param callable $fn
-     * @param array $params
-     * @return mixed
-     */
-    public function call($fn, array $params = array())
-    {
-        if( count($params) > 1 ) {
-            $options = $params[count($params) - 1];
-            $options->scope = array_shift($params);
-        }
-
-        return call_user_func_array($fn, $params);
     }
 
     /**
@@ -195,73 +192,6 @@ class Runtime
     public function getPartials()
     {
         return $this->partials;
-    }
-    
-    /**
-     * Invoke ambiguous runtime helper
-     *
-     * @param callable $helper
-     * @param mixed $nonHelper
-     * @param callable $helperMissing
-     * @param array $callParams
-     * @return string
-     * @throws \Handlebars\RuntimeException on a missing helper, and helperMissing is not defined.
-     */
-    public function invokeAmbiguous($helper, $nonHelper, $helperMissing, $callParams)
-    {
-        if( $helper !== null ) {
-            return $this->call($helper, $callParams);
-        } else if( $nonHelper !== null ) {
-            if( is_callable($nonHelper) ) {
-                return $this->call($nonHelper, $callParams);
-            } else {
-                return $nonHelper;
-            }
-        } else if( $helperMissing !== null ) {
-            return $this->call($helperMissing, $callParams);
-        } else {
-            throw new RuntimeException('helperMissing is missing!');
-        }
-    }
-
-    /**
-     * Invoke helper runtime helper
-     *
-     * @param callable $helper
-     * @param mixed $nonHelper
-     * @param callable $helperMissing
-     * @param array $callParams
-     * @return string
-     * @throws \Handlebars\RuntimeException on a missing helper, and helperMissing is not defined.
-     */
-    public function invokeHelper($helper, $nonHelper, $helperMissing, $callParams)
-    {
-        if( $helper ) {
-            return $this->call($helper, $callParams);
-        } else if( $nonHelper ) {
-            if( is_callable($nonHelper) ) {
-                return $this->call($nonHelper, $callParams);
-            } else {
-                // @todo is this unnecessary, or should this throw?
-                return $nonHelper;
-            }
-        } else if( $helperMissing ) {
-            return $this->call($helperMissing, $callParams);
-        } else {
-            throw new RuntimeException('helperMissing is missing!');
-        }
-    }
-
-    /**
-     * Invoke known helper runtime helper
-     *
-     * @param callable $helper
-     * @param array $callParams
-     * @return string
-     */
-    public function invokeKnownHelper($helper, $callParams)
-    {
-        return $this->call($helper, $callParams);
     }
 
     /**
@@ -474,5 +404,10 @@ class Runtime
                 $depths
             );
         };
+    }
+    
+    public function helperMissingMissing()
+    {
+        throw new RuntimeException('helperMissing is missing!');
     }
 }

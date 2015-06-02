@@ -11,15 +11,18 @@ class AppendToBuffer
      * @var string
      */
     private $content;
+    
+    private $jsCompat;
 
     /**
      * Constructor
      *
      * @param string $content
      */
-    public function __construct($content)
+    public function __construct($content, $jsCompat = true)
     {
         $this->content = $content;
+        $this->jsCompat = $jsCompat;
     }
     
     /**
@@ -39,6 +42,10 @@ class AppendToBuffer
      */
     public function __toString()
     {
-        return '$buffer .= $runtime->expression(' . $this->content . ');';
+        if( $this->jsCompat ) {
+            return '$buffer .= $runtime->expression(' . $this->content . ');';
+        } else {
+            return '$buffer .= ' . $this->content . ';';
+        }
     }
 }
