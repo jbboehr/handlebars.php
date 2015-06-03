@@ -13,16 +13,19 @@ class AppendToBuffer
     private $content;
     
     private $jsCompat;
+    
+    private $nativeRuntime;
 
     /**
      * Constructor
      *
      * @param string $content
      */
-    public function __construct($content, $jsCompat = true)
+    public function __construct($content, $jsCompat = true, $nativeRuntime = true)
     {
         $this->content = $content;
         $this->jsCompat = $jsCompat;
+        $this->nativeRuntime = $nativeRuntime;
     }
     
     /**
@@ -43,7 +46,11 @@ class AppendToBuffer
     public function __toString()
     {
         if( $this->jsCompat ) {
-            return '$buffer .= $runtime->expression(' . $this->content . ');';
+            if( $this->nativeRuntime ) {
+                return '$buffer .= \\Handlebars\\Native::expression(' . $this->content . ');';
+            } else {
+                return '$buffer .= $runtime->expression(' . $this->content . ');';
+            }
         } else {
             return '$buffer .= ' . $this->content . ';';
         }

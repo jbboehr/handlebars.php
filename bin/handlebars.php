@@ -13,12 +13,13 @@ $opts = getopt('t:jp', array(
   'compile',
   'lex',
   'parse',
-  'disable-js-compat::',
   'compat::',
   'string-params::',
   'track-ids::',
   'use-depths::',
   'known-helpers-only::',
+  'disable-js-compat::',
+  'disable-native-runtime::'
 ));
 
 if( isset($opts['t']) ) {
@@ -39,12 +40,13 @@ if( $templateFile === '-' ) {
 }
 
 $compileOptions = array(
-    'disableJsCompat' => isset($opts['disable-js-compat']),
     'compat' => isset($opts['compat']),
     'stringParams' => isset($opts['string-params']),
     'trackIds' => isset($opts['track-ids']),
     'useDepths' => isset($opts['use-depths']),
     'knownHelpersOnly' => isset($opts['known-helpers-only']),
+    'disableJsCompat' => isset($opts['disable-js-compat']),
+    'disableNativeRuntime' => isset($opts['disable-native-runtime']),
 );
 
 if( isset($opts['compile']) ) {

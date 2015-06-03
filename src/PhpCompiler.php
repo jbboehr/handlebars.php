@@ -132,7 +132,9 @@ class PhpCompiler
     private $registerCounter = 0;
     
     private $jsCompat = true;
-
+    
+    private $nativeRuntime = true;
+    
     /**
      * Magic call method
      *
@@ -190,6 +192,12 @@ class PhpCompiler
         $this->stringParams = !empty($this->options['stringParams']);
         $this->trackIds = !empty($this->options['trackIds']);
         $this->jsCompat = empty($this->options['disableJsCompat']);
+        
+        if( version_compare(phpversion('handlebars'), '0.4.0', '<') ) {
+            $this->nativeRuntime = false;
+        } else {
+            $this->nativeRuntime = empty($this->options['disableNativeRuntime']);
+        }
 
         if( !isset($this->options['data']) ) {
             $this->options['data'] = true;
@@ -375,11 +383,8 @@ class PhpCompiler
     private function appendToBuffer($string)
     {
         if( !empty($this->environment['isSimple']) ) {
-            if( $this->jsCompat ) {
-                return 'return $runtime->expression(' . $string . ');';
-            } else {
-                return 'return ' . $string . ';';
-            }
+            $fn = $this->expressionFunctionName(false);
+            return 'return ' . $fn . '(' . $string . ');';
         } else {
             return new AppendToBuffer($string, $this->jsCompat);
         }
@@ -404,6 +409,26 @@ class PhpCompiler
     private function depthedLookup($name)
     {
         return '$runtime->lookupData($depths, ' . var_export($name, true) . ')';
+    }
+    
+    /**
+     * Generate the function name used to handle an expression
+     *
+     * @param boolean $escaped
+     * @return string
+     */
+    private function expressionFunctionName($escaped = true)
+    {
+        if( $this->nativeRuntime ) {
+            $prefix = '\\Handlebars\\Native::';
+        } else {
+            $prefix = '$runtime->';
+        }
+        if( $this->jsCompat ) {
+            return $prefix . ($escaped ? 'escapeExpressionCompat' : 'expression');
+        } else {
+            return $escaped ? $prefix . 'escapeExpression' : '';
+        }
     }
 
     /**
@@ -463,6 +488,10 @@ class PhpCompiler
      */
     public function nameLookup($parent, $name, $type = null)
     {
+        if( $this->nativeRuntime ) {
+            // Note: this isn't working quite right yet
+            return '\\Handlebars\Native::nameLookup(' . $parent . ', ' . var_export($name, true) . ')';
+        }
         if( !empty($this->options['nameLookup'][$type]) ) {
             switch( $this->options['nameLookup'][$type] ) {
                 case 'arrayaccess':
@@ -889,8 +918,8 @@ class PhpCompiler
      */
     private function appendEscaped()
     {
-        $fn = 'escapeExpression' . ($this->jsCompat ? 'Compat' : '');
-        $this->pushSource($this->appendToBuffer('$runtime->' . $fn . '(' . $this->popStack() . ')'));
+        $fn = $this->expressionFunctionName(true);
+        $this->pushSource($this->appendToBuffer($fn . '(' . $this->popStack() . ')'));
     }
 
     /**
