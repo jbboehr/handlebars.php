@@ -386,7 +386,7 @@ class PhpCompiler
             $fn = $this->expressionFunctionName(false);
             return 'return ' . $fn . '(' . $string . ');';
         } else {
-            return new AppendToBuffer($string, $this->jsCompat);
+            return new AppendToBuffer($string, $this->jsCompat, $this->nativeRuntime);
         }
     }
 
