@@ -4,6 +4,8 @@ namespace Handlebars;
 
 /**
  * Container for unescaped string
+ *
+ * Note: this class is only used when the extension isn't loaded
  */
 class SafeString
 {

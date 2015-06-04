@@ -128,7 +128,13 @@ class PhpCompiler
      * @var string
      */
     private $lastHelper;
-
+    
+    private $registerCounter = 0;
+    
+    private $jsCompat = true;
+    
+    private $nativeRuntime = true;
+    
     /**
      * Magic call method
      *
@@ -185,9 +191,19 @@ class PhpCompiler
     {
         $this->stringParams = !empty($this->options['stringParams']);
         $this->trackIds = !empty($this->options['trackIds']);
+        $this->jsCompat = empty($this->options['disableJsCompat']);
+        
+        if( version_compare(phpversion('handlebars'), '0.4.0', '<') ) {
+            $this->nativeRuntime = false;
+        } else {
+            $this->nativeRuntime = empty($this->options['disableNativeRuntime']);
+        }
 
         if( !isset($this->options['data']) ) {
             $this->options['data'] = true;
+        }
+        if( !isset($this->options['nameLookup']) ) {
+            $this->options['nameLookup'] = array('helper' => 'array', 'partial' => 'array');
         }
 
         $this->name = isset($this->environment['name']) ? $this->environment['name'] : null;
@@ -252,7 +268,7 @@ class PhpCompiler
 
         $source = $this->mergeSource($varDeclarations);
 
-        return 'function(' . implode(' = null, ', $params) . ' = null) {' . self::EOL . $this->i(1) . $source . '}';
+        return 'function(' . implode(', ', $params) . ') {' . self::EOL . $this->i(1) . $source . '}';
     }
 
     /**
@@ -367,9 +383,10 @@ class PhpCompiler
     private function appendToBuffer($string)
     {
         if( !empty($this->environment['isSimple']) ) {
-            return 'return $runtime->expression(' . $string . ');';
+            $fn = $this->expressionFunctionName(false);
+            return 'return ' . $fn . '(' . $string . ');';
         } else {
-            return new AppendToBuffer($string);
+            return new AppendToBuffer($string, $this->jsCompat, $this->nativeRuntime);
         }
     }
 
@@ -392,6 +409,26 @@ class PhpCompiler
     private function depthedLookup($name)
     {
         return '$runtime->lookupData($depths, ' . var_export($name, true) . ')';
+    }
+    
+    /**
+     * Generate the function name used to handle an expression
+     *
+     * @param boolean $escaped
+     * @return string
+     */
+    private function expressionFunctionName($escaped = true)
+    {
+        if( $this->nativeRuntime ) {
+            $prefix = '\\Handlebars\\Native::';
+        } else {
+            $prefix = '$runtime->';
+        }
+        if( $this->jsCompat ) {
+            return $prefix . ($escaped ? 'escapeExpressionCompat' : 'expression');
+        } else {
+            return $escaped ? $prefix . 'escapeExpression' : '';
+        }
     }
 
     /**
@@ -442,7 +479,7 @@ class PhpCompiler
     {
         return $this->quotedString('');
     }
-
+    
     /**
      * @internal
      * @param string $parent
@@ -451,6 +488,25 @@ class PhpCompiler
      */
     public function nameLookup($parent, $name, $type = null)
     {
+        if( $this->nativeRuntime ) {
+            // Note: this isn't working quite right yet
+            return '\\Handlebars\Native::nameLookup(' . $parent . ', ' . var_export($name, true) . ')';
+        }
+        if( !empty($this->options['nameLookup'][$type]) ) {
+            switch( $this->options['nameLookup'][$type] ) {
+                case 'arrayaccess':
+                    return $parent . '[' . var_export($name, true) . ']';
+                    break;
+                case 'array':
+                    $expr = $parent . '[' . var_export($name, true) . ']';
+                    return '(isset(' . $expr . ') ? ' . $expr . ' : null)';
+                    break;
+                case 'object':
+                    $expr = $parent . '->' . var_export($name, true) . '}';
+                    return '(isset(' . $expr . ') ? ' . $expr . ' : null)';
+                    break;
+            }
+        }
         return '$runtime->nameLookup(' . $parent . ', ' . var_export($name, true) . ')';
     }
 
@@ -458,13 +514,18 @@ class PhpCompiler
      * @param mixed $obj
      * @return string
      */
-    private function objectLiteral($obj)
+    private function objectLiteral($obj, $i = null)
     {
         $pairs = array();
         foreach( $obj as $k => $v ) {
             $pairs[] = var_export($k, true) . ' => ' . ($v === null ? 'null' : $v);
         }
-        return 'array(' . $this->safeJoin(', ', $pairs) . ')';
+        $i1 = $i ? self::EOL . $this->i($i + 1) : '';
+        $i2 = $i ? $i1 : ' ';
+        $i3 = $i ? self::EOL . $this->i($i) : '';
+        return 'array(' . $i1
+            . $this->safeJoin(',' . $i2, $pairs)
+            . $i3 . ')';
     }
 
     /**
@@ -701,7 +762,8 @@ class PhpCompiler
             'params' => $params,
             'paramsInit' => $paramsInit,
             'name' => $foundHelper,
-            'callParams' => $this->safeJoin(', ', array_merge(array($this->contextName(0)), $params)),
+            'callParams' => $this->safeJoin(', ', $params),
+            //'callParams' => $this->safeJoin(', ', array_merge(array($this->contextName(0)), $params)),
         );
     }
 
@@ -717,6 +779,7 @@ class PhpCompiler
 
         $options['name'] = $this->quotedString($helper);
         $options['hash'] = $this->popStack();
+        $options['scope'] = $this->contextName(0);
 
         if( $this->trackIds ) {
             $options['hashIds'] = $this->popStack();
@@ -787,7 +850,7 @@ class PhpCompiler
     private function setupParams($helperName, $paramSize, &$params, $useRegister)
     {
         $options = '$runtime->setupOptions('
-            . $this->objectLiteral($this->setupOptions($helperName, $paramSize, $params))
+            . $this->objectLiteral($this->setupOptions($helperName, $paramSize, $params), $useRegister ? 1 : 1)
             . ')';
 
         if( $useRegister ) {
@@ -811,12 +874,13 @@ class PhpCompiler
         $this->flushInline();
 
         $current = $this->topStack();
-        array_splice($params, 1, 0, array($current));
-
         $blockHelperMissingName = $this->nameLookup('$helpers', 'blockHelperMissing', 'helper');
+        array_splice($params, 0, 1, array($blockHelperMissingName, $current));
+
         $this->pushSource('if( !' . $this->lastHelper . ' ) {' . self::EOL
-            . $this->i(2) . $current . ' = ' . '$runtime->call(' . $blockHelperMissingName . ','
-            . ' array(' . $this->safeJoin(', ', $params) . '));' . self::EOL
+            . $this->i(2) . $current . ' = ' . 'call_user_func(' . self::EOL
+            . $this->i(3) . $this->safeJoin(',' . self::EOL . $this->i(3), $params) . self::EOL
+            . $this->i(2) . ');' . self::EOL
             . $this->i(1) . '}');
     }
 
@@ -854,7 +918,8 @@ class PhpCompiler
      */
     private function appendEscaped()
     {
-        $this->pushSource($this->appendToBuffer('$runtime->escapeExpression(' . $this->popStack() . ')'));
+        $fn = $this->expressionFunctionName(true);
+        $this->pushSource($this->appendToBuffer($fn . '(' . $this->popStack() . ')'));
     }
 
     /**
@@ -897,10 +962,10 @@ class PhpCompiler
         $this->setupParams($name, 0, $params, false);
 
         $blockName = $this->popStack();
-        array_splice($params, 1, 0, array($blockName));
-
         $blockHelperMissingName = $this->nameLookup('$helpers', 'blockHelperMissing', 'helper');
-        $this->push('$runtime->call(' . $blockHelperMissingName . ', array(' . $this->safeJoin(', ', $params) . '));');
+        array_splice($params, 0, 1, array($blockHelperMissingName, $blockName));
+
+        $this->push('call_user_func(' . $this->safeJoin(', ', $params) . ');');
     }
 
     /**
@@ -936,7 +1001,8 @@ class PhpCompiler
      */
     private function invokeAmbiguous($name, $helperCall)
     {
-        $this->useRegister('$helper');
+        $register = '$helper' . ++$this->registerCounter;
+        $this->useRegister($register);
 
         $nonhelper = $this->popStack();
 
@@ -948,12 +1014,16 @@ class PhpCompiler
         if( !empty($helper['paramsInit']) ) {
             $this->pushSource($helper['paramsInit'] . ';');
         }
-        $this->push('$runtime->invokeAmbiguous(' . self::EOL
-            . $this->i(2) . $helperName . ', ' . self::EOL
-            . $this->i(2) . $nonhelper . ', ' . self::EOL
-            . $this->i(2) . $helperMissingName . ', ' . self::EOL
-            . $this->i(2) . 'array(' . $helper['callParams'] . ')' . self::EOL
-            . $this->i(1) . ')');
+        
+        $this->pushSource('(' . $register . ' = ' . $helperName . ') !== null' . self::EOL
+            . $this->i(2) . ' ?: (' . $register . ' = ' . $nonhelper . ') !== null' . self::EOL
+            . $this->i(2) . ' ?: (' . $register . ' = ' . $helperMissingName . ') !== null' . self::EOL
+            . $this->i(2) . ' ?: $runtime->helperMissingMissing();');
+
+        $params = $helper['params'];
+        array_unshift($params, $register);
+        $this->push('!is_callable(' . $register . ') ? ' . $register . ' : call_user_func('
+            . $this->safeJoin(', ', $params) . ')');
     }
 
     /**
@@ -964,16 +1034,24 @@ class PhpCompiler
      */
     private function invokeHelper($paramSize, $name, $isSimple)
     {
+        $register = '$helper' . ++$this->registerCounter;
+        $this->useRegister($register);
+        
         $nonhelper = $this->popStack();
         $helper = $this->setupHelper($paramSize, $name, false);
 
+        $helperName = ($isSimple ? $helper['name'] : 'null');
         $helperMissingName = $this->nameLookup('$helpers', 'helperMissing', 'helper');
-        $this->push('$runtime->invokeHelper(' . self::EOL
-            . $this->i(2) . ($isSimple ? $helper['name'] : 'null') . ',' . self::EOL
-            . $this->i(2) . $nonhelper . ',' . self::EOL
-            . $this->i(2) . $helperMissingName . ',' . self::EOL
-            . $this->i(2) . 'array(' . $helper['callParams'] . ')'
-            . $this->i(1) . ')');
+
+        $this->pushSource('(' . $register . ' = ' . $helperName . ') !== null' . self::EOL
+            . $this->i(2) . ' ?: (' . $register . ' = ' . $nonhelper . ') !== null' . self::EOL
+            . $this->i(2) . ' ?: (' . $register . ' = ' . $helperMissingName . ') !== null' . self::EOL
+            . $this->i(2) . ' ?: $runtime->helperMissingMissing();');
+
+        $params = $helper['params'];
+        array_unshift($params, $register);
+        $this->push('!is_callable(' . $register . ') ? ' . $register . ' : call_user_func('
+            . $this->safeJoin(', ', $params) . ')');
     }
 
     /**
@@ -984,9 +1062,11 @@ class PhpCompiler
     private function invokeKnownHelper($paramSize, $name)
     {
         $helper = $this->setupHelper($paramSize, $name, false);
-        $this->push('$runtime->invokeKnownHelper(' . self::EOL
-            . $this->i(2) . $helper['name'] . ',' . self::EOL
-            . $this->i(2) . 'array(' . $helper['callParams'] . ')' . self::EOL
+        $params = $helper['params'];
+        array_unshift($params, $helper['name']);
+        
+        $this->push('call_user_func(' . self::EOL
+            . $this->i(2) . $this->safeJoin(',' . self::EOL . $this->i(2), $params) . self::EOL
             . $this->i(1) . ')');
     }
 
