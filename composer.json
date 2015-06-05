@@ -32,6 +32,8 @@
     },
     "require-dev": {
         "jbboehr/coding-standard": "1.0.*@dev",
+        "jbboehr/handlebars-spec": "2.0.0",
+        "jbboehr/mustache-spec": "1.1.2",
         "pear/console_table": "~1.2.1",
         "phpunit/phpunit": "~4.5",
         "scrutinizer/ocular": "~1.1",
