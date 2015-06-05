@@ -25,8 +25,8 @@ phpunit: vendor tests/Spec
 
 test: cs phpunit
 
-tests/Spec: vendor spec/handlebars spec/mustache tests/Generator.php \
-		tests/VMGenerator.php tests/CompilerGenerator.php
+tests/Spec: vendor vendor/jbboehr/handlebars-spec vendor/jbboehr/mustache-spec \
+		tests/Generator.php tests/VMGenerator.php tests/CompilerGenerator.php
 	php generate-tests.php
 	@touch -c tests/Spec
 
