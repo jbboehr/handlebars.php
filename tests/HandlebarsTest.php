@@ -72,4 +72,12 @@ class HandlebarsTest extends Common
             )
         )));
     }
+    
+    public function testGH29RCEFix()
+    {
+        $handlebars = new Handlebars();
+        $this->assertEquals('time', $handlebars->render('{{foo}}', array(
+            'foo' => 'time'
+        )));
+    }
 }
