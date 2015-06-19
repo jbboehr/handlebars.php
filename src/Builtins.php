@@ -79,7 +79,7 @@ class Builtins
      */
     public function builtinIf($conditional, $options)
     {
-        if( is_callable($conditional) ) {
+        if( Utils::isCallable($conditional) ) {
             $conditional = call_user_func($conditional, $options->scope);
         }
         if( !empty($conditional) || (!empty($options->hash['includeZero']) && $conditional === 0) ) {
@@ -107,7 +107,7 @@ class Builtins
         if( $options->data !== null && $options->ids !== null ) {
             $contextPath = Utils::appendContextPath($options['data'], $options->ids[0]) . '.';
         }
-        if( is_callable($context) ) {
+        if( Utils::isCallable($context) ) {
             $context = call_user_func($context, $options->scope);
         }
 
@@ -193,7 +193,7 @@ class Builtins
      */
     public function with($context, $options)
     {
-        if( is_callable($context) ) {
+        if( Utils::isCallable($context) ) {
             $context = call_user_func($context, $options->scope);
         }
         if( !empty($context) ) {

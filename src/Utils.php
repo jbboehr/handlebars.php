@@ -153,6 +153,17 @@ class Utils
             )
         );
     }
+    
+    /**
+     * Check if callable, disallow strings
+     *
+     * @param mixed $name
+     * @return boolean
+     */
+    public static function isCallable($name)
+    {
+        return !is_scalar($name) && is_callable($name);
+    }
 
     /**
      * Is the array a numeric array?

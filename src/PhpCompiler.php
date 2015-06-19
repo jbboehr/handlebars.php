@@ -432,6 +432,18 @@ class PhpCompiler
     }
 
     /**
+     * Generate the function name used to handle an expression
+     *
+     * @param boolean $escaped
+     * @return string
+     */
+    private function isCallableFunctionName()
+    {
+        // @todo switch this to native method
+        return '\\Handlebars\\Utils::isCallable';
+    }
+    
+    /**
      * @return void
      */
     private function flushInline()
@@ -1019,10 +1031,11 @@ class PhpCompiler
             . $this->i(2) . ' ?: (' . $register . ' = ' . $nonhelper . ') !== null' . self::EOL
             . $this->i(2) . ' ?: (' . $register . ' = ' . $helperMissingName . ') !== null' . self::EOL
             . $this->i(2) . ' ?: $runtime->helperMissingMissing();');
-
+        
         $params = $helper['params'];
         array_unshift($params, $register);
-        $this->push('!is_callable(' . $register . ') ? ' . $register . ' : call_user_func('
+        $this->push('!' . $this->isCallableFunctionName() . '(' . $register . ') ? '
+            . $register . ' : call_user_func('
             . $this->safeJoin(', ', $params) . ')');
     }
 
@@ -1050,7 +1063,8 @@ class PhpCompiler
 
         $params = $helper['params'];
         array_unshift($params, $register);
-        $this->push('!is_callable(' . $register . ') ? ' . $register . ' : call_user_func('
+        $this->push('!' . $this->isCallableFunctionName() . '(' . $register . ') ? '
+            . $register . ' : call_user_func('
             . $this->safeJoin(', ', $params) . ')');
     }
 

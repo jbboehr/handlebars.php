@@ -216,7 +216,7 @@ class Runtime
         }
 
         $partial = $this->compilePartial($partial, $data);
-        if( !is_callable($partial) ) {
+        if( !Utils::isCallable($partial) ) {
             throw new RuntimeException('Partial ' . $name . ' was not callable');
         }
 
@@ -244,7 +244,7 @@ class Runtime
      */
     public function lambda($current, $context)
     {
-        if( is_callable($current) ) {
+        if( Utils::isCallable($current) ) {
             return call_user_func($current, $context);
         } else {
             return $current;
@@ -335,7 +335,7 @@ class Runtime
                     'compat' => !empty($this->options['compat']),
                 ));
             }
-        } else if( is_callable($partial) ) {
+        } else if( Utils::isCallable($partial) ) {
             return $partial;
         }
     }

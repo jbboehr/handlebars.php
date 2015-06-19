@@ -473,7 +473,7 @@ class VM
             return;
         }
 
-        if( is_callable($top) ) {
+        if( Utils::isCallable($top) ) {
             $top = call_user_func($top, $this->contextStack->top());
         }
 
@@ -603,7 +603,7 @@ class VM
             $helperFn = $this->getHelper('helperMissing');
             $result = call_user_func_array($helperFn, $helper['params']);
             $this->buffer .= $result;
-            if( is_callable($nonhelper) ) {
+            if( Utils::isCallable($nonhelper) ) {
                 $nonhelper = call_user_func_array($nonhelper, $helper['params']);
             }
             $this->push($nonhelper);
@@ -631,7 +631,7 @@ class VM
             $fn = $this->getHelper('helperMissing');
         }
 
-        if( !is_callable($fn) ) {
+        if( !Utils::isCallable($fn) ) {
             throw new RuntimeException('helper was not callable: ' . $name);
         }
 
@@ -869,7 +869,7 @@ class VM
     private function resolvePossibleLambda()
     {
         $top = $this->top();
-        if( is_callable($top) ) {
+        if( Utils::isCallable($top) ) {
             $result = $top($this->contextStack->top());
             $this->replace($result);
         }
