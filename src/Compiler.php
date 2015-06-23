@@ -20,7 +20,14 @@ class Compiler
         $flags = $this->makeCompilerFlags($options);
         $knownHelpers = null;
         if( !empty($options['knownHelpers']) ) {
-            $knownHelpers = array_keys($options['knownHelpers']);
+            // Need to support handlebars.js method of specifying known helpers
+            foreach( $options['knownHelpers'] as $k => $v ) {
+                if( is_int($k) ) {
+                    $knownHelpers[] = $v;
+                } else {
+                    $knownHelpers[] = $k;
+                }
+            }
         }
         return Native::compile($tmpl, $flags, $knownHelpers);
     }
