@@ -90,7 +90,9 @@ class Runtime
         $data = $this->processDataOption($options, $context);
         $depths = $this->processDepthsOption($options, $context);
 
-        return call_user_func($this->main, $context, $this->helpers, $this->partials, $data, $this, $depths);
+        return call_user_func($this->main, $context, $this->helpers, $this->partials, $data, $this, 
+            array(),  // @todo blockParams
+            $depths);
     }
 
     /**
@@ -401,6 +403,7 @@ class Runtime
                 $runtime->getPartials(),
                 $data,
                 $runtime,
+                null, // @todo blockParams 
                 $depths
             );
         };
