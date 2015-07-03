@@ -39,6 +39,8 @@ class CodeGen implements IteratorAggregate
             return $ret;
         } else if( $chunk === 'undefined' ) {
             $chunk = 'null';
+        } else if( !$chunk ) {
+            $chunk = var_export($chunk, true);
         } else if( is_scalar($chunk) ) {
             settype($chunk, 'string');
         }
@@ -66,7 +68,11 @@ class CodeGen implements IteratorAggregate
     public function functionCall($fn, $type, $params)
     {
         $params = $this->generateList($params);
-        return $this->wrap(array('call_user_func(', $fn, ', ', $params, ')'));
+        if( !$type ) {
+            return $this->wrap(array($fn, '(', $params, ')'));
+        } else {
+            return $this->wrap(array('call_user_func(', $fn, ', ', $params, ')'));
+        }
         //return $this->wrap(array($fn, $type ? '.' . $type . '(' : '(', $params, ')'));
     }
     

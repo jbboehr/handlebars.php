@@ -134,9 +134,9 @@ class PhpCompiler
     
     private $registerCounter = 0;
     
-    private $jsCompat = true;
+    private $jsCompat = false; //true;
     
-    private $nativeRuntime = true;
+    private $nativeRuntime = false; //true;
     
     private $useBlockParams;
     
@@ -205,7 +205,7 @@ class PhpCompiler
         if( version_compare(phpversion('handlebars'), '0.4.0', '<') ) {
             $this->nativeRuntime = false;
         } else {
-            $this->nativeRuntime = empty($this->options['disableNativeRuntime']);
+            //$this->nativeRuntime = empty($this->options['disableNativeRuntime']);
         }
 
         if( !isset($this->options['data']) ) {
@@ -987,15 +987,15 @@ class PhpCompiler
 
         $current = $this->topStack();
         $blockHelperMissingName = $this->nameLookup('$helpers', 'blockHelperMissing', 'helper');
-        //array_splice($params, 0, 1, array($blockHelperMissingName, $current));
 
         $this->pushSource(array(
             'if( !' . join('', $this->lastHelper) . ' ) {' . self::EOL,
-            $this->i(2) . $this->source->functionCall($blockHelperMissingName, 'call', $params) . ';' . self::EOL,
-            //$this->i(2) . $current . ' = ' . 'call_user_func(' . self::EOL,
-            //$this->i(3) . $this->safeJoin(',' . self::EOL . $this->i(3), $params) . self::EOL,
-            //$this->i(2) . ');' . self::EOL,
-            $this->i(1) . '}'
+            $this->i(2),
+            $current,
+            ' = ',
+            $this->source->functionCall($blockHelperMissingName, 'call', $params) . ';' . self::EOL,
+            $this->i(1),
+            '}'
         ));
     }
 
@@ -1147,12 +1147,13 @@ class PhpCompiler
             . $this->i(2) . ' ?: (' . $register . ' = ' . join('', $helperMissingName) . ') !== null' . self::EOL
             . $this->i(2) . ' ?: $runtime->helperMissingMissing();');
         
-        $params = $helper['params'];
-        array_unshift($params, $register);
         $this->push(array(
             '!' . $this->isCallableFunctionName() . '(' . $register . ') ? ',
-            $register . ' : call_user_func(',
-            $this->safeJoin(', ', $params) . ')'
+            $register,
+            ' : ', 
+            $this->source->functionCall($register, 'call', $helper['callParams'])
+            /* call_user_func(',
+            $this->safeJoin(', ', $params) . ')' */
         ));
     }
 
@@ -1247,11 +1248,16 @@ class PhpCompiler
         }
         $params[] = $this->objectLiteral($options);
         
+        $this->push($this->source->functionCall(
+            '$runtime->invokePartial', '', $params
+        ));
+        /*
         $this->push(array(
             '$runtime->invokePartial(' . self::EOL,
             $this->i(2) . $this->safeJoin(',' . self::EOL . $this->i(2), $params) . self::EOL,
             $this->i(1) . ')'
         ));
+        */
         /*
         $params = array(
             $this->nameLookup('$partials', $name, 'partial'),

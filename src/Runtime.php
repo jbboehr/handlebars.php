@@ -211,27 +211,21 @@ class Runtime
      * @return string
      * @throws \Handlebars\RuntimeException if the partial could not be executed.
      */
-    public function invokePartial($partial, $indent, $name, $context, $hash, $helpers, $partials, $data = null, $depths = null)
+    public function invokePartial($partial, $context, $options)
     {
-        if( $hash ) {
-            $context = array_merge((array) $context, $hash);
+        //$partial, $indent, $name, $context, $hash, $helpers, $partials, $data = null, $depths = null
+        
+        if( !empty($options['hash']) ) {
+            $context = array_merge((array) $context, $options['hash']);
         }
 
-        $partial = $this->compilePartial($partial, $data);
+        $partial = $this->compilePartial($partial, $context, $options);
         if( !Utils::isCallable($partial) ) {
-            throw new RuntimeException('Partial ' . $name . ' was not callable');
+            throw new RuntimeException('Partial ' . $options['name'] . ' was not callable');
         }
-
-        $options = array(
-            'partial' => true,
-            'helpers' => $helpers,
-            'partials' => $partials,
-            'data' => $data,
-            'depths' => $depths,
-        );
         $result = $partial($context, $options);
-        if( $result != null && $indent ) {
-            $result = Utils::indent($result, $indent);
+        if( $result != null && !empty($options['indent']) ) {
+            $result = Utils::indent($result, $options['indent']);
         }
         return $result;
     }
