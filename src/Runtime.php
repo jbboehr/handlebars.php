@@ -288,17 +288,19 @@ class Runtime
      *
      * @param integer $i
      * @param mixed $data
+     * @param mixed $declaredBlockParams
+     * @param mixed $blockParams
      * @param mixed $depths
      * @return callable
      */
-    public function program($i, $data = null, $depths = null)
+    public function program($i, $data = null, $declaredBlockParams = null, $blockParams = null, $depths = null)
     {
         $programWrapper = isset($this->programWrappers[$i]) ? $this->programWrappers[$i] : null;
         $fn = $this->programs[$i];
-        if( $data || $depths ) {
-            $programWrapper = $this->wrapProgram($fn, $data, $depths);
+        if( $data || $depths || $declaredBlockParams || $blockParams ) {
+            $programWrapper = $this->wrapProgram($fn, $data, $declaredBlockParams, $blockParams, $depths);
         } else if( !$programWrapper ) {
-            $programWrapper = $this->programWrappers[$i] = $this->wrapProgram($fn, null, null);
+            $programWrapper = $this->programWrappers[$i] = $this->wrapProgram($fn);
         }
         return $programWrapper;
     }
@@ -376,10 +378,12 @@ class Runtime
     /**
      * @param callable $fn
      * @param mixed $data
+     * @param mixed $declaredBlockParams
+     * @param mixed $blockParams
      * @param \Handlebars\DepthList|null $depths
      * @return \Closure
      */
-    private function wrapProgram($fn, $data, $depths)
+    private function wrapProgram($fn, $data = null, $declaredBlockParams = null, $blockParams = null, $depths = null)
     {
         $runtime = $this;
         return function ($context = null, $options = null) use ($runtime, $data, $depths, $fn) {
