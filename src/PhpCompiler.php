@@ -427,15 +427,15 @@ class PhpCompiler
         }
         $source = $this->source->wrap($source, $location);
         
+        $fn = $this->expressionFunctionName(false);
         if( !empty($this->environment['isSimple']) ) {
-            $fn = $this->expressionFunctionName(false);
             return array('return ', $fn, '(', $source, ');');
         } else if( $explicit ) {
-            return array('$buffer .= ', $source, ';');
+            // @todo make sure this is right
+            return array('$buffer .= ', $fn, '(', $source, ');');
         } else {
             $source->appendToBuffer = true;
             return $source;
-            //return new AppendToBuffer($string, $this->jsCompat, $this->nativeRuntime);
         }
     }
 
@@ -980,12 +980,14 @@ class PhpCompiler
      */
     private function ambiguousBlockValue()
     {
-        $params = array($this->contextName(0));
+        $params = array();
         $this->setupHelperArgs('', 0, $params, true);
 
         $this->flushInline();
 
         $current = $this->topStack();
+        array_unshift($params, $current);
+        
         $blockHelperMissingName = $this->nameLookup('$helpers', 'blockHelperMissing', 'helper');
 
         $this->pushSource(array(
@@ -1004,16 +1006,25 @@ class PhpCompiler
      */
     private function append()
     {
+        $fn = $this->expressionFunctionName(false);
         if( $this->isInline() ) {
             $this->replaceStack(function($current) {
-                return array(' != null ? ', $current, ' : ""');
+                return array(' !== null ? ', $current, ' : ""');
             });
-            $this->pushSource($this->appendToBuffer($this->popStack()));
+            $this->pushSource($this->appendToBuffer(array(
+                $fn,
+                '(',
+                $this->popStack(),
+                ')'
+            )));
         } else {
             $local = $this->popStack();
             $this->pushSource(array(
-                'if( ', $local, ' != null ) { ',
+                'if( ', $local, ' !== null ) { ',
+                //$fn,
+                //'(',
                 $this->appendToBuffer($local, null, true),
+                //')',
                 ' }'
             ));
             if( !empty($this->environment['isSimple']) ) {
@@ -1205,8 +1216,6 @@ class PhpCompiler
         /*
         $params = $helper['params'];
         array_unshift($params, $helper['name']);
-        
-        var_dump($params);die();
         
         $this->push(array(
             'call_user_func(' . self::EOL,
