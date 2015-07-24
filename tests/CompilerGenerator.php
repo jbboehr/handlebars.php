@@ -12,6 +12,10 @@ class CompilerGenerator extends Generator
         // // Note: https://github.com/wycats/handlebars.js/blob/v2.0.0/spec/spec.js#L27
         // 'testExportStandaloneIndentationEachLineOfThePartialShouldBeIndentedBeforeRendering1',
         'testIntegrationStandaloneIndentationEachLineOfThePartialShouldBeIndentedBeforeRendering1',
+        
+        // Added in v3
+        'testExportBlockParamsShouldTakePresedneceOverParentBlockParams1',
+        'testIntegrationBlockParamsShouldTakePresedneceOverParentBlockParams1',
     );
     
     public function __construct(array $options)

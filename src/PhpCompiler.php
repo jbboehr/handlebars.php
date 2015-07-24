@@ -1253,7 +1253,7 @@ class PhpCompiler
         }
         
         if( !empty($this->options['compat']) ) {
-            $options['depths'] = $depths;
+            $options['depths'] = '$depths';
         }
         $params[] = $this->objectLiteral($options);
         
@@ -1305,14 +1305,15 @@ class PhpCompiler
     {
         $this->useBlockParams = true;
         
+        $expr = sprintf('$blockParams[%d][%d]', $blockParamId[0], $blockParamId[1]);
         $this->push(array(
-            '$blockParams[',
-            $blockParamId[0],
-            '][',
-            $blockParamId[1],
-            ']'
+            '(isset(',
+            $expr,
+            ') ? ',
+            $expr,
+            ' : null)',
         ));
-        $this->resolvePath('context', $parts, 1);
+        $this->resolvePath('context', $parts, 1, false);
     }
 
     /**

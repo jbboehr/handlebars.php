@@ -214,16 +214,38 @@ class Runtime
     public function invokePartial($partial, $context, $options)
     {
         //$partial, $indent, $name, $context, $hash, $helpers, $partials, $data = null, $depths = null
-        
         if( !empty($options['hash']) ) {
             $context = array_merge((array) $context, $options['hash']);
         }
-
+        
+        $partial = $this->resolvePartial($partial, $options);
+        
+        $result = null;
+        if( null === $partial ) {
+            throw new RuntimeException('Partial ' . $options['name'] . ' could not be found');
+        } else if( Utils::isCallable($partial) ) {
+            $result = $partial($context, $options);
+        }
+        
+        if( null === $result ) {
+            if( $partial === '' ) {
+                $options['partials'][$options['name']] = Utils::noop();
+            } else {
+                $options['partials'][$options['name']] = $this->handlebars->compile($partial, array(
+                    // @todo compilerOptions
+                    //'data' => ($data !== null),
+                    'compat' => !empty($this->options['compat']),
+                ));
+            }
+            $result = call_user_func($options['partials'][$options['name']], $context, $options);
+        }
+        /*
         $partial = $this->compilePartial($partial, $context, $options);
         if( !Utils::isCallable($partial) ) {
             throw new RuntimeException('Partial ' . $options['name'] . ' was not callable');
         }
         $result = $partial($context, $options);
+        */
         if( $result != null && !empty($options['indent']) ) {
             $result = Utils::indent($result, $options['indent']);
         }
@@ -325,8 +347,11 @@ class Runtime
     {
         // Maybe allow closures
         if( is_string($partial) ) {
+            if( isset($this->partials[$partial]) ) {
+                $partial = $this->partials[$partial];
+            }
             if( !$partial ) {
-                return Utils::noop();
+                //return Utils::noop();
             } else {
                 return $this->handlebars->compile($partial, array(
                     'data' => ($data !== null),
@@ -374,6 +399,17 @@ class Runtime
         $depths->unshift($context);
         return $depths;
     }
+    
+    private function resolvePartial($partial, &$options)
+    {
+        if( !$partial ) {
+            $partial = Utils::lookup($options['partials'], $options['name']);
+        } else if( !Utils::isCallable($partial) && empty($options['name']) ) {
+            $options['name'] = $partial;
+            $partial = Utils::lookup($options['partials'], $partial);
+        }
+        return $partial;
+    }
 
     /**
      * @param callable $fn
@@ -386,7 +422,7 @@ class Runtime
     private function wrapProgram($fn, $data = null, $declaredBlockParams = null, $blockParams = null, $depths = null)
     {
         $runtime = $this;
-        return function ($context = null, $options = null) use ($runtime, $data, $depths, $fn) {
+        return function ($context = null, $options = null) use ($runtime, $data, $depths, $blockParams, $fn) {
             if( !$options ) {
                 $options = array();
             }
@@ -394,6 +430,11 @@ class Runtime
                 $data = $options['data'];
             }
             $depths = Utils::arrayUnshift($depths, $context);
+            if( null !== $blockParams ) {
+                $blockParams = array_merge(array(
+                    Utils::lookup($options, 'blockParams'),
+                ), $blockParams);
+            }
             return call_user_func(
                 $fn,
                 $context,
@@ -401,7 +442,7 @@ class Runtime
                 $runtime->getPartials(),
                 $data,
                 $runtime,
-                null, // @todo blockParams 
+                $blockParams,
                 $depths
             );
         };

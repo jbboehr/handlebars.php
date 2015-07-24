@@ -78,6 +78,7 @@ class CodeGen implements IteratorAggregate
     
     public function generateArray($entries, $loc = null)
     {
+        $ret = $this->generateList($entries, $loc);
         $ret->prepend('array(');
         $ret->add(')');
         return $ret;
