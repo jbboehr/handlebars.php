@@ -107,6 +107,7 @@ class Builtins
         if( $options->data !== null && $options->ids !== null ) {
             $contextPath = Utils::appendContextPath($options['data'], $options->ids[0]) . '.';
         }
+        
         if( Utils::isCallable($context) ) {
             $context = call_user_func($context, $options->scope);
         }
@@ -137,7 +138,7 @@ class Builtins
                     'blockParams' => array(
                         0 => $value,
                         1 => $field,
-                        'path' => $contextPath . $field,
+                        'path' => array($contextPath . $field, null),
                     ),
                 ));
                 $i++;

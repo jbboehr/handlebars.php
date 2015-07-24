@@ -674,7 +674,7 @@ class PhpCompiler
         if( $type === 'BlockParam' ) {
             $this->pushStackLiteral(
                 '$blockParams[' . $name[0] . ']["path"][' . $name[1] . ']'
-                    . ($child ? ' . ' . var_export('.' . $child, true) : '')
+                    . ($child ? ' . ' . var_export('.' . $child, true) . '' : '')
             );
         } else if( $type === 'PathExpression' ) { // @todo make sure it's right
             $this->pushString($name);

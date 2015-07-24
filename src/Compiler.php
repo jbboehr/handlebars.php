@@ -80,6 +80,9 @@ class Compiler
         if( !empty($options['knownHelpersOnly']) ) {
             $flags |= COMPILER_FLAG_KNOWN_HELPERS_ONLY;
         }
+        if( !empty($options['preventIndent']) ) {
+            $flags |= COMPILER_FLAG_PREVENT_INDENT;
+        }
         return $flags;
     }
 }
