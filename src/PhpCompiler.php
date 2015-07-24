@@ -1108,6 +1108,7 @@ class PhpCompiler
     }
 
     /**
+     * @param $omitEmpty boolean
      * @return void
      */
     private function emptyHash($omitEmpty = false)
@@ -1226,6 +1227,7 @@ class PhpCompiler
     }
 
     /**
+     * @param boolean $isDynamic
      * @param string $name
      * @param string $indent
      * @return void

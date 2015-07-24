@@ -550,9 +550,10 @@ class VM
     }
 
     /**
+     * @param $omitEmpty boolean
      * @return void
      */
-    private function emptyHash()
+    private function emptyHash($omitEmpty = false)
     {
         $this->push(array());
 
@@ -563,6 +564,7 @@ class VM
             $this->push(array());
             $this->push(array());
         }
+        //$this->push($omitEmpty ? 'null' : array());
     }
 
     /**
@@ -693,6 +695,11 @@ class VM
 
         $this->push($val);
     }
+    
+    private function lookupBlockParam($blockParamId, $parts)
+    {
+        throw new Exception('Not yet implemented');
+    }
 
     /**
      * @param array $parts
@@ -728,18 +735,28 @@ class VM
     }
 
     /**
+     * @param boolean $isDynamic
      * @param string $name
      * @param string $indent
      * @return void
      */
-    private function invokePartial($name, $indent)
+    private function invokePartial($isDynamic, $name, $indent)
     {
+        $params = array();
+        $options = $this->setupOptions($name, 1, $params, false);
+        
+        if( $isDynamic ) {
+            $name = $this->pop();
+            unset($options['name']);
+        }
+        $params[] = $options;
+        
         if( !isset($this->partialOpcodes[$name]) ) {
             throw new RuntimeException('Missing partial: ' . $name);
         }
         $opcodes = $this->partialOpcodes[$name];
-        $context = $this->pop();
-        $hash = $this->pop();
+        $context = $params[0];
+        $hash = $options;
 
         if( is_array($hash) ) {
             $context = array_merge($context, $hash);
@@ -747,7 +764,7 @@ class VM
         }
 
         $this->programStack->push(array('children' => array($opcodes)));
-        $result = $this->executeProgram(0, $context, $hash);
+        $result = $this->executeProgram(0, $context, $options);
 
         // Indent output of partial
         $endsInEmptyLine = $result && $result[strlen($result) - 1] === "\n";
@@ -802,9 +819,12 @@ class VM
      */
     private function pushId($type, $name)
     {
-        if( $type === 'ID' || $type === 'DATA' ) {
+        if( $type === 'BlockParam' ) {
+            // @todo
+            throw new Exception('Not implemented yet');
+        } else if( $type === 'PathExpression' ) {
             $this->pushString($name);
-        } else if( $type === 'sexpr' ) {
+        } else if( $type === 'SubExpression' ) {
             $this->pushLiteral('true');
         } else {
             $this->pushLiteral('null');
@@ -822,6 +842,8 @@ class VM
         } else if( $literal === 'false' ) {
             $this->push(false);
         } else if( $literal === 'null' ) {
+            $this->push(null);
+        } else if( $literal === 'undefined' ) {
             $this->push(null);
         } else {
             $this->push($literal);
@@ -858,7 +880,7 @@ class VM
 
         // If it's a subexpression, the string result
         // will be pushed after this opcode.
-        if( $type !== 'sexpr' ) {
+        if( $type !== 'SubExpression' ) {
             $this->push($string);
         }
     }
