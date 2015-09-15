@@ -716,6 +716,16 @@ class VM
             $value = $top[$blockParamId[0]][$blockParamId[1]];
         }
 
+        array_shift($parts);
+        foreach( $parts as $k ) {
+            if( isset($value[$k]) ) {
+                $value = $value[$k];
+            } else {
+                $value = null;
+                break;
+            }
+        }
+
         $this->push($value);
     }
 
@@ -835,11 +845,11 @@ class VM
      * @param string $name
      * @return void
      */
-    private function pushId($type, $name)
+    private function pushId($type, $name, $child = null)
     {
         if( $type === 'BlockParam' ) {
-            // @todo
-            throw new Exception('Not implemented yet');
+            $top = $this->blockParamStack->top();
+            $this->pushLiteral($top[$name[0]]['path'][$name[1]] . ($child ? '.' . $child : ''));
         } else if( $type === 'PathExpression' ) {
             $this->pushString($name);
         } else if( $type === 'SubExpression' ) {
