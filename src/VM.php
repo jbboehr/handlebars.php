@@ -148,6 +148,7 @@ class VM
         $this->programStack = new SplStack();
         $this->programStack->push(array('children' => array($opcodes)));
         $this->stack = new SplStack();
+        $this->blockParamStack = new SplStack();
 
         // Output buffer
         $this->buffer = '';
@@ -207,6 +208,12 @@ class VM
             $this->dataStack->push($data);
         }
 
+        if( isset($data['blockParams']) ) {
+            $top = $this->blockParamStack->count() ? $this->blockParamStack->top() : array();
+            $next = array_merge(array($data['blockParams']), $top);
+            $this->blockParamStack->push($next);
+        }
+
         // Push the program stack
         $top = $this->programStack->top();
         if( !isset($top['children'][$program]['opcodes']) ) {
@@ -228,6 +235,10 @@ class VM
 
         // Pop the program stack
         $this->programStack->pop();
+
+        if( isset($data['blockParams']) ) {
+            $this->blockParamStack->pop();
+        }
 
         // Pop the data stack, if necessary
         if( $data !== null ) {
@@ -698,7 +709,14 @@ class VM
     
     private function lookupBlockParam($blockParamId, $parts)
     {
-        throw new Exception('Not yet implemented');
+        $top = $this->blockParamStack->top();
+
+        $value = null;
+        if( isset($top[$blockParamId[0]][$blockParamId[1]]) ) {
+            $value = $top[$blockParamId[0]][$blockParamId[1]];
+        }
+
+        $this->push($value);
     }
 
     /**
