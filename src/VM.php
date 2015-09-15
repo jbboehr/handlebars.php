@@ -784,7 +784,7 @@ class VM
         }
         $opcodes = $this->partialOpcodes[$name];
         $context = $params[0];
-        $hash = $options;
+        $hash = !empty($options['hash']) ? $options['hash'] : null;
 
         if( is_array($hash) ) {
             $context = array_merge($context, $hash);
