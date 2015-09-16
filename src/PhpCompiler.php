@@ -3,6 +3,7 @@
 namespace Handlebars;
 
 use SplStack;
+use Handlebars\Compiler\CodeGen;
 
 /**
  * PHP compiler
@@ -99,6 +100,8 @@ class PhpCompiler
      */
     private $inlineStack;
 
+    private $pendingLocation;
+    
     /**
      * @var string
      */
@@ -131,9 +134,14 @@ class PhpCompiler
     
     private $registerCounter = 0;
     
-    private $jsCompat = true;
+    private $jsCompat = false; //true;
     
-    private $nativeRuntime = true;
+    private $nativeRuntime = false; //true;
+    
+    private $useBlockParams;
+    
+    private $blockParams;
+    
     
     /**
      * Magic call method
@@ -168,7 +176,8 @@ class PhpCompiler
 
         $this->reinit();
         $this->compileChildren($this->environment, $options);
-        $this->useDepths |= !empty($this->environment['depths']) || !empty($options['compat']);
+        $this->useDepths |= !empty($this->environment['useDepths']) || !empty($options['compat']);
+        $this->useBlockParams |= !empty($this->environment['useBlockParams']);
         $this->accept($this->environment['opcodes']);
         $this->pushSource('');
 
@@ -196,7 +205,7 @@ class PhpCompiler
         if( version_compare(phpversion('handlebars'), '0.4.0', '<') ) {
             $this->nativeRuntime = false;
         } else {
-            $this->nativeRuntime = empty($this->options['disableNativeRuntime']);
+            //$this->nativeRuntime = empty($this->options['disableNativeRuntime']);
         }
 
         if( !isset($this->options['data']) ) {
@@ -207,8 +216,10 @@ class PhpCompiler
         }
 
         $this->name = isset($this->environment['name']) ? $this->environment['name'] : null;
-
-        $this->source = array();
+        
+        
+        $this->lastContext = 0;
+        $this->source = new CodeGen(!empty($this->options['srcName']) ? $this->options['srcName'] : null);
         $this->stackSlot = 0;
         $this->stackVars = array();
         $this->aliases = array();
@@ -216,6 +227,7 @@ class PhpCompiler
         $this->hashes = array();
         $this->compileStack = new SplStack();
         $this->inlineStack = new SplStack();
+        $this->blockParams = new SplStack();
     }
 
     /**
@@ -236,6 +248,7 @@ class PhpCompiler
             $this->context->environments[$index] = $child;
 
             $this->useDepths |= $compiler->useDepths;
+            $this->useBlockParams |= $compiler->useBlockParams;
         }
     }
 
@@ -262,13 +275,23 @@ class PhpCompiler
 
         $params = array('$depth0', '$helpers', '$partials', '$data', '$runtime');
 
+        if( $this->useBlockParams || $this->useDepths ) {
+            $params[] = '$blockParams';
+        }
         if( $this->useDepths ) {
             $params[] = '$depths';
         }
 
         $source = $this->mergeSource($varDeclarations);
 
-        return 'function(' . implode(', ', $params) . ') {' . self::EOL . $this->i(1) . $source . '}';
+        return $this->source->wrap(array(
+            'function(',
+            implode(', ', $params),
+            ') {' . self::EOL . $this->i(1),
+            $source,
+            '}'
+        ));
+        return ;
     }
 
     /**
@@ -296,12 +319,18 @@ class PhpCompiler
         if( $this->useDepths ) {
             $ret['useDepths'] = true;
         }
+        if( $this->useBlockParams ) {
+            $ret['useBlockParams'] = true;
+        }
         if( !empty($this->options['compat']) ) {
             $ret['compat'] = true;
         }
         if( !$asObject ) {
             $ret['compiler'] = var_export($ret['compiler'], true);
+            
+            $this->source->currentLocation = array('start' => array('line' => 1, 'column' => 0));
             $ret = $this->objectLiteral($ret);
+            // @todo stuff was here
         }
         return $ret;
     }
@@ -312,57 +341,61 @@ class PhpCompiler
      */
     private function mergeSource($varDeclarations)
     {
-        $buffer = '';
-        $source = '';
+        $isSimple = !empty($this->environment['isSimple']);
         $appendFirst = false;
         $appendOnly = !$this->forceBuffer;
-
+        $sourceSeen = false;
+        $bufferStart = null;
+        $bufferEnd = null;
+        
         foreach( $this->source as $line ) {
-            if( $line instanceof AppendToBuffer ) {
-                if( strlen($buffer) > 0 ) {
-                    $buffer .= " . " . $line->getContent();
+            if( $line->appendToBuffer ) {
+                if( $bufferStart ) {
+                    $line->prepend('    . ');
                 } else {
-                    $buffer = $line->getContent();
+                    $bufferStart = $line;
                 }
+                $bufferEnd = $line;
             } else {
-                if( strlen($buffer) > 0 ) {
-                    if( !$source ) {
+                if( $bufferStart ) {
+                    if( !$sourceSeen ) {
                         $appendFirst = true;
-                        $source = $buffer . ';' . self::EOL . $this->i(1);
                     } else {
-                        $source .= '$buffer .= ' . $buffer . ';' . self::EOL . $this->i(1);
+                        $bufferStart->prepend('$buffer .= ');
                     }
-                    $buffer = null;
+                    $bufferEnd->add(';');
+                    $bufferStart = $bufferEnd = null;
                 }
-                $source .= $line . "\n    ";
-
-                if( empty($this->environment['isSimple']) ) {
+                
+                $sourceSeen = true;
+                if( !$isSimple ) {
                     $appendOnly = false;
                 }
             }
         }
-
+        
         if( $appendOnly ) {
-            if( $source || strlen($buffer) > 0 ) {
-                $source .= 'return ' . ($buffer ?: '""') . ';' . self::EOL;
+            if( $bufferStart ) {
+                $bufferStart->prepend('return ');
+                $bufferEnd->add(';');
+            } else if( !$sourceSeen ) {
+                $this->source->push('return "";');
             }
         } else {
-            $varDeclarations .= ';' . "\n    "
-                . '$buffer = ' . ($appendFirst ? '' : $this->initializeBuffer());
-            if( strlen($buffer) > 0 ) {
-                $source .= 'return $buffer . ' . $buffer . ';' . self::EOL;
+            $varDeclarations .= '; $buffer = ' . ($appendFirst ? '' : $this->initializeBuffer());
+            if( $bufferStart ) {
+                $bufferStart->prepend('return $buffer . ');
+                $bufferEnd->add(';');
             } else {
-                $source .= 'return $buffer;' . self::EOL;
+                $this->source->push('return $buffer;');
             }
         }
-
+        
         if( $varDeclarations ) {
-            $source = $varDeclarations
-                . ($appendFirst ? '' : ';' . self::EOL . $this->i(1))
-                . $source;
+            $this->source->prepend($varDeclarations . ($appendFirst ? '' : ';' . self::EOL . $this->i(1)));
         }
-
-        return $source;
+        
+        return $this->source->merge();
     }
 
     /**
@@ -371,22 +404,38 @@ class PhpCompiler
      */
     private function accept($opcodes)
     {
+        $firstLoc = null;
+        
         foreach( $opcodes as $opcode ) {
+            if( !$firstLoc && isset($opcode['loc']) ) {
+                $firstLoc = $opcode['loc'];
+            }
             call_user_func_array(array($this, $opcode['opcode']), $opcode['args']);
         }
+        
+        $this->source->currentLocation = $firstLoc;
     }
 
     /**
-     * @param string $string
+     * @param string $source
      * @return string|\Handlebars\AppendToBuffer
      */
-    private function appendToBuffer($string)
+    private function appendToBuffer($source, $location = null, $explicit = false)
     {
+        if( !is_array($source) ) {
+            $source = array($source);
+        }
+        $source = $this->source->wrap($source, $location);
+        
+        $fn = $this->expressionFunctionName(false);
         if( !empty($this->environment['isSimple']) ) {
-            $fn = $this->expressionFunctionName(false);
-            return 'return ' . $fn . '(' . $string . ');';
+            return array('return ', $fn, '(', $source, ');');
+        } else if( $explicit ) {
+            // @todo make sure this is right
+            return array('$buffer .= ', $fn, '(', $source, ');');
         } else {
-            return new AppendToBuffer($string, $this->jsCompat, $this->nativeRuntime);
+            $source->appendToBuffer = true;
+            return $source;
         }
     }
 
@@ -443,20 +492,25 @@ class PhpCompiler
         return '\\Handlebars\\Utils::isCallable';
     }
     
+    private function isInline()
+    {
+        return $this->inlineStack->count() > 0;
+    }
+    
     /**
      * @return void
      */
     private function flushInline()
     {
-        if( count($this->inlineStack) ) {
-            $inlineStack = $this->inlineStack;
-            $this->inlineStack = new SplStack();
-            foreach( $inlineStack as $i => $entry ) {
-                if( $entry instanceof Literal ) {
-                    $this->compileStack->push($entry);
-                } else {
-                    $this->pushStack($entry);
-                }
+        $inlineStack = $this->inlineStack;
+        $this->inlineStack = new SplStack();
+        foreach( $inlineStack as $i => $entry ) {
+            if( $entry instanceof Literal ) {
+                $this->compileStack->push($entry);
+            } else {
+                $stack = $this->incrStack();
+                $this->pushSource(array($stack, ' = ', $entry, ';'));
+                $this->compileStack->push($stack);
             }
         }
     }
@@ -500,6 +554,7 @@ class PhpCompiler
      */
     public function nameLookup($parent, $name, $type = null)
     {
+        /*
         if( $this->nativeRuntime ) {
             // Note: this isn't working quite right yet
             return '\\Handlebars\Native::nameLookup(' . $parent . ', ' . var_export($name, true) . ')';
@@ -519,7 +574,8 @@ class PhpCompiler
                     break;
             }
         }
-        return '$runtime->nameLookup(' . $parent . ', ' . var_export($name, true) . ')';
+        */
+        return array('$runtime->nameLookup(', $parent, ', ', var_export($name, true), ')');
     }
 
     /**
@@ -528,6 +584,8 @@ class PhpCompiler
      */
     private function objectLiteral($obj, $i = null)
     {
+        return $this->source->objectLiteral($obj);
+        /*
         $pairs = array();
         foreach( $obj as $k => $v ) {
             $pairs[] = var_export($k, true) . ' => ' . ($v === null ? 'null' : $v);
@@ -538,6 +596,7 @@ class PhpCompiler
         return 'array(' . $i1
             . $this->safeJoin(',' . $i2, $pairs)
             . $i3 . ')';
+        */
     }
 
     /**
@@ -547,9 +606,9 @@ class PhpCompiler
      */
     private function popStack($wrapped = false)
     {
-        $inline = count($this->inlineStack);
+        $inline = $this->isInline();
         $item = $inline ? $this->inlineStack->pop() : $this->compileStack->pop();
-
+        
         if( !$wrapped && $item instanceof Literal ) {
             return $item->getValue();
         }
@@ -579,8 +638,11 @@ class PhpCompiler
     private function programExpression($guid)
     {
         $child = $this->environment['children'][$guid];
-        $programParams = array((int) $child['index'], '$data');
+        $programParams = array((int) $child['index'], '$data', $child['blockParams']);
 
+        if( $this->useBlockParams || $this->useDepths ) {
+            $programParams[] = '$blockParams';
+        }
         if( $this->useDepths ) {
             $programParams[] = '$depths';
         }
@@ -594,6 +656,10 @@ class PhpCompiler
      */
     private function push($expr)
     {
+        if( !($expr instanceof Literal) ) {
+            $expr = $this->source->wrap($expr);
+        }
+        
         $this->inlineStack->push($expr);
         return $expr;
     }
@@ -603,11 +669,16 @@ class PhpCompiler
      * @param string $name
      * @return void
      */
-    private function pushId($type, $name)
+    private function pushId($type, $name, $child = null)
     {
-        if( $type === 'ID' || $type === 'DATA' ) {
+        if( $type === 'BlockParam' ) {
+            $this->pushStackLiteral(
+                '$blockParams[' . $name[0] . ']["path"][' . $name[1] . ']'
+                    . ($child ? ' . ' . var_export('.' . $child, true) . '' : '')
+            );
+        } else if( $type === 'PathExpression' ) { // @todo make sure it's right
             $this->pushString($name);
-        } else if( $type === 'sexpr' ) {
+        } else if( $type === 'SubExpression' ) { // @todo make sure it's right
             $this->pushStackLiteral('true');
         } else {
             $this->pushStackLiteral('null');
@@ -615,17 +686,13 @@ class PhpCompiler
     }
 
     /**
+     * @deprecated
      * @param mixed $item
      * @return string
      */
     private function pushStack($item)
     {
-        $this->flushInline();
-
-        $stack = $this->incrStack();
-        $this->pushSource($stack . ' = ' . $item . ';');
-        $this->compileStack->push($stack);
-        return $stack;
+        throw new BadMethodCallException('pushStack is deprecated');
     }
 
     /**
@@ -635,11 +702,11 @@ class PhpCompiler
     private function pushSource($source)
     {
         if( $this->pendingContent ) {
-            $this->source[] = $this->appendToBuffer($this->quotedString($this->pendingContent));
+            $this->source->push($this->appendToBuffer($this->source->quotedString($this->pendingContent), $this->pendingLocation));
             $this->pendingContent = null;
         }
         if( $source ) {
-            $this->source[] = $source;
+            $this->source->push($source);
         }
     }
 
@@ -649,7 +716,8 @@ class PhpCompiler
      */
     private function pushStackLiteral($item)
     {
-        return $this->push(new Literal($item));
+        $literal = new Literal($item);
+        $this->push($literal);
     }
 
     /**
@@ -668,21 +736,22 @@ class PhpCompiler
      */
     private function replaceStack($callback)
     {
-        if( !count($this->inlineStack) ) {
+        if( !$this->isInline() ) {
             throw new CompileException('replaceStack on non-inline');
         }
-
+        
         $createdStack = false;
         $usedLiteral = false;
         $top = $this->popStack(true);
 
         if( $top instanceof Literal ) {
-            $prefix = $stack = $top->getValue();
+            $stack = array($top->getValue());
+            $prefix = array('(', $stack);
             $usedLiteral = true;
         } else {
-            $createdStack = !$this->stackSlot;
-            $name = !$createdStack ? $this->topStackName() : $this->incrStack();
-            $prefix = '(' . $this->push($name) . ' = ' . $top . ')';
+            $createdStack = true;
+            $name = $this->incrStack();
+            $prefix = array('((', $this->push($name), ' = ', $top, ')');
             $stack = $this->topStack();
         }
 
@@ -694,7 +763,31 @@ class PhpCompiler
         if( $createdStack ) {
             $this->stackSlot--;
         }
-        $this->push('(' . $prefix . $item . ')');
+        
+        $prefix[] = $item;
+        $prefix[] = ')';
+        $this->push($prefix);
+    }
+    
+    private function resolvePath($type, $parts, $i, $falsy)
+    {
+        if( !empty($this->options['strict']) || !empty($this->options['assumeObjects']) ) {
+            $this->push($this->strictLookup($this->options['strict'], $parts, $type));
+            return;
+        }
+        
+        $self = $this;
+        for( $l = count($parts); $i < $l; $i++ ) {
+            $this->replaceStack(function ($current) use ($self, $type, &$parts, &$i, $falsy) {
+                $lookup = $self->nameLookup($current, $parts[$i], $type);
+                if( !$falsy ) {
+                    return array(' !== null ? ', $lookup, ' : ', $current);
+                } else {
+                    return array(' ? ', $lookup, ' : null');
+                }
+            });
+        }
+        
     }
 
     /**
@@ -714,6 +807,10 @@ class PhpCompiler
      */
     private function safeString($str)
     {
+        if( is_array($str) ) {
+            throw new \Exception("AADASDFJKSOEDJFLSDKJFG");
+        }
+        
         $strval = (string) $str;
         if( $str === null || $str === 'undefined' ) {
             return 'null';
@@ -767,15 +864,14 @@ class PhpCompiler
     private function setupHelper($paramSize, $name, $blockHelper)
     {
         $params = array();
-        $paramsInit = $this->setupParams($name, $paramSize, $params, $blockHelper);
+        $paramsInit = $this->setupHelperArgs($name, $paramSize, $params, $blockHelper);
         $foundHelper = $this->nameLookup('$helpers', $name, 'helper');
 
         return array(
             'params' => $params,
             'paramsInit' => $paramsInit,
             'name' => $foundHelper,
-            'callParams' => $this->safeJoin(', ', $params),
-            //'callParams' => $this->safeJoin(', ', array_merge(array($this->contextName(0)), $params)),
+            'callParams' => $params,
         );
     }
 
@@ -836,17 +932,21 @@ class PhpCompiler
 
         if( $this->trackIds ) {
             ksort($ids);
-            $options['ids'] = 'array(' . $this->safeJoin(', ', $ids) . ')';
+            $options['ids'] = $this->source->generateArray($ids);
         }
         if( $this->stringParams ) {
             ksort($types);
             ksort($contexts);
-            $options['types'] = 'array(' . $this->safeJoin(', ', $types) . ')';
-            $options['contexts'] = 'array(' . $this->safeJoin(', ', $contexts) . ')';
+            $options['types'] = $this->source->generateArray($types);
+            $options['contexts'] = $this->source->generateArray($contexts);
         }
 
         if( !empty($this->options['data']) ) {
             $options['data'] = '$data';
+        }
+        
+        if( $this->useBlockParams ) {
+            $options['blockParams'] = '$blockParams';
         }
 
         return $options;
@@ -859,7 +959,7 @@ class PhpCompiler
      * @param boolean $useRegister
      * @return string
      */
-    private function setupParams($helperName, $paramSize, &$params, $useRegister)
+    private function setupHelperArgs($helperName, $paramSize, &$params, $useRegister)
     {
         $options = '$runtime->setupOptions('
             . $this->objectLiteral($this->setupOptions($helperName, $paramSize, $params), $useRegister ? 1 : 1)
@@ -868,7 +968,7 @@ class PhpCompiler
         if( $useRegister ) {
             $this->useRegister('$options');
             $params[] = '$options';
-            return '$options = ' . $options;
+            return array('$options = ', $options);
         } else {
             $params[] = $options;
             return '';
@@ -880,20 +980,25 @@ class PhpCompiler
      */
     private function ambiguousBlockValue()
     {
-        $params = array($this->contextName(0));
-        $this->setupParams('', 0, $params, true);
+        $params = array();
+        $this->setupHelperArgs('', 0, $params, true);
 
         $this->flushInline();
 
         $current = $this->topStack();
+        array_unshift($params, $current);
+        
         $blockHelperMissingName = $this->nameLookup('$helpers', 'blockHelperMissing', 'helper');
-        array_splice($params, 0, 1, array($blockHelperMissingName, $current));
 
-        $this->pushSource('if( !' . $this->lastHelper . ' ) {' . self::EOL
-            . $this->i(2) . $current . ' = ' . 'call_user_func(' . self::EOL
-            . $this->i(3) . $this->safeJoin(',' . self::EOL . $this->i(3), $params) . self::EOL
-            . $this->i(2) . ');' . self::EOL
-            . $this->i(1) . '}');
+        $this->pushSource(array(
+            'if( !' . join('', $this->lastHelper) . ' ) {' . self::EOL,
+            $this->i(2),
+            $current,
+            ' = ',
+            $this->source->functionCall($blockHelperMissingName, 'call', $params) . ';' . self::EOL,
+            $this->i(1),
+            '}'
+        ));
     }
 
     /**
@@ -901,15 +1006,30 @@ class PhpCompiler
      */
     private function append()
     {
-        $this->flushInline();
-        $local = $this->popStack();
-        $this->pushSource('if( ' . $local . ' !== null ) {' . self::EOL
-            . $this->i(2) . $this->appendToBuffer($local) . self::EOL
-            . $this->i(1) . '}');
-        if( !empty($this->environment['isSimple']) ) {
-            $this->pushSource(' else {' . self::EOL
-                . $this->i(2). $this->appendToBuffer("''")  . self::EOL
-                . $this->i(1). '}');
+        $fn = $this->expressionFunctionName(false);
+        if( $this->isInline() ) {
+            $this->replaceStack(function($current) {
+                return array(' !== null ? ', $current, ' : ""');
+            });
+            $this->pushSource($this->appendToBuffer(array(
+                $fn,
+                '(',
+                $this->popStack(),
+                ')'
+            )));
+        } else {
+            $local = $this->popStack();
+            $this->pushSource(array(
+                'if( ', $local, ' !== null ) { ',
+                //$fn,
+                //'(',
+                $this->appendToBuffer($local, null, true),
+                //')',
+                ' }'
+            ));
+            if( !empty($this->environment['isSimple']) ) {
+                // @todo
+            }
         }
     }
 
@@ -921,6 +1041,8 @@ class PhpCompiler
     {
         if( $this->pendingContent ) {
             $content = $this->pendingContent . $content;
+        } else {
+            $this->pendingLocation = $this->source->currentLocation;
         }
         $this->pendingContent = $content;
     }
@@ -930,8 +1052,12 @@ class PhpCompiler
      */
     private function appendEscaped()
     {
-        $fn = $this->expressionFunctionName(true);
-        $this->pushSource($this->appendToBuffer($fn . '(' . $this->popStack() . ')'));
+        $this->pushSource($this->appendToBuffer(array(
+            $this->expressionFunctionName(true),
+            '(',
+            $this->popStack(),
+            ')'
+        )));
     }
 
     /**
@@ -953,15 +1079,15 @@ class PhpCompiler
 
         $hash = $this->hash;
         if( $context ) {
-            $hash->contexts[] = var_export($key, true) . ' => ' . $this->safeString($context);
+            $hash->contexts[$key] = $context;
         }
         if( $type ) {
-            $hash->types[] = var_export($key, true) . ' => ' . $this->safeString($type);
+            $hash->types[$key] = $type;
         }
         if( $id ) {
-            $hash->ids[] = var_export($key, true) . ' => ' . $this->safeString($id);
+            $hash->ids[$key] = $id;
         }
-        $hash->values[] = var_export($key, true) . ' => ' . $this->safeString($value);
+        $hash->values[$key] = $value;
     }
 
     /**
@@ -971,22 +1097,22 @@ class PhpCompiler
     private function blockValue($name)
     {
         $params = array($this->contextName(0));
-        $this->setupParams($name, 0, $params, false);
+        $this->setupHelperArgs($name, 0, $params, false);
 
         $blockName = $this->popStack();
         $blockHelperMissingName = $this->nameLookup('$helpers', 'blockHelperMissing', 'helper');
-        array_splice($params, 0, 1, array($blockHelperMissingName, $blockName));
-
-        $this->push('call_user_func(' . $this->safeJoin(', ', $params) . ');');
+        array_splice($params, 0, 1, array($blockName));
+        
+        $this->push($this->source->functionCall($blockHelperMissingName, 'call', $params));
+        //$this->push('call_user_func(' . $this->safeJoin(', ', $params) . ');');
     }
 
     /**
+     * @param $omitEmpty boolean
      * @return void
      */
-    private function emptyHash()
+    private function emptyHash($omitEmpty = false)
     {
-        $this->pushStackLiteral('array()');
-
         if( $this->trackIds ) {
             $this->push('array()');
         }
@@ -995,6 +1121,7 @@ class PhpCompiler
             $this->push('array()');
             $this->push('array()');
         }
+        $this->pushStackLiteral($omitEmpty ? 'null' : 'array()');
     }
 
     /**
@@ -1021,22 +1148,25 @@ class PhpCompiler
         $this->emptyHash();
         $helper = $this->setupHelper(0, $name, $helperCall);
         $helperName = $this->lastHelper = $this->nameLookup('$helpers', $name, 'helper');
-
+        
         $helperMissingName = $this->nameLookup('$helpers', 'helperMissing', 'helper');
         if( !empty($helper['paramsInit']) ) {
-            $this->pushSource($helper['paramsInit'] . ';');
+            $this->pushSource(array_merge($helper['paramsInit'], array(';')));
         }
         
-        $this->pushSource('(' . $register . ' = ' . $helperName . ') !== null' . self::EOL
+        $this->pushSource('(' . $register . ' = ' . join('', $helperName) . ') !== null' . self::EOL
             . $this->i(2) . ' ?: (' . $register . ' = ' . $nonhelper . ') !== null' . self::EOL
-            . $this->i(2) . ' ?: (' . $register . ' = ' . $helperMissingName . ') !== null' . self::EOL
+            . $this->i(2) . ' ?: (' . $register . ' = ' . join('', $helperMissingName) . ') !== null' . self::EOL
             . $this->i(2) . ' ?: $runtime->helperMissingMissing();');
         
-        $params = $helper['params'];
-        array_unshift($params, $register);
-        $this->push('!' . $this->isCallableFunctionName() . '(' . $register . ') ? '
-            . $register . ' : call_user_func('
-            . $this->safeJoin(', ', $params) . ')');
+        $this->push(array(
+            '!' . $this->isCallableFunctionName() . '(' . $register . ') ? ',
+            $register,
+            ' : ', 
+            $this->source->functionCall($register, 'call', $helper['callParams'])
+            /* call_user_func(',
+            $this->safeJoin(', ', $params) . ')' */
+        ));
     }
 
     /**
@@ -1053,19 +1183,26 @@ class PhpCompiler
         $nonhelper = $this->popStack();
         $helper = $this->setupHelper($paramSize, $name, false);
 
-        $helperName = ($isSimple ? $helper['name'] : 'null');
+        $helperName = ($isSimple ? $helper['name'] : array('null'));
         $helperMissingName = $this->nameLookup('$helpers', 'helperMissing', 'helper');
-
-        $this->pushSource('(' . $register . ' = ' . $helperName . ') !== null' . self::EOL
+        
+        // @todo some stuff might've changed here
+        $this->pushSource('(' . $register . ' = ' . join('', $helperName) . ') !== null' . self::EOL
             . $this->i(2) . ' ?: (' . $register . ' = ' . $nonhelper . ') !== null' . self::EOL
-            . $this->i(2) . ' ?: (' . $register . ' = ' . $helperMissingName . ') !== null' . self::EOL
+            . $this->i(2) . ' ?: (' . $register . ' = ' . join('', $helperMissingName) . ') !== null' . self::EOL
             . $this->i(2) . ' ?: $runtime->helperMissingMissing();');
 
-        $params = $helper['params'];
-        array_unshift($params, $register);
-        $this->push('!' . $this->isCallableFunctionName() . '(' . $register . ') ? '
-            . $register . ' : call_user_func('
-            . $this->safeJoin(', ', $params) . ')');
+        //$params = $helper['params'];
+        //array_unshift($params, $register);
+        
+        $this->push($this->source->functionCall($register, 'call', $helper['callParams']));
+        /*
+        $this->push(array(
+            '!' . $this->isCallableFunctionName() . '(' . $register . ') ? ',
+            $register . ' : call_user_func(',
+            $this->safeJoin(', ', $params) . ')'
+        ));
+        */
     }
 
     /**
@@ -1076,21 +1213,63 @@ class PhpCompiler
     private function invokeKnownHelper($paramSize, $name)
     {
         $helper = $this->setupHelper($paramSize, $name, false);
+        $this->push($this->source->functionCall($helper['name'], 'call', $helper['callParams']));
+        /*
         $params = $helper['params'];
         array_unshift($params, $helper['name']);
         
-        $this->push('call_user_func(' . self::EOL
-            . $this->i(2) . $this->safeJoin(',' . self::EOL . $this->i(2), $params) . self::EOL
-            . $this->i(1) . ')');
+        $this->push(array(
+            'call_user_func(' . self::EOL,
+            $this->i(2) . $this->safeJoin(',' . self::EOL . $this->i(2), $params) . self::EOL,
+            $this->i(1) . ')'
+        ));
+        */
     }
 
     /**
+     * @param boolean $isDynamic
      * @param string $name
      * @param string $indent
      * @return void
      */
-    private function invokePartial($name, $indent)
+    private function invokePartial($isDynamic, $name, $indent)
     {
+        $params = array();
+        $options = $this->setupOptions($name, 1, $params, false);
+        
+        if( $isDynamic ) {
+            $name = $this->popStack();
+            unset($options['name']);
+        }
+        
+        if( $indent ) {
+            $options['indent'] = var_export($indent, true);
+        }
+        $options['helpers'] = '$helpers';
+        $options['partials'] = '$partials';
+        
+        if( !$isDynamic ) {
+            array_unshift($params, $this->nameLookup('$partials', $name, 'partial'));
+        } else {
+            array_unshift($params, $name);
+        }
+        
+        if( !empty($this->options['compat']) ) {
+            $options['depths'] = '$depths';
+        }
+        $params[] = $this->objectLiteral($options);
+        
+        $this->push($this->source->functionCall(
+            '$runtime->invokePartial', '', $params
+        ));
+        /*
+        $this->push(array(
+            '$runtime->invokePartial(' . self::EOL,
+            $this->i(2) . $this->safeJoin(',' . self::EOL . $this->i(2), $params) . self::EOL,
+            $this->i(1) . ')'
+        ));
+        */
+        /*
         $params = array(
             $this->nameLookup('$partials', $name, 'partial'),
             "'" . $indent . "'",
@@ -1100,6 +1279,10 @@ class PhpCompiler
             '$helpers',
             '$partials',
         );
+        
+        if( $isDynamic ) {
+            $name = $this->popStack();
+        }
 
         if( !empty($this->options['data']) ) {
             $params[] = '$data';
@@ -1109,10 +1292,30 @@ class PhpCompiler
         if( !empty($this->options['compat']) ) {
             $params[] = '$depths';
         }
-
-        $this->push('$runtime->invokePartial(' . self::EOL
-            . $this->i(2) . $this->safeJoin(',' . self::EOL . $this->i(2), $params) . self::EOL
-            . $this->i(1) . ')');
+        
+        // @todo implement dynamic stuff
+        
+        $this->push(array(
+            '$runtime->invokePartial(' . self::EOL,
+            $this->i(2) . $this->safeJoin(',' . self::EOL . $this->i(2), $params) . self::EOL,
+            $this->i(1) . ')'
+        ));
+        */
+    }
+    
+    private function lookupBlockParam($blockParamId, $parts)
+    {
+        $this->useBlockParams = true;
+        
+        $expr = sprintf('$blockParams[%d][%d]', $blockParamId[0], $blockParamId[1]);
+        $this->push(array(
+            '(isset(',
+            $expr,
+            ') ? ',
+            $expr,
+            ' : null)',
+        ));
+        $this->resolvePath('context', $parts, 1, false);
     }
 
     /**
@@ -1131,6 +1334,8 @@ class PhpCompiler
             $this->pushStackLiteral($register);
         }
 
+        $this->resolvePath('data', $parts, 0, true);
+        /*
         $self = $this;
         foreach( $parts as $part ) {
             $this->replaceStack(function ($current) use ($self, $part) {
@@ -1138,6 +1343,7 @@ class PhpCompiler
                 return ' ? ' . $lookup . ' : null';
             });
         }
+        */
     }
 
     /**
@@ -1156,6 +1362,8 @@ class PhpCompiler
             $this->pushContext();
         }
 
+        $this->resolvePath('context', $parts, $i, $falsy);
+        /*
         $self = $this;
         for( $l = count($parts); $i < $l; $i++ ) {
             $this->replaceStack(function ($current) use ($self, &$parts, &$i, $falsy) {
@@ -1167,6 +1375,7 @@ class PhpCompiler
                 }
             });
         }
+        */
     }
 
     /**
@@ -1178,14 +1387,14 @@ class PhpCompiler
         $this->hash = array_pop($this->hashes);
 
         if( $this->trackIds ) {
-            $this->push('array(' . $this->safeJoin(', ', $hash->ids) . ')');
+            $this->push($this->objectLiteral($hash->ids));
         }
         if( $this->stringParams ) {
-            $this->push('array(' . $this->safeJoin(', ', $hash->contexts) . ')');
-            $this->push('array(' . $this->safeJoin(', ', $hash->types) . ')');
+            $this->push($this->objectLiteral($hash->contexts));
+            $this->push($this->objectLiteral($hash->types));
         }
 
-        $this->push("array(\n    " . $this->safeJoin(",\n    ", $hash->values) . "\n  )");
+        $this->push($this->objectLiteral($hash->values));
     }
 
     /**
@@ -1248,7 +1457,7 @@ class PhpCompiler
         $this->pushContext();
         $this->pushString($type);
 
-        if( $type != 'sexpr' ) {
+        if( $type != 'SubExpression' ) { // @todo make sure this is right
             if( is_string($string) ) {
                 $this->pushString($string);
             } else {
@@ -1262,6 +1471,12 @@ class PhpCompiler
      */
     private function resolvePossibleLambda()
     {
-        $this->push('$runtime->lambda(' . $this->popStack() . ', ' . $this->contextName(0) . ')');
+        $this->push(array(
+            '$runtime->lambda(',
+            $this->popStack(),
+            ', ',
+            $this->contextName(0),
+            ')'
+        ));
     }
 }

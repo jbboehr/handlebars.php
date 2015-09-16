@@ -158,5 +158,6 @@ class UtilsTest extends Common
         $this->assertTrue(Utils::isIntArray(array('foo', 'bar')));
         $this->assertFalse(Utils::isIntArray(array('foo' => 'bar')));
         $this->assertFalse(Utils::isIntArray(array(1, 'foo' => 'bar')));
+        $this->assertFalse(Utils::isIntArray(array(2 => 'blah')));
     }
 }

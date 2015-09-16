@@ -107,6 +107,7 @@ class Builtins
         if( $options->data !== null && $options->ids !== null ) {
             $contextPath = Utils::appendContextPath($options['data'], $options->ids[0]) . '.';
         }
+        
         if( Utils::isCallable($context) ) {
             $context = call_user_func($context, $options->scope);
         }
@@ -120,17 +121,26 @@ class Builtins
         $i = 0;
         if( !empty($context) ) {
             $len = count($context) - 1;
-            foreach( $context as $k => $value ) {
-                $data['index'] = $i;
-                $data['key'] = $k;
-                $data['first'] = ($i === 0);
-                $data['last'] = ($i === $len);
+            foreach( $context as $field => $value ) {
+                if( $data ) {
+                    $data['index'] = $i;
+                    $data['key'] = $field;
+                    $data['first'] = ($i === 0);
+                    $data['last'] = ($i === $len);
 
-                if( null !== $contextPath ) {
-                    $data['contextPath'] = $contextPath . $k;
+                    if( null !== $contextPath ) {
+                        $data['contextPath'] = $contextPath . $field;
+                    }
                 }
-
-                $ret .= $options->fn($value, array('data' => $data));
+                
+                $ret .= $options->fn($value, array(
+                    'data' => $data,
+                    'blockParams' => array(
+                        0 => $value,
+                        1 => $field,
+                        'path' => array($contextPath . $field, null),
+                    ),
+                ));
                 $i++;
             }
         }

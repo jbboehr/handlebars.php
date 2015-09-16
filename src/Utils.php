@@ -176,9 +176,12 @@ class Utils
         if( !is_array($array) ) {
             return false;
         }
-
+        
+        $i = 0;
         foreach( $array as $k => $v ) {
             if( is_string($k) ) {
+                return false;
+            } else if( $k !== $i++ ) {
                 return false;
             }
             // Before, we were checking if int and returning true immediately
