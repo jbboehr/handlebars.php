@@ -1,53 +1,69 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
-# set -e
+set -ex
 
-export DEBIAN_FRONTEND=noninteractive
+export PREFIX=$HOME/build
+export PATH="$PREFIX/bin:$PATH"
+export CFLAGS="-L$PREFIX/lib"
+export CPPFLAGS="-I$PREFIX/include"
+export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
 
 case "$1" in
-before_install)
-    sudo rm -f /etc/apt/sources.list.d/*rabbit*
-    sudo apt-get update -qq
-    sudo apt-get install software-properties-common || sudo apt-get install python-software-properties || true
-    sudo apt-add-repository -y ppa:jbboehr/handlebars
-    sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
-    sudo apt-add-repository -y ppa:jbboehr/ppa
-    sudo apt-add-repository -y ppa:mandel/movie-tracker
-    sudo apt-get update -qq
-    ;;
-install)
-    if [ "$TRAVIS_PHP_VERSION" != "hhvm" ]; then
-        sudo apt-get install -qq libhandlebars-dev libtalloc-dev
-        git clone https://github.com/jbboehr/php-handlebars.git
-        cd php-handlebars
-        phpize
-        ./configure
-        make 
-        sudo make install
-        echo "extension=handlebars.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
-        cd ..
-    else
-        sudo apt-get update -qq
-        sudo apt-get install -qq libhandlebars-dev libtalloc-dev g++-4.8 gcc-4.8 libboost1.49-dev libgoogle-glog-dev libjemalloc-dev
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confnew" -y -q hhvm hhvm-dev
-        sudo update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 90
-        git clone https://github.com/jbboehr/hhvm-handlebars.git
-        cd hhvm-handlebars
-        hphpize
-        cmake .
-        make
-        sudo make install
-        echo "hhvm.dynamic_extensions[handlebars]=`pwd`/handlebars.so" | sudo tee -a /etc/hhvm/php.ini
-        cd ..
-    fi
-    ;;
-before_script)
-    composer install
-    php generate-tests.php
-    ;;
+install_check)
+	if [ ! -f $PREFIX/include/check.h ]; then
+		wget http://downloads.sourceforge.net/project/check/check/0.9.14/check-0.9.14.tar.gz
+		tar xfv check-0.9.14.tar.gz
+		cd check-0.9.14
+		./configure --prefix=$PREFIX
+		make
+		make install
+		cd ..
+		rm -Rf check-0.9.14.tar.gz check-0.9.14
+	fi
+	;;
+
+install_bison)
+	if [ ! -f $PREFIX/bin/bison ]; then
+		wget http://gnu.mirror.iweb.com/bison/bison-3.0.2.tar.gz
+		tar xfv bison-3.0.2.tar.gz
+		cd bison-3.0.2
+		./configure --prefix=$PREFIX
+		make
+		make install
+		cd ..
+		rm -Rf bison-3.0.2 bison-3.0.2.tar.gz
+	fi
+	;;
+
+install_handlebars)
+	if [ ! -f $PREFIX/include/handlebars.h ]; then
+		git clone -b v$LIBHANDLEBARS_VERSION https://github.com/jbboehr/handlebars.c handlebars-c --recursive
+		cd handlebars-c
+		./bootstrap
+		./configure --prefix=$PREFIX
+		make install
+		cd ..
+		rm -Rf handlebars-c
+	fi
+	;;
+
+install_php_handlebars)
+	rm -Rf php-handlebars
+	git clone -b v$PHP_HANDLEBARS_VERSION https://github.com/jbboehr/php-handlebars.git php-handlebars --recursive
+	cd php-handlebars
+	phpize
+	./configure
+	make
+	cp modules/handlebars.so ..
+	cd ..
+	rm -Rf php-handlebars
+	echo "extension=`pwd`/handlebars.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+	;;
+
 after_success)
-    if [ "$TRAVIS_PHP_VERSION" != "hhvm" ] && [ "$TRAVIS_PHP_VERSION" != "7" ]; then
-        php vendor/bin/ocular code-coverage:upload --format=php-clover coverage.clover
-    fi
-    ;;
+	if [ "$TRAVIS_PHP_VERSION" != "7" ]; then
+		php vendor/bin/ocular code-coverage:upload --format=php-clover coverage.clover
+	fi
+	;;
 esac
+
