@@ -13,3 +13,5 @@ composer.phar
 /vendor/
 /nbproject/
 /nbproject/private/
+/handlebars.c
+/php-handlebars
