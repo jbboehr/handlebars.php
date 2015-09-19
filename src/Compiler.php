@@ -61,7 +61,7 @@ class Compiler
      * @param $options
      * @return integer
      */
-    private function makeCompilerFlags(array $options = null)
+    public function makeCompilerFlags(array $options = null)
     {
         // Make flags
         $flags = 0;
@@ -82,6 +82,12 @@ class Compiler
         }
         if( !empty($options['preventIndent']) ) {
             $flags |= COMPILER_FLAG_PREVENT_INDENT;
+        }
+        if( !empty($options['explicitPartialContext']) ) {
+            $flags |= COMPILER_FLAG_EXPLICIT_PARTIAL_CONTEXT;
+        }
+        if( !empty($options['ignoreStandalone']) ) {
+            $flags |= COMPILER_FLAG_IGNORE_STANDALONE;
         }
         return $flags;
     }

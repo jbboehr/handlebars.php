@@ -39,6 +39,13 @@ class Builtins
             'with' => array($this, 'with'),
         );
     }
+    
+    public function getAllDecorators()
+    {
+        return array(
+            'inline' => array($this, 'inline'),
+        );
+    }
 
     /**
      * blockHelperMissing builtin
@@ -122,6 +129,7 @@ class Builtins
         if( !empty($context) ) {
             $len = count($context) - 1;
             foreach( $context as $field => $value ) {
+                
                 if( $data ) {
                     $data['index'] = $i;
                     $data['key'] = $field;
@@ -208,14 +216,40 @@ class Builtins
         }
         if( !empty($context) ) {
             $fn = $options->fn;
+            $data = $options['data'];
             if( !empty($options->data) && !empty($options->ids) ) {
                 $data = Utils::createFrame($options['data']);
                 $data['contextPath'] = Utils::appendContextPath($options['data'], $options['ids'][0]);
-                $options = array('data' => $data);
             }
-            return call_user_func($fn, $context, $options);
+            return call_user_func($fn, $context, array(
+                'data' => $data,
+                'blockParams' => array(
+                    0 => $context,
+                    'path' => array(isset($data['contextPath']) ? $data['contextPath'] : null),
+                ),
+            ));
         } else {
             return $options->inverse();
         }
+    }
+    
+    public function inline($fn, $props, $runtime, $options)
+    {
+        $ret = $fn;
+        if( empty($props->partials) ) {
+            $props->partials = array();
+            $ret = new ClosureWrapper(function($context, $options) use ($runtime, $fn, $props) {
+                $original = $runtime->getPartials();
+                $runtime->registerPartials($props->partials);
+                $ret = $fn($context, $options);
+                $runtime->registerPartials($original);
+                return $ret;
+            });
+        }
+        
+        $props->partials[$options->args[0]] = $options->fn;
+        
+        return $ret;
+        //throw new Exception('Not yet implemented');
     }
 }

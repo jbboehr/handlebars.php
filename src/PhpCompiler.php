@@ -10,8 +10,8 @@ use Handlebars\Compiler\CodeGen;
  */
 class PhpCompiler
 {
-    const VERSION = '2.0.0';
-    const COMPILER_REVISION = 6;
+    const VERSION = '4.0.2';
+    const COMPILER_REVISION = 7;
 
     /**
      * @internal
@@ -142,6 +142,8 @@ class PhpCompiler
     
     private $blockParams;
     
+    private $decorators;
+    
     
     /**
      * Magic call method
@@ -170,13 +172,14 @@ class PhpCompiler
         $this->options = $options;
         $this->isChild = $context !== null;
         $this->context = $context ?: (object) array(
+            'decorators' => array(),
             'programs' => array(),
             'environments' => array(),
         );
 
         $this->reinit();
         $this->compileChildren($this->environment, $options);
-        $this->useDepths |= !empty($this->environment['useDepths']) || !empty($options['compat']);
+        $this->useDepths |= !empty($this->environment['useDepths']) || !empty($this->environment['useDecorators']) || !empty($options['compat']);
         $this->useBlockParams |= !empty($this->environment['useBlockParams']);
         $this->accept($this->environment['opcodes']);
         $this->pushSource('');
@@ -184,7 +187,22 @@ class PhpCompiler
         if( $this->stackSlot || $this->inlineStack->count() || $this->compileStack->count() ) {
             throw new CompileException('Compile completed with content left on stack');
         }
-
+        
+        // @todo https://github.com/wycats/handlebars.js/compare/v3.0.3...v4.0.2#diff-12fc6be51b9642b813f72c8bd16d891aR111
+        if( !$this->decorators->isEmpty() ) {
+            $this->useDecorators = true;
+            
+            $this->decorators->prepend('$decorators = $runtime->getDecorators();' . self::EOL);
+            $this->decorators->push('return $fn;');
+            
+            $this->decorators->prepend('function($fn, $props, $runtime, $depth0, $data, $blockParams, $depths) {' . self::EOL);
+            $this->decorators->push('}' . self::EOL);
+            
+            $this->decorators = $this->decorators->merge();
+        } else {
+            $this->decorators = null;
+        }
+        
         $fn = $this->createFunctionContext();
         if( $this->isChild ) {
             return $fn;
@@ -220,6 +238,7 @@ class PhpCompiler
         
         $this->lastContext = 0;
         $this->source = new CodeGen(!empty($this->options['srcName']) ? $this->options['srcName'] : null);
+        $this->decorators = new CodeGen(!empty($this->options['srcName']) ? $this->options['srcName'] : null);
         $this->stackSlot = 0;
         $this->stackVars = array();
         $this->aliases = array();
@@ -245,6 +264,7 @@ class PhpCompiler
             $child['index'] = $index;
             $child['name'] = 'program' . $index;
             $this->context->programs[$index] = $compiler->compile($child, $options, $this->context);
+            $this->context->decorators[$index] = $compiler->decorators;
             $this->context->environments[$index] = $child;
 
             $this->useDepths |= $compiler->useDepths;
@@ -291,7 +311,6 @@ class PhpCompiler
             $source,
             '}'
         ));
-        return ;
     }
 
     /**
@@ -305,9 +324,18 @@ class PhpCompiler
             'compiler' => $this->compilerInfo(),
             'main' => $fn,
         );
+        if( $this->decorators ) {
+            $ret['main_d'] = $this->decorators;
+            $ret['useDecorators'] = true;
+        }
+        $decorators = $this->context->decorators;
         foreach( $this->context->programs as $i => $program ) {
             if( $program ) {
                 $ret[$i] = $program;
+                if( !empty($decorators[$i]) ) {
+                    $ret[$i . '_d'] = $decorators[$i];
+                    $ret['useDecorators'] = true;
+                }
             }
         }
         if( !empty($this->environment['usePartial']) ) {
@@ -769,10 +797,10 @@ class PhpCompiler
         $this->push($prefix);
     }
     
-    private function resolvePath($type, $parts, $i, $falsy)
+    private function resolvePath($type, $parts, $i, $falsy, $strict = false)
     {
         if( !empty($this->options['strict']) || !empty($this->options['assumeObjects']) ) {
-            $this->push($this->strictLookup($this->options['strict'], $parts, $type));
+            $this->push($this->strictLookup($this->options['strict'] && $strict, $parts, $type));
             return;
         }
         
@@ -883,6 +911,14 @@ class PhpCompiler
      */
     private function setupOptions($helper, $paramSize, &$params)
     {
+        if( $params === false ) {
+            unset($params); // @todo make sure this works right, needs to break the reference
+            $params = array();
+            $objectArgs = true;
+        } else {
+            $objectArgs = false;
+        }
+        
         $options = array();
 
         $options['name'] = $this->quotedString($helper);
@@ -930,6 +966,9 @@ class PhpCompiler
         }
         ksort($params);
 
+        if( $objectArgs ) {
+            $options['args'] = $this->source->generateArray($params);
+        }
         if( $this->trackIds ) {
             ksort($ids);
             $options['ids'] = $this->source->generateArray($ids);
@@ -959,19 +998,21 @@ class PhpCompiler
      * @param boolean $useRegister
      * @return string
      */
-    private function setupHelperArgs($helperName, $paramSize, &$params, $useRegister)
+    private function setupHelperArgs($helperName, $paramSize, &$params, $useRegister = false)
     {
         $options = '$runtime->setupOptions('
-            . $this->objectLiteral($this->setupOptions($helperName, $paramSize, $params), $useRegister ? 1 : 1)
+            . $this->objectLiteral($this->setupOptions($helperName, $paramSize, $params))
             . ')';
 
         if( $useRegister ) {
             $this->useRegister('$options');
             $params[] = '$options';
             return array('$options = ', $options);
-        } else {
+        } else if( $params !== false ) {
             $params[] = $options;
             return '';
+        } else {
+            return $options;
         }
     }
 
@@ -1235,7 +1276,7 @@ class PhpCompiler
     private function invokePartial($isDynamic, $name, $indent)
     {
         $params = array();
-        $options = $this->setupOptions($name, 1, $params, false);
+        $options = $this->setupOptions($name, 1, $params);
         
         if( $isDynamic ) {
             $name = $this->popStack();
@@ -1247,6 +1288,7 @@ class PhpCompiler
         }
         $options['helpers'] = '$helpers';
         $options['partials'] = '$partials';
+        $options['decorators'] = '$runtime->getDecorators()';
         
         if( !$isDynamic ) {
             array_unshift($params, $this->nameLookup('$partials', $name, 'partial'));
@@ -1257,50 +1299,11 @@ class PhpCompiler
         if( !empty($this->options['compat']) ) {
             $options['depths'] = '$depths';
         }
-        $params[] = $this->objectLiteral($options);
+        $params[] = /*'$runtime->setupOptions(' .*/ $this->objectLiteral($options) /*. ')'*/;
         
         $this->push($this->source->functionCall(
             '$runtime->invokePartial', '', $params
         ));
-        /*
-        $this->push(array(
-            '$runtime->invokePartial(' . self::EOL,
-            $this->i(2) . $this->safeJoin(',' . self::EOL . $this->i(2), $params) . self::EOL,
-            $this->i(1) . ')'
-        ));
-        */
-        /*
-        $params = array(
-            $this->nameLookup('$partials', $name, 'partial'),
-            "'" . $indent . "'",
-            var_export($name, true),
-            $this->popStack(),
-            $this->popStack(),
-            '$helpers',
-            '$partials',
-        );
-        
-        if( $isDynamic ) {
-            $name = $this->popStack();
-        }
-
-        if( !empty($this->options['data']) ) {
-            $params[] = '$data';
-        } else if( !empty($this->options['compat']) ) {
-            $params[] = 'null';
-        }
-        if( !empty($this->options['compat']) ) {
-            $params[] = '$depths';
-        }
-        
-        // @todo implement dynamic stuff
-        
-        $this->push(array(
-            '$runtime->invokePartial(' . self::EOL,
-            $this->i(2) . $this->safeJoin(',' . self::EOL . $this->i(2), $params) . self::EOL,
-            $this->i(1) . ')'
-        ));
-        */
     }
     
     private function lookupBlockParam($blockParamId, $parts)
@@ -1321,9 +1324,10 @@ class PhpCompiler
     /**
      * @param integer $depth
      * @param array $parts
+     * @param boolean $strict
      * @return void
      */
-    private function lookupData($depth, $parts)
+    private function lookupData($depth, $parts, $strict)
     {
         if( !$depth ) {
             $this->pushStackLiteral('$data');
@@ -1334,7 +1338,7 @@ class PhpCompiler
             $this->pushStackLiteral($register);
         }
 
-        $this->resolvePath('data', $parts, 0, true);
+        $this->resolvePath('data', $parts, 0, true, $strict);
         /*
         $self = $this;
         foreach( $parts as $part ) {
@@ -1349,10 +1353,11 @@ class PhpCompiler
     /**
      * @param array $parts
      * @param boolean $falsy
+     * @param boolean $strict
      * @param boolean $scoped
      * @return void
      */
-    private function lookupOnContext($parts, $falsy, $scoped)
+    private function lookupOnContext($parts, $falsy, $strict, $scoped)
     {
         $i = 0;
 
@@ -1362,7 +1367,7 @@ class PhpCompiler
             $this->pushContext();
         }
 
-        $this->resolvePath('context', $parts, $i, $falsy);
+        $this->resolvePath('context', $parts, $i, $falsy, $strict);
         /*
         $self = $this;
         for( $l = count($parts); $i < $l; $i++ ) {
@@ -1464,6 +1469,23 @@ class PhpCompiler
                 $this->pushStackLiteral($string);
             }
         }
+    }
+    
+    /**
+     * @param integer $paramSize
+     * @param string $name
+     */
+    private function registerDecorator($paramSize, $name)
+    {
+        $found = $this->nameLookup('$decorators', $name, 'decorator');
+        $params = false;
+        $options = $this->setupHelperArgs($name, $paramSize, $params);
+        $this->decorators->push(array(
+            '$fn = (',
+            $this->decorators->functionCall($found, 'call', array('$fn', '$props', '$runtime', $options)),
+            ' ?: $fn);'
+        ));
+        //throw new \Exception('Not yet implemented');
     }
 
     /**

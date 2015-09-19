@@ -111,6 +111,8 @@ class Utils
         if( is_object($object) ) {
             $frame = clone $object;
             $frame->_parent = $object;
+        } else if( is_scalar($object) ) {
+            $frame = array($object);
         } else {
             $frame = $object;
             $frame['_parent'] = $object;

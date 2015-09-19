@@ -176,6 +176,18 @@ EOF;
         $this->convertLambdas($helpers);
         $parts[] = '$helpers = ' . $this->indentVarExport(2, $helpers) . ";";
 
+        // Generate decorators
+        $decorators = $test['decorators'];
+        if( !empty($test['globalDecorators']) ) {
+            $decorators += $test['globalDecorators'];
+        }
+        $this->convertLambdas($decorators);
+        if( isset($decorators['inline']) ) { // @todo fixme - shouldn't be saved
+            unset($decorators['inline']);
+        }
+        
+        $parts[] = '$decorators = ' . $this->indentVarExport(2, $decorators) . ";";
+
         // Generate options - @todo merge compile and runtime options for now
         $parts[] = '$compileOptions = ' . $this->indentVarExport(2, isset($test['compileOptions']) ? $test['compileOptions'] : array()) . ";";
         $parts[] = '$options = ' . $this->indentVarExport(2, isset($test['options']) ? $test['options'] : array()) . ";";
@@ -192,6 +204,12 @@ EOF;
             if( !empty($test['globalPartials']) ) {
                 $parts[] = '$this->handlebars->registerPartials(' . $this->indentVarExport(2, $test['globalPartials']) . ');';
                 unset($test['globalPartial']); // maybe bad idea
+            }
+            if( !empty($test['globalDecorators']) ) {
+                $globalDecorators = $test['globalDecorators'];
+                $this->convertLambdas($globalDecorators);
+                $parts[] = '$this->handlebars->registerDecorators(' . $this->indentVarExport(2, $globalDecorators) . ');';
+                unset($test['globalDecorators']); // maybe bad idea
             }
         }
         
@@ -260,6 +278,9 @@ EOF;
         }
         if( empty($test['partials']) ) {
             $test['partials'] = array();
+        }
+        if( empty($test['decorators']) ) {
+            $test['decorators'] = array();
         }
         if( !array_key_exists('expected', $test) ) {
             $test['expected'] = null;

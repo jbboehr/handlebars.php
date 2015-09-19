@@ -2,6 +2,9 @@
 
 namespace Handlebars;
 
+use Closure;
+use SplObjectStorage;
+
 class Runtime
 {
     /**
@@ -16,10 +19,19 @@ class Runtime
      */
     private $programs;
     
+    private $programDecorators;
+    
     /**
      * @var array
      */
     private $programWrappers;
+    
+    /**
+     * @var array
+     */
+    private $decorators;
+    
+    private $decoratorMap;
     
     /**
      * @var array
@@ -54,6 +66,8 @@ class Runtime
         $this->handlebars = $handlebars;
         $this->helpers = Utils::arrayCopy($handlebars->getHelpers());
         $this->partials = Utils::arrayCopy($handlebars->getPartials());
+        $this->decorators = Utils::arrayCopy($handlebars->getDecorators());
+        $this->decoratorMap = new SplObjectStorage();
 
         if( !is_array($templateSpec) ) {
             throw new RuntimeException('Not an array: ' . var_export($templateSpec, true));
@@ -64,9 +78,18 @@ class Runtime
                 $this->programs[$k] = $v;
             } else if( $k === 'main' ) {
                 $this->main = $v;
+            } else if( $k === 'main_d' ) {
+                $this->programDecorators['main'] = $v;
+            } else if( substr($k, -2) === '_d' ) {
+                $k = substr($k, 0, -2);
+                $this->programDecorators[$k] = $v;
             } else {
                 $this->options[$k] = $v;
             }
+        }
+        
+        if( isset($this->programDecorators['main']) ) {
+            $this->decoratorMap->attach($this->main, $this->programDecorators['main']);
         }
     }
     
@@ -86,13 +109,23 @@ class Runtime
         if( !empty($options['partials']) ) {
             Utils::arrayMergeByRef($this->partials, $options['partials']);
         }
+        
+        if( !empty($options['decorators']) ) {
+            Utils::arrayMergeByRef($this->decorators, $options['decorators']);
+        }
 
         $data = $this->processDataOption($options, $context);
         $depths = $this->processDepthsOption($options, $context);
-
-        return call_user_func($this->main, $context, $this->helpers, $this->partials, $data, $this, 
-            array(),  // @todo blockParams
-            $depths);
+        $blockParams = array(); // @todo
+        
+        $runtime = $this;
+        $origMain = $this->main;
+        $main = function($context) use ($runtime, $origMain, $data, $depths, $blockParams) {
+            return call_user_func($this->main, $context, $runtime->getHelpers(), $runtime->getPartials(),
+                $data, $runtime, $blockParams, $depths);
+        };
+        $main = $this->executeDecorators($this->main, $main, $runtime, $depths, $data, $blockParams);
+        return call_user_func($main, $context, $options);
     }
 
     /**
@@ -177,6 +210,16 @@ class Runtime
     }
 
     /**
+     * Get registered decorators
+     *
+     * @return array
+     */
+    public function getDecorators()
+    {
+        return $this->decorators;
+    }
+
+    /**
      * Get registered helpers
      *
      * @return array
@@ -213,22 +256,15 @@ class Runtime
      */
     public function invokePartial($partial, $context, $options)
     {
-        //$partial, $indent, $name, $context, $hash, $helpers, $partials, $data = null, $depths = null
         if( !empty($options['hash']) ) {
             $context = array_merge((array) $context, $options['hash']);
         }
         
         $partial = $this->resolvePartial($partial, $options);
-        
-        $result = null;
-        if( null === $partial ) {
-            throw new RuntimeException('Partial ' . $options['name'] . ' could not be found');
-        } else if( Utils::isCallable($partial) ) {
-            $result = $partial($context, $options);
-        }
+        $result = $this->invokePartialInner($partial, $context, $options);
         
         if( null === $result ) {
-            if( $partial === '' ) {
+            if( !$partial ) {
                 $options['partials'][$options['name']] = Utils::noop();
             } else {
                 $options['partials'][$options['name']] = $this->handlebars->compile($partial, array(
@@ -250,6 +286,36 @@ class Runtime
             $result = Utils::indent($result, $options['indent']);
         }
         return $result;
+    }
+    
+    private function invokePartialInner($partial, $context, &$options)
+    {
+        $options['partial'] = true;
+        
+        if( isset($options['ids']) ) {
+            $options['data']['contextPath'] = $options['ids'][0] ?: $options['data']['contextPath'];
+        }
+        
+        $partialBlock = null;
+        if( !empty($options['fn']) && $options['fn'] !== Utils::noop() ) {
+            $partialBlock = $options['data']['partial-block'] = $options['fn'];
+            $options['fn'] = new ClosureWrapper($options['fn']);
+            
+            if( $partialBlock instanceof ClosureWrapper && !empty($partialBlock->partials) ) {
+                $options['partials'] = Utils::arrayMerge($options['partials'], $partialBlock->partials);
+            }
+        }
+        
+        if( null === $partial && $partialBlock ) {
+            $partial = $partialBlock;
+        }
+        
+        $result = null;
+        if( null === $partial ) {
+            throw new RuntimeException('Partial ' . $options['name'] . ' could not be found');
+        } else if( Utils::isCallable($partial) ) {
+            return $partial($context, $options);
+        }
     }
 
     /**
@@ -319,12 +385,23 @@ class Runtime
     {
         $programWrapper = isset($this->programWrappers[$i]) ? $this->programWrappers[$i] : null;
         $fn = $this->programs[$i];
+        if( isset($this->programDecorators[$i]) ) {
+            $this->decoratorMap->attach($fn, $this->programDecorators[$i]);
+        }
         if( $data || $depths || $declaredBlockParams || $blockParams ) {
             $programWrapper = $this->wrapProgram($fn, $data, $declaredBlockParams, $blockParams, $depths);
         } else if( !$programWrapper ) {
             $programWrapper = $this->programWrappers[$i] = $this->wrapProgram($fn);
         }
         return $programWrapper;
+    }
+    
+    public function registerPartials($partials)
+    {
+        foreach( $partials as $k => $v ) {
+            $this->partials[$k] = $v;
+        }
+        return $this;
     }
     
     /**
@@ -391,11 +468,12 @@ class Runtime
             return;
         }
         
-        if( isset($options['depths']) ) {
+        if( isset($options['depths']) && $options['depths'][0] !== $context ) {
             $depths = DepthList::factory($options['depths']);
         } else {
             $depths = new DepthList();
         }
+        
         $depths->unshift($context);
         return $depths;
     }
@@ -403,7 +481,12 @@ class Runtime
     private function resolvePartial($partial, &$options)
     {
         if( !$partial ) {
-            $partial = Utils::lookup($options['partials'], $options['name']);
+            if( $options['name'] === '@partial-block' ) {
+                //var_dump($options['data']);die();
+                $partial = $options['data']['partial-block'];
+            } else {
+                $partial = Utils::lookup($options['partials'], $options['name']);
+            }
         } else if( !Utils::isCallable($partial) && empty($options['name']) ) {
             $options['name'] = $partial;
             $partial = Utils::lookup($options['partials'], $partial);
@@ -422,19 +505,25 @@ class Runtime
     private function wrapProgram($fn, $data = null, $declaredBlockParams = null, $blockParams = null, $depths = null)
     {
         $runtime = $this;
-        return function ($context = null, $options = null) use ($runtime, $data, $depths, $blockParams, $fn) {
+        $prog = function ($context = null, $options = null) use ($runtime, $data, $depths, $blockParams, $fn) {
             if( !$options ) {
                 $options = array();
             }
             if( isset($options['data']) ) {
                 $data = $options['data'];
             }
-            $depths = Utils::arrayUnshift($depths, $context);
             if( null !== $blockParams ) {
                 $blockParams = array_merge(array(
                     Utils::lookup($options, 'blockParams'),
                 ), $blockParams);
             }
+            
+            $currentDepths = $depths;
+            if( $depths && $context !== $depths[0] ) {
+                $depths = Utils::arrayUnshift($depths, $context);
+            }
+            //$depths = Utils::arrayUnshift($depths, $context);
+            
             return call_user_func(
                 $fn,
                 $context,
@@ -446,10 +535,28 @@ class Runtime
                 $depths
             );
         };
+        
+        $prog = $this->executeDecorators($fn, $prog, $runtime, $depths, $data, $blockParams);
+        
+        return $prog;
     }
     
     public function helperMissingMissing()
     {
         throw new RuntimeException('helperMissing is missing!');
+    }
+    
+    public function executeDecorators($fn, $prog, $runtime, $depths, $data, $blockParams)
+    {
+        if( $this->decoratorMap->contains($fn) ) {
+            $decorator = $this->decoratorMap->offsetGet($fn);
+            $prog = (!$prog instanceof ClosureWrapper ? new ClosureWrapper($prog) : $prog);
+            $props = new \stdClass;
+            $prog = $decorator($prog, $props, $runtime, $depths ? $depths[0] : null, $data, $blockParams, $depths);
+            foreach( $props as $k => $v ) {
+                $prog->$k = $v;
+            }
+        }
+        return $prog;
     }
 }

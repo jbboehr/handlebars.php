@@ -13,13 +13,15 @@ $opts = getopt('t:jp', array(
   'compile',
   'lex',
   'parse',
+  'known-helpers:',
   'compat::',
   'string-params::',
   'track-ids::',
   'use-depths::',
   'known-helpers-only::',
   'disable-js-compat::',
-  'disable-native-runtime::'
+  'disable-native-runtime::',
+  'ignore-standalone::',
 ));
 
 if( isset($opts['t']) ) {
@@ -44,40 +46,45 @@ $compileOptions = array(
     'stringParams' => isset($opts['string-params']),
     'trackIds' => isset($opts['track-ids']),
     'useDepths' => isset($opts['use-depths']),
+    'knownHelpers' => isset($opts['known-helpers']) ? explode(',', $opts['known-helpers']) : null,
     'knownHelpersOnly' => isset($opts['known-helpers-only']),
     'disableJsCompat' => isset($opts['disable-js-compat']),
     'disableNativeRuntime' => isset($opts['disable-native-runtime']),
+    'ignoreStandalone' => isset($opts['ignore-standalone']),
 );
+$handlebars = new \Handlebars\Handlebars();
+$compiler = new \Handlebars\Compiler();
 
 if( isset($opts['compile']) ) {
+    $flags = $compiler->makeCompilerFlags($compileOptions);
+    
     // compile
     if( isset($opts['j']) ) {
-        echo json_encode(handlebars_compile($template, $compileOptions), constant('JSON_PRETTY_PRINT'));
+        echo json_encode(\Handlebars\Native::compile($template, $flags), constant('JSON_PRETTY_PRINT'));
     } else if( isset($opts['p']) ) {
-        var_export(handlebars_compile($template, $compileOptions));
+        var_export(\Handlebars\Native::compile($template, $flags));
     } else {
-        echo handlebars_compile_print($template, $compileOptions);
+        echo \Handlebars\Native::compilePrint($template, $flags);
     }
 } else if( isset($opts['parse']) ) {
     // parse
     if( isset($opts['j']) ) {
-        echo json_encode(handlebars_parse($template), constant('JSON_PRETTY_PRINT'));
+        echo json_encode(\Handlebars\Native::parse($template), constant('JSON_PRETTY_PRINT'));
     } else if( isset($opts['p']) ) {
-        var_export(handlebars_parse($template));
+        var_export(\Handlebars\Native::parse($template));
     } else {
-        echo handlebars_parse_print($template);
+        echo \Handlebars\Native::parsePrint($template);
     }
 } else if( isset($opts['lex']) ) {
     // lex
     if( isset($opts['j']) ) {
-        echo json_encode(handlebars_lex($template), constant('JSON_PRETTY_PRINT'));
+        echo json_encode(\Handlebars\Native::lex($template), constant('JSON_PRETTY_PRINT'));
     } else if( isset($opts['p']) ) {
-        var_export(handlebars_lex($template));
+        var_export(\Handlebars\Native::lex($template));
     } else {
-        echo handlebars_lex_print($template);
+        echo \Handlebars\Native::lexPrint($template);
     }
 } else {
     // precompile
-    $handlebars = new \Handlebars\Handlebars();
     echo $handlebars->precompile($template, $compileOptions);
 }

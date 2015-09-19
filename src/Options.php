@@ -57,6 +57,8 @@ class Options implements ArrayAccess
     public $hashContexts;
     public $types;
     public $contexts;
+    public $args;
+    public $partial;
     
     /**
      * Constructor

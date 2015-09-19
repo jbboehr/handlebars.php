@@ -14,6 +14,13 @@ class Handlebars
      * @var \Handlebars\Compiler
      */
     protected $compiler;
+    
+    /**
+     * Array of global decorators
+     *
+     * @var array
+     */
+    protected $decorators = array();
 
     /**
      * Array of global helpers
@@ -66,12 +73,15 @@ class Handlebars
         if( isset($options['partials']) ) {
             $this->partials = $options['partials'];
         }
+        if( isset($options['decorators']) ) {
+            $this->decorators = $options['decorators'];
+        }
 
         $this->compiler = new Compiler();
         $this->phpCompiler = new PhpCompiler();
         $this->vm = new VM();
 
-        $this->setupBuiltinHelpers();
+        $this->setupBuiltins();
     }
 
     /**
@@ -90,6 +100,16 @@ class Handlebars
             throw new CompileException('Failed to compile template');
         }
         return new Runtime($this, $templateSpec);
+    }
+
+    /**
+     * Get the currently registered decorators
+     *
+     * @return array
+     */
+    public function getDecorators()
+    {
+        return $this->decorators;
     }
 
     /**
@@ -144,6 +164,33 @@ class Handlebars
         // Compile
         $opcodes = $this->compiler->compile($tmpl, $compileOptions);
         return $this->phpCompiler->compile($opcodes, $compileOptions);
+    }
+
+    /**
+     * Register a global decorator
+     *
+     * @param $name string
+     * @param $decorator callable
+     * @return \Handlebars\Handlebars
+     */
+    public function registerDecorator($name, $decorator)
+    {
+        $this->decorators[$name] = $decorator;
+        return $this;
+    }
+
+    /**
+     * Register global decorators
+     *
+     * @param array|\Traversable $decorators
+     * @return \Handlebars\Handlebars
+     */
+    public function registerDecorators($decorators)
+    {
+        foreach( $decorators as $name => $decorator ) {
+            $this->registerDecorator($name, $decorator);
+        }
+        return $this;
     }
 
     /**
@@ -250,6 +297,7 @@ class Handlebars
         // Build helpers and partials
         $helpers = Utils::arrayMerge($this->getHelpers(), Utils::lookup($options, 'helpers'));
         $partials = Utils::arrayMerge($this->getPartials(), Utils::lookup($options, 'partials'));
+        $decorators = Utils::arrayMerge($this->getDecorators(), Utils::lookup($options, 'decorators'));
 
         // Compile
         $opcodes = $this->compiler->compile($tmpl, $options);
@@ -264,12 +312,17 @@ class Handlebars
      *
      * @return void
      */
-    private function setupBuiltinHelpers()
+    private function setupBuiltins()
     {
         $builtins = new Builtins($this);
         foreach( $builtins->getAllHelpers() as $name => $helper ) {
             if( !isset($this->helpers[$name]) ) {
                 $this->helpers[$name] = $helper;
+            }
+        }
+        foreach( $builtins->getAllDecorators() as $name => $decorator ) {
+            if( !isset($this->decorators[$name]) ) {
+                $this->decorators[$name] = $decorator;
             }
         }
     }

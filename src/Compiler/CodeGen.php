@@ -65,6 +65,11 @@ class CodeGen implements IteratorAggregate
         );
     }
     
+    public function isEmpty()
+    {
+        return !$this->source->count();
+    }
+    
     public function functionCall($fn, $type, $params)
     {
         $params = $this->generateList($params);
