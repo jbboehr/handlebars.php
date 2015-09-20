@@ -16,6 +16,14 @@ class CompilerGenerator extends Generator
         // Added in v3
         'testExportBlockParamsShouldTakePresedneceOverParentBlockParams1',
         'testIntegrationBlockParamsShouldTakePresedneceOverParentBlockParams1',
+        
+        // Added in v4
+        'testExportDecoratorsShouldFailWhenAccessingVariablesFromRoot1',
+        'testIntegrationDecoratorsShouldFailWhenAccessingVariablesFromRoot1',
+        'testExportStandaloneSectionsBlockStandaloneElseSectionsCanBeDisabled1',
+        'testIntegrationStandaloneSectionsBlockStandaloneElseSectionsCanBeDisabled1',
+        'testExportStandaloneSectionsBlockStandaloneElseSectionsCanBeDisabled2',
+        'testIntegrationStandaloneSectionsBlockStandaloneElseSectionsCanBeDisabled2',
     );
     
     public function __construct(array $options)
