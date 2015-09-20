@@ -129,6 +129,10 @@ class Builtins
         if( !empty($context) ) {
             $len = count($context) - 1;
             foreach( $context as $field => $value ) {
+                if( $value === null ) {
+                    $i++;
+                    continue;
+                }
                 
                 if( $data ) {
                     $data['index'] = $i;
@@ -214,7 +218,7 @@ class Builtins
         if( Utils::isCallable($context) ) {
             $context = call_user_func($context, $options->scope);
         }
-        if( !empty($context) ) {
+        if( $context !== null ) { // An empty object is true in javascript...
             $fn = $options->fn;
             $data = $options['data'];
             if( !empty($options->data) && !empty($options->ids) ) {

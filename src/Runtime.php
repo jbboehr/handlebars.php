@@ -267,21 +267,10 @@ class Runtime
             if( !$partial ) {
                 $options['partials'][$options['name']] = Utils::noop();
             } else {
-                $options['partials'][$options['name']] = $this->handlebars->compile($partial, array(
-                    // @todo compilerOptions
-                    //'data' => ($data !== null),
-                    'compat' => !empty($this->options['compat']),
-                ));
+                $options['partials'][$options['name']] = $this->handlebars->compile($partial, $this->options);
             }
             $result = call_user_func($options['partials'][$options['name']], $context, $options);
         }
-        /*
-        $partial = $this->compilePartial($partial, $context, $options);
-        if( !Utils::isCallable($partial) ) {
-            throw new RuntimeException('Partial ' . $options['name'] . ' was not callable');
-        }
-        $result = $partial($context, $options);
-        */
         if( $result != null && !empty($options['indent']) ) {
             $result = Utils::indent($result, $options['indent']);
         }
@@ -468,13 +457,16 @@ class Runtime
             return;
         }
         
-        if( isset($options['depths']) && $options['depths'][0] !== $context ) {
+        if( isset($options['depths']) ) {
             $depths = DepthList::factory($options['depths']);
         } else {
             $depths = new DepthList();
         }
         
-        $depths->unshift($context);
+        if( !isset($options['depths'][0]) || $options['depths'][0] !== $context ) {
+            $depths->unshift($context);
+        }
+        
         return $depths;
     }
     
@@ -482,7 +474,6 @@ class Runtime
     {
         if( !$partial ) {
             if( $options['name'] === '@partial-block' ) {
-                //var_dump($options['data']);die();
                 $partial = $options['data']['partial-block'];
             } else {
                 $partial = Utils::lookup($options['partials'], $options['name']);
