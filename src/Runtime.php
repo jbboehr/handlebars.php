@@ -138,24 +138,7 @@ class Runtime
      */
     public function expression($value)
     {
-        if( !is_scalar($value) ) {
-            if( is_array($value) ) {
-                // javascript-style array-to-string conversion
-                if( Utils::isIntArray($value) ) {
-                    return implode(',', $value);
-                } else {
-                    throw new RuntimeException('Trying to stringify assoc array');
-                }
-            } else if( is_object($value) && !method_exists($value, '__toString') ) {
-                throw new RuntimeException('Trying to stringify object');
-            }
-        } else if( is_bool($value) ) {
-            return $value ? 'true' : 'false';
-        } else if( $value === 0 ) {
-            return '0';
-        }
-        
-        return (string) $value;
+        return Utils::expression($value);
     }
     
     /**
@@ -527,7 +510,7 @@ class Runtime
             );
         };
         
-        $prog = $this->executeDecorators($fn, $prog, $runtime, $depths, $data, $blockParams);
+        $prog = $this->executeDecorators($fn, $prog, $runtime, $depths, $data, $blockParams) ?: $prog;
         
         return $prog;
     }

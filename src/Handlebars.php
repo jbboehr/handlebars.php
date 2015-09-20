@@ -304,7 +304,7 @@ class Handlebars
         $partialOpcodes = $this->compiler->compileMany($partials, $options);
 
         // Execute
-        return $this->vm->execute($opcodes, $context, $helpers, $partialOpcodes, $options);
+        return $this->vm->execute($opcodes, $context, $helpers, $partialOpcodes, $decorators, $options);
     }
 
     /**

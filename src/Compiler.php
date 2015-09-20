@@ -89,6 +89,9 @@ class Compiler
         if( !empty($options['ignoreStandalone']) ) {
             $flags |= COMPILER_FLAG_IGNORE_STANDALONE;
         }
+        if( !empty($options['alternateDecorators']) ) {
+            $flags |= COMPILER_FLAG_ALTERNATE_DECORATORS;
+        }
         return $flags;
     }
 }

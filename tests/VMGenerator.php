@@ -37,8 +37,11 @@ class VMGenerator extends Generator
         $header .= $this->generateTestVars($test);
         $footer = $this->generateFunctionFooter($test);
         
+        $parts[] = '$allOptions["alternateDecorators"] = true;';
+        
         $parts[] = '$allOptions["helpers"] = $helpers;';
         $parts[] = '$allOptions["partials"] = $partials;';
+        $parts[] = '$allOptions["decorators"] = $decorators;';
         $parts[] = '$actual = $this->handlebars->render($tmpl, $data, $allOptions);';
         $parts[] = '$this->assertEquals($expected, $actual);';
         
@@ -58,8 +61,12 @@ class VMGenerator extends Generator
         $header .= $this->generateTestVars($test);
         $footer = $this->generateFunctionFooter($test);
         
+        $parts[] = 'if( !empty($decorators) || !empty($globalDecorators) ) {';
+        $parts[] = '    $this->markTestIncomplete("The VM does not support decorators in export mode - requires custom compiler option");';
+        $parts[] = '}';
+        
         $parts[] = '$helpers += $this->handlebars->getHelpers();';
-        $parts[] = '$actual = $this->vm->execute($opcodes, $data, $helpers, $partialOpcodes, $allOptions);';
+        $parts[] = '$actual = $this->vm->execute($opcodes, $data, $helpers, $partialOpcodes, array(), $allOptions);';
         $parts[] = '$this->assertEquals($expected, $actual);';
         
         return $header

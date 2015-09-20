@@ -4,6 +4,7 @@
 .project
 .settings
 .c9
+.idea
 composer.phar
 /docs
 /node_modules/

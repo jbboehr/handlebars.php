@@ -22,6 +22,7 @@ $opts = getopt('t:jp', array(
   'disable-js-compat::',
   'disable-native-runtime::',
   'ignore-standalone::',
+  'alternate-decorators::',
 ));
 
 if( isset($opts['t']) ) {
@@ -51,6 +52,7 @@ $compileOptions = array(
     'disableJsCompat' => isset($opts['disable-js-compat']),
     'disableNativeRuntime' => isset($opts['disable-native-runtime']),
     'ignoreStandalone' => isset($opts['ignore-standalone']),
+    'alternateDecorators' => isset($opts['alternate-decorators']),
 );
 $handlebars = new \Handlebars\Handlebars();
 $compiler = new \Handlebars\Compiler();
