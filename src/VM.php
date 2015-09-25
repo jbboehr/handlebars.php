@@ -42,22 +42,12 @@ class VM
     /**
      * @var \SplStack
      */
-    private $contextStack;
-
-    /**
-     * @var \SplStack
-     */
     private $dataStack;
 
     /**
      * @var \SplStack
      */
     private $hashStack;
-
-    /**
-     * @var \SplStack
-     */
-    private $programStack;
 
     /**
      * @var \SplStack
@@ -117,8 +107,6 @@ class VM
      */
     private $useDepths = false;
 
-    private $decoratorStack;
-
     /**
      * Execute opcodes
      *
@@ -147,21 +135,16 @@ class VM
         $this->useDepths = !empty($options['useDepths']);
 
         // Stacks
-        $this->contextStack = new SplStack();
-        $this->contextStack->push($data);
         $this->dataStack = new SplStack();
         $this->hashStack = new SplStack();
-        $this->programStack = new SplStack();
-        $this->programStack->push(array('children' => array($opcodes)));
         $this->stack = new SplStack();
-        $this->blockParamStack = new SplStack();
-        $this->decoratorStack = new SplStack();
 
-        // Output buffer
-        $this->buffer = '';
+        // Alternate stacks
+        $this->frameStack = new SplStack();
 
         // Execute
-        $buffer = $this->executeProgram(0);
+        //$buffer = $this->executeProgramById(0, $data);
+        $buffer = $this->executeProgramByRef($opcodes, $data);
 
         return $buffer;
     }
@@ -193,6 +176,66 @@ class VM
         throw new RuntimeException('Undefined method: ' . $method);
     }
 
+    public function frame()
+    {
+        return $this->frameStack->top();
+    }
+
+
+    public function executeProgramByRef($program, $context = null, $data = null)
+    {
+        // Push the frame stack
+        $parentFrame = $this->frameStack->count() ? $this->frameStack->top() : null;
+        $this->frameStack->push(new VM\StackFrame());
+        $frame = $this->frameStack->top();
+
+        // Set program
+        $frame->program = $program;
+
+        // Set context
+        $frame->context = $context;
+
+        // Push the data stack
+        if( $data !== null ) {
+            $this->dataStack->push($data);
+        }
+
+        if( isset($data['blockParams']) ) {
+            $top = $parentFrame && $parentFrame->blockParams ? $parentFrame->blockParams : array();
+            $next = array_merge(array($data['blockParams']), $top);
+            $frame->blockParams = $next;
+        }
+
+        // Push decorators
+        if( isset($program['children']) ) {
+            foreach( $program['children'] as $index => $child ) {
+                if( isset($child['decorators']) ) {
+                    $this->currentDecoratorProgram = $index;
+                    $this->currentDecoratorReference = $child;
+                    foreach( $child['decorators'] as $decorator ) {
+                        $this->accept($decorator['opcodes']);
+                    }
+                    $this->currentDecoratorReference = null;
+                    $this->currentDecoratorProgram = null;
+                }
+            }
+        }
+
+        // Execute the program
+        $this->accept($program['opcodes']);
+
+        // Pop the data stack, if necessary
+        if( $data !== null ) {
+            $this->dataStack->pop();
+        }
+
+        // Pop the frame stack
+        $this->frameStack->pop();
+
+        return $frame->buffer;
+
+    }
+
     /**
      * Execute the specified program
      *
@@ -203,86 +246,15 @@ class VM
      * @throws \Handlebars\RuntimeException
      * @return string
      */
-    public function executeProgram($program, $context = null, $data = null)
+    public function executeProgramById($program, $context = null, $data = null)
     {
-        //printf("EXECUTE PROGRAM: DEPTH=%d, PROG=%d\n", $this->programStack->count(),  $program);
-
-
-        // Push the context stack
-        if( $context !== null ) {
-            $this->contextStack->push($context);
-        }
-
-        // Push the data stack
-        if( $data !== null ) {
-            $this->dataStack->push($data);
-        }
-
-        if( isset($data['blockParams']) ) {
-            $top = $this->blockParamStack->count() ? $this->blockParamStack->top() : array();
-            $next = array_merge(array($data['blockParams']), $top);
-            $this->blockParamStack->push($next);
-        }
-
         // Push program stack
-        $top = $this->programStack->top();
+        $top = $this->frame()->program;
         if( !isset($top['children'][$program]/*['opcodes']*/) ) {
-            //var_dump($program, $top);
             throw new RuntimeException('Assertion failed: opcodes empty');
         }
-        $this->programStack->push($top['children'][$program]);
-        $top = $this->programStack->top();
 
-        // Push decorators
-        $this->decoratorStack->push(new \ArrayObject());
-        if( isset($top['children']) ) {
-            foreach( $top['children'] as $index => $child ) {
-                if( isset($child['decorators']) ) {
-                    $this->currentDecoratorProgram = $index;
-                    $this->currentDecoratorReference = $child;
-                    foreach( $child['decorators'] as $decorator ) {
-                        $this->programStack->push($decorator);
-                        $this->accept($decorator['opcodes']);
-                        $this->programStack->pop();
-                    }
-                    $this->currentDecoratorReference = null;
-                    $this->currentDecoratorProgram = null;
-                }
-            }
-        }
-
-        // Save and reset the buffer
-        $prevBuffer = $this->buffer;
-        $this->buffer = '';
-
-        // Execute the program
-        $this->accept($top['opcodes']);
-
-        // Get the buffer
-        $buffer = $this->buffer;
-        $this->buffer = $prevBuffer;
-
-        // Pop the decorator stack
-        $this->decoratorStack->pop();
-
-        // Pop the program stack
-        $this->programStack->pop();
-
-        if( isset($data['blockParams']) ) {
-            $this->blockParamStack->pop();
-        }
-
-        // Pop the data stack, if necessary
-        if( $data !== null ) {
-            $this->dataStack->pop();
-        }
-
-        // Pop the context stack, if necessary
-        if( $context !== null ) {
-            $this->contextStack->pop();
-        }
-
-        return $buffer;
+        return $this->executeProgramByRef($top['children'][$program], $context, $data);
     }
 
     /**
@@ -346,7 +318,8 @@ class VM
     private function depthedLookup($key)
     {
         $val = null;
-        foreach( $this->contextStack as $context ) {
+        foreach( $this->frameStack as $frame) {
+            $context = $frame->context;
             if( is_array($context) && isset($context[$key]) ) {
                 $val = $context[$key];
                 break;
@@ -390,7 +363,7 @@ class VM
         $options = new Options();
         $options->name = $helper;
         $options->hash = (array) $this->pop();
-        $options->scope = $this->contextStack->top();
+        $options->scope = $this->frame()->context;
 
         if( $this->trackIds ) {
             $options->hashIds = $this->pop();
@@ -471,22 +444,33 @@ class VM
 
         $self = $this;
         $prog = function ($arg = null, $data = null) use ($self, $options, $program) {
-            return $self->executeProgram($program, $arg, $data);
+            return $self->executeProgramById($program, $arg, $data);
         };
 
         // Register decorators
-        if( $this->decoratorStack->count() && isset($this->decoratorStack[0][$program]) ) {
-            $top = $this->decoratorStack[0][$program];
+        if( ($decorators = $this->frame()->decorators) && isset($decorators[$program]) ) {
+            $top = $decorators[$program];
             foreach( $top as $decoratorInfo ) {
                 list($index, $decorator, $decoratorOptions) = $decoratorInfo;
                 $prog = (!($prog instanceof ClosureWrapper) ? new ClosureWrapper($prog) : $prog);
                 if( $decoratorOptions->fn instanceof \Closure ) {
                     $decoratorOptions->fn = new ClosureWrapper($decoratorOptions->fn);
                 }
+
                 $props = new \stdClass;
-                $this->programStack->push($this->programStack[0]['children'][$index]);
-                $prog = $decorator($prog, $props, $this, $decoratorOptions, /*$data*/ null, /*$blockParams*/ null, /*$depths*/ null) ?: $prog;
-                $this->programStack->pop();
+
+                // Clone current frame with custom program
+                $parent = $this->frame();
+                $frame = clone $parent;
+                $this->frameStack->push($frame);
+                $frame->program = $parent->program['children'][$index];
+
+                // Execute decorator
+                $prog = $decorator($prog, $props, $this, $decoratorOptions) ?: $prog;
+
+                // Pop temporary frame
+                $this->frameStack->pop();
+
                 foreach( $props as $k => $v ) {
                     $prog->$k = $v;
                 }
@@ -503,7 +487,7 @@ class VM
      */
     private function ambiguousBlockValue()
     {
-        $params = array($this->contextStack->top());
+        $params = array($this->frame()->context);
         $this->setupParams($this->lastHelperName, 0, $params);
 
         $current = $this->pop();
@@ -512,7 +496,7 @@ class VM
         if( !$this->lastHelper ) {
             $helper = $this->getHelper('blockHelperMissing');
             $result = call_user_func_array($helper, $params);
-            $this->buffer .= Utils::expression($result);
+            $this->frame()->buffer .= Utils::expression($result);
         }
     }
 
@@ -527,7 +511,7 @@ class VM
             if( is_bool($local) ) {
                 $local = $local ? 'true' : 'false';
             }
-            $this->buffer .= Utils::expression($local);
+            $this->frame()->buffer .= Utils::expression($local);
         }
     }
 
@@ -537,7 +521,7 @@ class VM
      */
     private function appendContent($content)
     {
-        $this->buffer .= Utils::expression($content);
+        $this->frame()->buffer .= Utils::expression($content);
     }
 
     /**
@@ -553,11 +537,11 @@ class VM
         }
 
         if( Utils::isCallable($top) ) {
-            $top = call_user_func($top, $this->contextStack->top());
+            $top = call_user_func($top, $this->frame()->context);
         }
 
         if( $top instanceof SafeString ) {
-            $this->buffer .= Utils::expression($top);
+            $this->frame()->buffer .= Utils::expression($top);
             return;
         }
 
@@ -577,7 +561,7 @@ class VM
         $v = htmlspecialchars($top, ENT_QUOTES, 'UTF-8');
         // Handlebars uses hex entities >.>
         $v = str_replace(array('`', '&#039;'), array('&#x60;', '&#x27;'), $v);
-        $this->buffer .= $v;
+        $this->frame()->buffer .= $v;
     }
 
     /**
@@ -617,7 +601,7 @@ class VM
      */
     private function blockValue($name)
     {
-        $params = array($this->contextStack->top());
+        $params = array($this->frame()->context);
         $this->setupParams($name, 0, $params);
 
         $current = $this->pop();
@@ -625,7 +609,7 @@ class VM
 
         $helper = $this->getHelper('blockHelperMissing');
         $result = call_user_func_array($helper, $params);
-        $this->buffer .= Utils::expression($result);
+        $this->frame()->buffer .= Utils::expression($result);
     }
 
     /**
@@ -652,14 +636,14 @@ class VM
      */
     private function getContext($depth)
     {
-        $count = $this->contextStack->count();
+        $count = $this->frameStack->count();
         if( $depth >= $count ) {
             return;
         } else if( $depth === 0 ) {
-            $this->lastContext = $this->contextStack->top();
+            $this->lastContext = $this->frame()->context;
         } else {
             $index = defined('HHVM_VERSION_ID') && HHVM_VERSION_ID < 30700 ? $count - $depth - 1 : $depth;
-            $this->lastContext = $this->contextStack->offsetGet($index);
+            $this->lastContext = $this->frameStack->offsetGet($index)->context;
         }
     }
 
@@ -679,11 +663,11 @@ class VM
         if( !empty($helper['name']) ) {
             $helperFn = $this->getHelper($helper['name']);
             $result = call_user_func_array($helperFn, $helper['params']);
-            $this->buffer .= Utils::expression($result);
+            $this->frame()->buffer .= Utils::expression($result);
         } else {
             $helperFn = $this->getHelper('helperMissing');
             $result = call_user_func_array($helperFn, $helper['params']);
-            $this->buffer .= Utils::expression($result);
+            $this->frame()->buffer .= Utils::expression($result);
             if( Utils::isCallable($nonhelper) ) {
                 $nonhelper = call_user_func_array($nonhelper, $helper['params']);
             }
@@ -777,7 +761,7 @@ class VM
 
     private function lookupBlockParam($blockParamId, $parts)
     {
-        $top = $this->blockParamStack->top();
+        $top = $this->frame()->blockParams;
 
         $value = null;
         if( isset($top[$blockParamId[0]][$blockParamId[1]]) ) {
@@ -859,9 +843,7 @@ class VM
             $hash = null;
         }
 
-        $this->programStack->push(array('children' => array($opcodes)));
-
-        $result = $this->executeProgram(0, $context, $options);
+        $result = $this->executeProgramByRef($opcodes, $context, $options);
 
         // Indent output of partial
         $endsInEmptyLine = $result && $result[strlen($result) - 1] === "\n";
@@ -870,9 +852,7 @@ class VM
             $result .= "\n";
         }
 
-        $this->programStack->pop();
-
-        $this->buffer .= $result;
+        $this->frame()->buffer .= $result;
     }
 
     /**
@@ -917,7 +897,7 @@ class VM
     private function pushId($type, $name, $child = null)
     {
         if( $type === 'BlockParam' ) {
-            $top = $this->blockParamStack->top();
+            $top = $this->frame()->blockParams;
             $this->pushLiteral($top[$name[0]]['path'][$name[1]] . ($child ? '.' . $child : ''));
         } else if( $type === 'PathExpression' ) {
             $this->pushString($name);
@@ -993,7 +973,9 @@ class VM
         
         $params = false;
         $options = $this->setupParams($name, $paramSize, $params);
-        $this->decoratorStack[0][$this->currentDecoratorProgram][] = array($this->currentDecoratorProgram, $found, $options);
+
+
+        $this->frame()->decorators[$this->currentDecoratorProgram][] = array($this->currentDecoratorProgram, $found, $options);
     }
 
     /**
@@ -1003,7 +985,7 @@ class VM
     {
         $top = $this->top();
         if( Utils::isCallable($top) ) {
-            $result = $top($this->contextStack->top());
+            $result = $top($this->frame()->context);
             $this->replace($result);
         }
     }
