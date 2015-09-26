@@ -339,7 +339,7 @@ class VM
     private function depthedLookup($key)
     {
         $val = null;
-        foreach( $this->frameStack as $frame) {
+        foreach( $this->frameStack as $frame ) {
             $context = $frame->context;
             if( is_array($context) && isset($context[$key]) ) {
                 $val = $context[$key];
@@ -751,9 +751,10 @@ class VM
     /**
      * @param integer $depth
      * @param array $parts
+     * @param boolean $strict
      * @return void
      */
-    private function lookupData($depth, $parts)
+    private function lookupData($depth, $parts, $strict)
     {
         if( $depth >= $this->dataStack->count() ) {
             $data = array();
@@ -812,10 +813,11 @@ class VM
     /**
      * @param array $parts
      * @param boolean $falsy
+     * @param boolean $strict
      * @param boolean $scoped
      * @return void
      */
-    private function lookupOnContext($parts, $falsy, $scoped)
+    private function lookupOnContext($parts, $falsy, $strict, $scoped)
     {
         $i = 0;
 
