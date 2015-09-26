@@ -193,6 +193,11 @@ class VM
         }
     }
 
+    public function getPartials()
+    {
+        return $this->partialOpcodes;
+    }
+
     /**
      * Magic call method
      *
@@ -865,7 +870,7 @@ class VM
         $hash = !empty($options['hash']) ? $options['hash'] : null;
 
         if( is_array($hash) ) {
-            $context = array_merge($context, $hash);
+            $context = $context ? array_merge($context, $hash) : $hash;
             $hash = null;
         }
 
