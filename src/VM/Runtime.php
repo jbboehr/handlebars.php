@@ -26,6 +26,7 @@ class Runtime extends BaseRuntime
         parent::__invoke($context, $options);
 
         $vm = new \Handlebars\VM();
-        return $vm->execute($this, $this->opcodes, $context, $options);
+        $result = $vm->execute($this, $this->opcodes, $context, $options);
+        return $result;
     }
 }

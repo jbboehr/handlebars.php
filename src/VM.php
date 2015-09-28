@@ -109,37 +109,6 @@ class VM
 
     private $decoratorMap;
 
-
-    /*
-    public function __construct(Handlebars $handlebars, $opcodes)
-    {
-        $this->handlebars = $handlebars;
-        $this->helpers = Utils::arrayCopy($handlebars->getHelpers());
-        $this->partials = Utils::arrayCopy($handlebars->getPartials());
-        $this->decorators = Utils::arrayCopy($handlebars->getDecorators());
-
-        $preprocessor = new VM\Preprocessor();
-        $this->opcodes = $preprocessor->compile($opcodes);
-    }
-
-    public function __invoke($context = null, $options = null)
-    {
-        if( !empty($options['helpers']) ) {
-            Utils::arrayMergeByRef($this->helpers, $options['helpers']);
-        }
-
-        if( !empty($options['partials']) ) {
-            Utils::arrayMergeByRef($this->partials, $options['partials']);
-        }
-
-        if( !empty($options['decorators']) ) {
-            Utils::arrayMergeByRef($this->decorators, $options['decorators']);
-        }
-
-        return $this->execute($context, $options);
-    }
-*/
-
     /**
      * Execute opcodes
      *
@@ -898,12 +867,17 @@ class VM
             $hash = null;
         }
 
-
+        //$options['name'] = $name;
         $options['helpers'] = $this->helpers;
         $options['partials'] = $this->partials;
         $options['decorators'] = $this->decorators;
 
-        $result = $this->runtime->invokePartial($name, $context, (array) $options);
+        if( !$isDynamic ) {
+            $partial = $this->runtime->nameLookup($this->partials, $name);
+        } else {
+            $partial = $name;
+        }
+        $result = $this->runtime->invokePartial($partial, $context, (array) $options);
 
 
         // Indent output of partial

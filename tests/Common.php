@@ -10,12 +10,6 @@ use PHPUnit_Framework_TestCase;
 
 class Common extends PHPUnit_Framework_TestCase
 {
-    protected $compiler;
-    
-    protected $handlebars;
-    
-    protected $vm;
-    
     public function setUp()
     {
         if( !extension_loaded('handlebars') ) {
