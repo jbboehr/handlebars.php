@@ -28,6 +28,7 @@ class CompilerGenerator extends Generator
     
     public function __construct(array $options)
     {
+        $this->mode = \Handlebars\Handlebars::MODE_COMPILER;
         $options['ns'] = 'Compiler';
         parent::__construct($options);
     }
@@ -66,7 +67,7 @@ class CompilerGenerator extends Generator
         
         $parts = array();
         $parts[] = '// @todo make runtime partials work';
-        $parts[] = '$fn = $this->handlebars->compile($tmpl, $compileOptions);';
+        $parts[] = '$fn = $handlebars->compile($tmpl, $compileOptions);';
         $parts[] = '$options["data"] = $data;';
         $parts[] = '$options["helpers"] = $helpers;';
         $parts[] = '$options["partials"] = $partials;';
@@ -90,16 +91,16 @@ class CompilerGenerator extends Generator
     protected function generateExecutor()
     {
         return <<<EOF
-        \$templateSpecStr = \$this->compiler->compile(\$opcodes, \$compileOptions);
+        \$compiler = new PhpCompiler();
+        \$templateSpecStr = \$compiler->compile(\$opcodes, \$compileOptions);
         \$templateSpec = eval('return ' . \$templateSpecStr . ';');
-        \$partialFns = array();
         foreach( \$partialOpcodes as \$name => \$partialOpcode ) {
-            \$partialFns[\$name] = new \Handlebars\Runtime(\$this->handlebars, eval('return ' . \$this->compiler->compile(\$partialOpcode, \$compileOptions) . ';'));
+            \$partials[\$name] = new \Handlebars\Compiler\Runtime(\$handlebars, eval('return ' . \$compiler->compile(\$partialOpcode, \$compileOptions) . ';'));
         }
         if( !\$templateSpec ) {
             echo \$templateSpecStr; exit(1);
         };
-        \$fn = new \Handlebars\Runtime(\$this->handlebars, \$templateSpec);
+        \$fn = new \Handlebars\Compiler\Runtime(\$handlebars, \$templateSpec);
         if( isset(\$compileOptions['data']) || true ) { \$options['data'] = \$data; }
         \$options["helpers"] = \$helpers;
         \$options["partials"] = \$partials;

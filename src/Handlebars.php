@@ -79,7 +79,6 @@ class Handlebars
 
         $this->compiler = new Compiler();
         $this->phpCompiler = new PhpCompiler();
-        $this->vm = new VM();
 
         $this->setupBuiltins();
     }
@@ -94,12 +93,17 @@ class Handlebars
      */
     public function compile($tmpl, array $compileOptions = array())
     {
-        $templateSpecString = $this->precompile($tmpl, $compileOptions);
-        $templateSpec = eval('return ' . $templateSpecString . ';');
-        if( !$templateSpec ) {
-            throw new CompileException('Failed to compile template');
+        if( $this->mode === self::MODE_VM ) {
+            $opcodes = $this->compiler->compile($tmpl, $compileOptions);
+            return new VM\Runtime($this, $opcodes);
+        } else {
+            $templateSpecString = $this->precompile($tmpl, $compileOptions);
+            $templateSpec = eval('return ' . $templateSpecString . ';');
+            if (!$templateSpec) {
+                throw new CompileException('Failed to compile template');
+            }
+            return new Compiler\Runtime($this, $templateSpec);
         }
-        return new Runtime($this, $templateSpec);
     }
 
     /**
@@ -294,17 +298,8 @@ class Handlebars
      */
     private function renderVM($tmpl, $context = null, $options = null)
     {
-        // Build helpers and partials
-        $helpers = Utils::arrayMerge($this->getHelpers(), Utils::lookup($options, 'helpers'));
-        $partials = Utils::arrayMerge($this->getPartials(), Utils::lookup($options, 'partials'));
-        $decorators = Utils::arrayMerge($this->getDecorators(), Utils::lookup($options, 'decorators'));
-
-        // Compile
-        $opcodes = $this->compiler->compile($tmpl, $options);
-        $partialOpcodes = $this->compiler->compileMany($partials, $options);
-
-        // Execute
-        return $this->vm->execute($opcodes, $context, $helpers, $partialOpcodes, $decorators, $options);
+        $runtime = $this->compile($tmpl, $options);
+        return $runtime($context, $options);
     }
 
     /**

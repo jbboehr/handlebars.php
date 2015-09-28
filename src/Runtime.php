@@ -12,48 +12,48 @@ class Runtime
      *
      * @var callable
      */
-    private $main;
+    protected $main;
     
     /**
      * @var array
      */
-    private $programs;
-    
-    private $programDecorators;
-    
-    /**
-     * @var array
-     */
-    private $programWrappers;
+    protected $programs;
+
+    protected $programDecorators;
     
     /**
      * @var array
      */
-    private $decorators;
-    
-    private $decoratorMap;
+    protected $programWrappers;
     
     /**
      * @var array
      */
-    private $helpers;
+    protected $decorators;
+
+    protected $decoratorMap;
     
     /**
      * @var array
      */
-    private $partials;
+    protected $helpers;
+    
+    /**
+     * @var array
+     */
+    protected $partials;
     
     /**
      * Compile-time options
      *
      * @var array
      */
-    private $options;
+    protected $options;
     
     /**
      * @var \Handlebars\Handlebars
      */
-    private $handlebars;
+    protected $handlebars;
 
     /**
      * Constructor
@@ -61,36 +61,13 @@ class Runtime
      * @param \Handlebars\Handlebars $handlebars
      * @param array $templateSpec
      */
-    public function __construct(Handlebars $handlebars, $templateSpec)
+    public function __construct(Handlebars $handlebars)
     {
         $this->handlebars = $handlebars;
         $this->helpers = Utils::arrayCopy($handlebars->getHelpers());
         $this->partials = Utils::arrayCopy($handlebars->getPartials());
         $this->decorators = Utils::arrayCopy($handlebars->getDecorators());
         $this->decoratorMap = new SplObjectStorage();
-
-        if( !is_array($templateSpec) ) {
-            throw new RuntimeException('Not an array: ' . var_export($templateSpec, true));
-        }
-
-        foreach( $templateSpec as $k => $v ) {
-            if( is_int($k) ) {
-                $this->programs[$k] = $v;
-            } else if( $k === 'main' ) {
-                $this->main = $v;
-            } else if( $k === 'main_d' ) {
-                $this->programDecorators['main'] = $v;
-            } else if( substr($k, -2) === '_d' ) {
-                $k = substr($k, 0, -2);
-                $this->programDecorators[$k] = $v;
-            } else {
-                $this->options[$k] = $v;
-            }
-        }
-        
-        if( isset($this->programDecorators['main']) ) {
-            $this->decoratorMap->attach($this->main, $this->programDecorators['main']);
-        }
     }
     
     /**
@@ -113,19 +90,6 @@ class Runtime
         if( !empty($options['decorators']) ) {
             Utils::arrayMergeByRef($this->decorators, $options['decorators']);
         }
-
-        $data = $this->processDataOption($options, $context);
-        $depths = $this->processDepthsOption($options, $context);
-        $blockParams = array(); // @todo
-        
-        $runtime = $this;
-        $origMain = $this->main;
-        $main = function($context) use ($runtime, $origMain, $data, $depths, $blockParams) {
-            return call_user_func($this->main, $context, $runtime->getHelpers(), $runtime->getPartials(),
-                $data, $runtime, $blockParams, $depths);
-        };
-        $main = $this->executeDecorators($this->main, $main, $runtime, $depths, $data, $blockParams);
-        return call_user_func($main, $context, $options);
     }
 
     /**
@@ -265,7 +229,7 @@ class Runtime
         $options['partial'] = true;
         
         if( isset($options['ids']) ) {
-            $options['data']['contextPath'] = $options['ids'][0] ?: $options['data']['contextPath'];
+            $options['data']['contextPath'] = $options['ids'][0] ?: (isset($options['data']['contextPath']) ? $options['data']['contextPath'] : null);
         }
         
         $partialBlock = null;
@@ -410,47 +374,6 @@ class Runtime
         } else if( Utils::isCallable($partial) ) {
             return $partial;
         }
-    }
-
-    /**
-     * @param array $options
-     * @param mixed $context
-     * @return array
-     */
-    private function processDataOption($options, $context)
-    {
-        $data = isset($options['data']) ? $options['data'] : array();
-        if( empty($options['partial']) && !empty($this->options['useData']) ) {
-            if( !$data || !isset($data['root']) ) {
-                $data = $data ? Utils::createFrame($data) : array();
-                $data['root'] = $context;
-            }
-        }
-        return $data;
-    }
-
-    /**
-     * @param array $options
-     * @param mixed $context
-     * @return \Handlebars\DepthList
-     */
-    private function processDepthsOption($options, $context)
-    {
-        if( empty($this->options['useDepths']) ) {
-            return;
-        }
-        
-        if( isset($options['depths']) ) {
-            $depths = DepthList::factory($options['depths']);
-        } else {
-            $depths = new DepthList();
-        }
-        
-        if( !isset($options['depths'][0]) || $options['depths'][0] !== $context ) {
-            $depths->unshift($context);
-        }
-        
-        return $depths;
     }
     
     private function resolvePartial($partial, &$options)

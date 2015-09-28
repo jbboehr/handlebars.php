@@ -16,10 +16,19 @@ class VMGenerator extends Generator
         // Added in v3
         'testExportBlockParamsShouldTakePresedneceOverParentBlockParams1',
         'testIntegrationBlockParamsShouldTakePresedneceOverParentBlockParams1',
+
+        // Added in v4
+        'testExportDecoratorsShouldFailWhenAccessingVariablesFromRoot1',
+        'testIntegrationDecoratorsShouldFailWhenAccessingVariablesFromRoot1',
+        'testExportStandaloneSectionsBlockStandaloneElseSectionsCanBeDisabled1',
+        'testIntegrationStandaloneSectionsBlockStandaloneElseSectionsCanBeDisabled1',
+        'testExportStandaloneSectionsBlockStandaloneElseSectionsCanBeDisabled2',
+        'testIntegrationStandaloneSectionsBlockStandaloneElseSectionsCanBeDisabled2',
     );
     
     public function __construct(array $options)
     {
+        $this->mode = \Handlebars\Handlebars::MODE_VM;
         $options['ns'] = 'VM';
         parent::__construct($options);
     }
@@ -42,14 +51,16 @@ class VMGenerator extends Generator
         $parts[] = '$allOptions["helpers"] = $helpers;';
         $parts[] = '$allOptions["partials"] = $partials;';
         $parts[] = '$allOptions["decorators"] = $decorators;';
-        $parts[] = '$actual = $this->handlebars->render($tmpl, $data, $allOptions);';
+
+
+        $parts[] = '$actual = $handlebars->render($tmpl, $data, $allOptions);';
         $parts[] = '$this->assertEquals($expected, $actual);';
         
         return $header
             . $this->indent(2) . join("\n" . $this->indent(2), $parts) . "\n"
             . $footer;
     }
-    
+
     protected function generateTestExport(array $test)
     {
         if( $this->specName === 'Mustache' ) {
@@ -64,9 +75,17 @@ class VMGenerator extends Generator
         $parts[] = 'if( !empty($decorators) || !empty($globalDecorators) ) {';
         $parts[] = '    $this->markTestIncomplete("The VM does not support decorators in export mode - requires custom compiler option");';
         $parts[] = '}';
-        
-        $parts[] = '$helpers += $this->handlebars->getHelpers();';
-        $parts[] = '$actual = $this->vm->execute($opcodes, $data, $helpers, $partialOpcodes, array(), $allOptions);';
+
+        $parts[] = 'foreach( $partialOpcodes as $name => $partialOpcode ) {';
+        $parts[] = '  $partials[$name] = new \\Handlebars\\VM\\Runtime($handlebars, $partialOpcode);';
+        $parts[] = '}';
+
+        $parts[] = '$allOptions["helpers"] = $helpers;';
+        $parts[] = '$allOptions["partials"] = $partials;';
+        $parts[] = '$allOptions["decorators"] = $decorators;';
+
+        $parts[] = '$vm = new \\Handlebars\\VM\\Runtime($handlebars, $opcodes);';
+        $parts[] = '$actual = $vm($data, $allOptions);';
         $parts[] = '$this->assertEquals($expected, $actual);';
         
         return $header

@@ -21,10 +21,5 @@ class Common extends PHPUnit_Framework_TestCase
         if( !extension_loaded('handlebars') ) {
             throw new Exception('Handlebars extension not loaded');
         }
-        $this->compiler = new PhpCompiler();
-        $this->handlebars = new Handlebars(array(
-            'mode' => Handlebars::MODE_VM,
-        ));
-        $this->vm = new VM();
     }
 }

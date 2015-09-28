@@ -13,6 +13,7 @@ abstract class Generator
     protected $suiteName;
     protected $specName;
     protected $usedNames;
+    protected $mode;
     
     public function __construct(array $options)
     {
@@ -79,6 +80,9 @@ abstract class Generator
             
 namespace {$this->namespace};
 
+use \Handlebars\Handlebars;
+use \Handlebars\PhpCompiler;
+use \Handlebars\Runtime;
 use \Handlebars\SafeString;
 use \Handlebars\Utils;
 use \Handlebars\Tests\Common;
@@ -193,22 +197,25 @@ EOF;
         $parts[] = '$options = ' . $this->indentVarExport(2, isset($test['options']) ? $test['options'] : array()) . ";";
         $parts[] = '$allOptions = array_merge($compileOptions, $options);';
 
+
+        $parts[] = '$handlebars = new Handlebars(array("mode" => ' . var_export($this->mode, true) . '));';
+
         // Register global helpers/partial
         if( !empty($test['testMode']) && $test['testMode'] == 'integration' ) {
             if( !empty($test['globalHelpers']) ) {
                 $globalHelpers = $test['globalHelpers'];
                 $this->convertLambdas($globalHelpers);
-                $parts[] = '$this->handlebars->registerHelpers(' . $this->indentVarExport(2, $globalHelpers) . ');';
+                $parts[] = '$handlebars->registerHelpers(' . $this->indentVarExport(2, $globalHelpers) . ');';
                 unset($test['globalHelpers']); // maybe bad idea
             }
             if( !empty($test['globalPartials']) ) {
-                $parts[] = '$this->handlebars->registerPartials(' . $this->indentVarExport(2, $test['globalPartials']) . ');';
+                $parts[] = '$handlebars->registerPartials(' . $this->indentVarExport(2, $test['globalPartials']) . ');';
                 unset($test['globalPartial']); // maybe bad idea
             }
             if( !empty($test['globalDecorators']) ) {
                 $globalDecorators = $test['globalDecorators'];
                 $this->convertLambdas($globalDecorators);
-                $parts[] = '$this->handlebars->registerDecorators(' . $this->indentVarExport(2, $globalDecorators) . ');';
+                $parts[] = '$handlebars->registerDecorators(' . $this->indentVarExport(2, $globalDecorators) . ');';
                 unset($test['globalDecorators']); // maybe bad idea
             }
         }

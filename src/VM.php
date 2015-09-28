@@ -107,29 +107,59 @@ class VM
      */
     private $useDepths = false;
 
-    private $guid = 0;
-    private $programsByGuid;
-
     private $decoratorMap;
+
+
+    /*
+    public function __construct(Handlebars $handlebars, $opcodes)
+    {
+        $this->handlebars = $handlebars;
+        $this->helpers = Utils::arrayCopy($handlebars->getHelpers());
+        $this->partials = Utils::arrayCopy($handlebars->getPartials());
+        $this->decorators = Utils::arrayCopy($handlebars->getDecorators());
+
+        $preprocessor = new VM\Preprocessor();
+        $this->opcodes = $preprocessor->compile($opcodes);
+    }
+
+    public function __invoke($context = null, $options = null)
+    {
+        if( !empty($options['helpers']) ) {
+            Utils::arrayMergeByRef($this->helpers, $options['helpers']);
+        }
+
+        if( !empty($options['partials']) ) {
+            Utils::arrayMergeByRef($this->partials, $options['partials']);
+        }
+
+        if( !empty($options['decorators']) ) {
+            Utils::arrayMergeByRef($this->decorators, $options['decorators']);
+        }
+
+        return $this->execute($context, $options);
+    }
+*/
 
     /**
      * Execute opcodes
      *
-     * @param array $opcodes
-     * @param mixed $data
-     * @param array $helpers
-     * @param array $partialOpcodes
-     * @param array $decorators
+     * @param mixed $context
      * @param array $options
      * @return string
      * @throws \Handlebars\RuntimeException
      */
-    public function execute($opcodes, $data = null, $helpers = null, $partialOpcodes = null, $decorators = null, $options = null)
+    public function execute($runtime, $opcodes, $context = null, $options = null)
     {
-        $this->data = $data;
-        $this->helpers = (array) $helpers;
-        $this->partialOpcodes = (array) $partialOpcodes;
-        $this->decorators = $decorators;
+        $this->runtime = $runtime;
+        $this->opcodes = $opcodes;
+
+        // @todo access through runtime directly
+        $this->helpers = $runtime->getHelpers();
+        $this->partials = $runtime->getPartials();
+        $this->decorators = $runtime->getDecorators();
+
+
+        $this->data = $context;
         $this->options = (array) $options;
 
         // Flags
@@ -148,16 +178,17 @@ class VM
         $this->frameStack = new SplStack();
 
         // Preprocess opcodes
-        $this->scan($opcodes);
+        //$this->scan($opcodes);
 
         // Execute
-        $buffer = $this->executeProgramByRef($opcodes, $data);
+        $buffer = $this->executeProgramById(0, $context);
 
         return $buffer;
     }
 
     private function scan(&$program, $index = 0)
     {
+        /*
         $program['guid'] = ++$this->guid;
         $this->programsByGuid[$program['guid']] = &$program;
 
@@ -177,6 +208,7 @@ class VM
             }
             $this->frameStack->pop();
         }
+        */
     }
 
     /**
@@ -269,13 +301,11 @@ class VM
      */
     public function executeProgramById($program, $context = null, $data = null)
     {
-        // Push program stack
-        $top = $this->frame()->program;
-        if( !isset($top['children'][$program]/*['opcodes']*/) ) {
-            throw new RuntimeException('Assertion failed: opcodes empty');
+        if( !isset($this->opcodes[$program]) ) {
+            throw new RuntimeException('Assertion failed: undefined program #' . $program);
         }
 
-        return $this->executeProgramByRef($top['children'][$program], $context, $data);
+        return $this->executeProgramByRef($this->opcodes[$program], $context, $data);
     }
 
     /**
@@ -466,18 +496,16 @@ class VM
             return Utils::noop();
         }
 
-        $guid = $this->frame()->program['children'][$program]['guid'];
+        //$guid = $this->frame()->program['children'][$program]['guid'];
 
-        return $this->wrapProgramByGuid($guid, $options);
+        return $this->wrapProgramByGuid($program, $options);
     }
 
     private function wrapProgramByGuid($program, Options $options)
     {
-        $opcodes = $this->programsByGuid[$program];
-
         $self = $this;
-        $prog = function ($arg = null, $data = null) use ($self, $options, $opcodes) {
-            return $self->executeProgramByRef($opcodes, $arg, $data);
+        $prog = function ($arg = null, $data = null) use ($self, $options, $program) {
+            return $self->executeProgramById($program, $arg, $data);
         };
 
         $prog = $this->executeDecorators($program, $prog, $options);
@@ -861,12 +889,6 @@ class VM
         }
         $params[] = $options;
 
-        if( !isset($this->partialOpcodes[$name]) ) {
-            throw new RuntimeException('Missing partial: ' . $name);
-        }
-        $opcodes = $this->partialOpcodes[$name];
-
-        $this->scan($opcodes);
 
         $context = $params[0];
         $hash = !empty($options['hash']) ? $options['hash'] : null;
@@ -876,7 +898,13 @@ class VM
             $hash = null;
         }
 
-        $result = $this->executeProgramByRef($opcodes, $context, $options);
+
+        $options['helpers'] = $this->helpers;
+        $options['partials'] = $this->partials;
+        $options['decorators'] = $this->decorators;
+
+        $result = $this->runtime->invokePartial($name, $context, (array) $options);
+
 
         // Indent output of partial
         $endsInEmptyLine = $result && $result[strlen($result) - 1] === "\n";
@@ -997,6 +1025,9 @@ class VM
     
     private function registerDecorator($paramSize, $name)
     {
+        throw new \Exception('Not yet implemented');
+
+        /*
         if( !isset($this->decorators[$name]) ) {
             throw new RuntimeException('Unknown decorator: ' . $name);
         }
@@ -1006,6 +1037,7 @@ class VM
         $options = $this->setupParams($name, $paramSize, $params);
 
         $this->decoratorMap[$this->currentDecoratorGuid][] = array($found, $options);
+        */
     }
 
     /**
