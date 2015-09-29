@@ -7,7 +7,7 @@ class StackFrame
     public $context;
     public $data;
     public $program;
-    public $buffer;
+    public $buffer = '';
     public $blockParams;
     public $decorators;
 }

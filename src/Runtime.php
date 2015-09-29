@@ -206,7 +206,7 @@ class Runtime
         if( !empty($options['hash']) ) {
             $context = array_merge((array) $context, $options['hash']);
         }
-        
+
         $partial = $this->resolvePartial($partial, $options);
         $result = $this->invokePartialInner($partial, $context, $options);
         

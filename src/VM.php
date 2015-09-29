@@ -55,13 +55,6 @@ class VM
     private $stack;
 
     /**
-     * Output buffer
-     *
-     * @var string
-     */
-    private $buffer;
-
-    /**
      * @var mixed
      */
     private $lastContext;
