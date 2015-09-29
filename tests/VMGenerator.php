@@ -24,6 +24,15 @@ class VMGenerator extends Generator
         'testIntegrationStandaloneSectionsBlockStandaloneElseSectionsCanBeDisabled1',
         'testExportStandaloneSectionsBlockStandaloneElseSectionsCanBeDisabled2',
         'testIntegrationStandaloneSectionsBlockStandaloneElseSectionsCanBeDisabled2',
+
+        // These are skipped for export mode because of the alternate decorators compile option
+        'testExportInlinePartialsShouldDefineInlinePartialsForTemplate1',
+        'testExportInlinePartialsShouldOverwriteMultiplePartialsInTheSameTemplate1',
+        'testExportInlinePartialsShouldDefineInlinePartialsForBlock1',
+        'testExportInlinePartialsShouldOverrideTemplatePartials1',
+        'testExportInlinePartialsShouldOverridePartialsDownTheEntireStack1',
+        'testExportInlinePartialsShouldDefineInlinePartialsForPartialCall1',
+        'testExportInlinePartialsShouldDefineInlinePartialsForBlock3',
     );
     
     public function __construct(array $options)
@@ -94,3 +103,4 @@ class VMGenerator extends Generator
         
     }
 }
+

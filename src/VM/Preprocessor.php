@@ -45,20 +45,20 @@ class Preprocessor
             }
         }
 
+        if( !empty($program['decorators']) ) {
+            $decoratorOpcodes = array();
+            foreach( $program['decorators'] as $decorator ) {
+                $decoratorOpcodes = array_merge($decoratorOpcodes, $decorator['opcodes']);
+            }
+            foreach( $decoratorOpcodes as &$opcode ) {
+                $this->scanOpcode($opcode);
+            }
+            $this->programsByGuid[$program['guid'] . '_d'] = array('opcodes' => $decoratorOpcodes);
+        }
+
         $this->programStack->pop();
 
-        /*
-        if( isset($program['decorators']) ) {
-            $this->currentDecoratorGuid = $program['guid'];
-            $frame = new VM\StackFrame();
-            $frame->program = $program;
-            $this->frameStack->push($frame);
-            foreach( $program['decorators'] as $decorator ) {
-                $this->accept($decorator['opcodes']);
-            }
-            $this->frameStack->pop();
-        }*/
-
+        unset($program['decorators']);
         unset($program['children']);
         $this->programsByGuid[$program['guid']] = $program;
     }

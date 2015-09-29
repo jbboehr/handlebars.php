@@ -109,6 +109,8 @@ class VM
 
     private $decoratorMap;
 
+    private $currentDecoratorGuid;
+
     /**
      * Execute opcodes
      *
@@ -146,38 +148,10 @@ class VM
         // Alternate stacks
         $this->frameStack = new SplStack();
 
-        // Preprocess opcodes
-        //$this->scan($opcodes);
-
         // Execute
         $buffer = $this->executeProgramById(0, $context);
 
         return $buffer;
-    }
-
-    private function scan(&$program, $index = 0)
-    {
-        /*
-        $program['guid'] = ++$this->guid;
-        $this->programsByGuid[$program['guid']] = &$program;
-
-        if( isset($program['children']) ) {
-            foreach( $program['children'] as $i => &$child ) {
-                $this->scan($child, $i);
-            }
-        }
-
-        if( isset($program['decorators']) ) {
-            $this->currentDecoratorGuid = $program['guid'];
-            $frame = new VM\StackFrame();
-            $frame->program = $program;
-            $this->frameStack->push($frame);
-            foreach( $program['decorators'] as $decorator ) {
-                $this->accept($decorator['opcodes']);
-            }
-            $this->frameStack->pop();
-        }
-        */
     }
 
     /**
@@ -465,13 +439,6 @@ class VM
             return Utils::noop();
         }
 
-        //$guid = $this->frame()->program['children'][$program]['guid'];
-
-        return $this->wrapProgramByGuid($program, $options);
-    }
-
-    private function wrapProgramByGuid($program, Options $options)
-    {
         $self = $this;
         $prog = function ($arg = null, $data = null) use ($self, $options, $program) {
             return $self->executeProgramById($program, $arg, $data);
@@ -480,7 +447,6 @@ class VM
         $prog = $this->executeDecorators($program, $prog, $options);
 
         return $prog;
-
     }
 
     private function executeDecorators($program, $prog, $options)
@@ -495,7 +461,7 @@ class VM
                 }
 
                 $props = new \stdClass;
-                $prog = $decorator($prog, $props, $this, $decoratorOptions) ?: $prog;
+                $prog = $decorator($prog, $props, $this->runtime, $decoratorOptions) ?: $prog;
                 foreach( $props as $k => $v ) {
                     $prog->$k = $v;
                 }
@@ -968,6 +934,13 @@ class VM
      */
     private function pushProgram($program)
     {
+        // Register decorators
+        if( isset($this->opcodes[$program . '_d']) && null === $this->currentDecoratorGuid ) {
+            $this->currentDecoratorGuid = $program;
+            $this->executeProgramById($program . '_d');
+            $this->currentDecoratorGuid = null;
+        }
+
         $this->push($program);
     }
 
@@ -999,9 +972,6 @@ class VM
     
     private function registerDecorator($paramSize, $name)
     {
-        throw new \Exception('Not yet implemented');
-
-        /*
         if( !isset($this->decorators[$name]) ) {
             throw new RuntimeException('Unknown decorator: ' . $name);
         }
@@ -1010,8 +980,11 @@ class VM
         $params = false;
         $options = $this->setupParams($name, $paramSize, $params);
 
+        if( null === $this->currentDecoratorGuid ) {
+            throw new \Exception('currentDecoratorGuid should not be null');
+        }
+
         $this->decoratorMap[$this->currentDecoratorGuid][] = array($found, $options);
-        */
     }
 
     /**
