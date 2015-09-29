@@ -63,7 +63,6 @@ class VMGenerator extends Generator
 
 
         $parts[] = '$actual = $handlebars->render($tmpl, $data, $allOptions);';
-        $parts[] = '$this->assertEquals($expected, $actual);';
         
         return $header
             . $this->indent(2) . join("\n" . $this->indent(2), $parts) . "\n"
@@ -95,7 +94,6 @@ class VMGenerator extends Generator
 
         $parts[] = '$vm = new \\Handlebars\\VM\\Runtime($handlebars, $opcodes);';
         $parts[] = '$actual = $vm($data, $allOptions);';
-        $parts[] = '$this->assertEquals($expected, $actual);';
         
         return $header
             . $this->indent(2) . join("\n" . $this->indent(2), $parts) . "\n"

@@ -112,12 +112,20 @@ EOF;
 EOF;
     }
     
-    protected function generateFunctionFooter()
+    protected function generateFunctionFooter($test)
     {
-        return <<<EOF
+        $parts = array();
+        if( !empty($test['exception']) ) {
+            //$parts[] = '$this->assertFalse(true);';
+        } else {
+            $parts[] = '$this->assertEquals($expected, $actual);';
+        }
+        return $this->indent(2) . join("\n" . $this->indent(2), $parts) . "\n"
+            . $this->indent(1) . "}\n\n";
+        /* return <<<EOF
     }
 
-EOF;
+EOF; */
     }
     
     protected function generateFunctionName(array &$test)

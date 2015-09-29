@@ -73,7 +73,6 @@ class CompilerGenerator extends Generator
         $parts[] = '$options["partials"] = $partials;';
         $parts[] = '$options["decorators"] = $decorators;';
         $parts[] = '$actual = $fn($data, $options);';
-        $parts[] = '$this->assertEquals($expected, $actual);';
         
         /*
         $parts[] = '$opcodes = $this->handlebars->compile($tmpl, $compileOptions);';
@@ -106,7 +105,6 @@ class CompilerGenerator extends Generator
         \$options["partials"] = \$partials;
         \$options["decorators"] = \$decorators;
         \$actual = \$fn(\$data, \$options);
-        \$this->assertEquals(\$expected, \$actual);
 
 EOF;
     }
