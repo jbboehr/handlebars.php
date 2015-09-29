@@ -148,6 +148,13 @@ class VM
         // Alternate stacks
         $this->frameStack = new SplStack();
 
+        // Register decorators
+        if( isset($this->opcodes['0_d']) && null === $this->currentDecoratorGuid ) {
+            $this->currentDecoratorGuid = 0;
+            $this->executeProgramById('0_d');
+            $this->currentDecoratorGuid = null;
+        }
+
         // Execute
         $buffer = $this->executeProgramById(0, $context);
 
@@ -834,9 +841,9 @@ class VM
         }
 
         //$options['name'] = $name;
-        $options['helpers'] = $this->helpers;
-        $options['partials'] = $this->partials;
-        $options['decorators'] = $this->decorators;
+        $options['helpers'] = $this->runtime->getHelpers();
+        $options['partials'] = $this->runtime->getPartials();
+        $options['decorators'] = $this->runtime->getDecorators();
 
         if( !$isDynamic ) {
             $partial = $this->runtime->nameLookup($this->partials, $name);
