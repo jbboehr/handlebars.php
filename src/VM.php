@@ -149,7 +149,7 @@ class VM
         }
 
         // Execute
-        $buffer = $this->executeProgramById(0, $context);
+        $buffer = $this->executeProgramById(0, $context, $options);
 
         return $buffer;
     }
@@ -242,13 +242,13 @@ class VM
      * @throws \Handlebars\RuntimeException
      * @return string
      */
-    public function executeProgramById($program, $context = null, $data = null)
+    public function executeProgramById($program, $context = null, $options = null)
     {
         if( !isset($this->opcodes[$program]) ) {
             throw new RuntimeException('Assertion failed: undefined program #' . $program);
         }
 
-        return $this->executeProgramByRef($this->opcodes[$program], $context, $data);
+        return $this->executeProgramByRef($this->opcodes[$program], $context, $options);
     }
 
     /**
@@ -440,8 +440,8 @@ class VM
         }
 
         $self = $this;
-        $prog = function ($arg = null, $data = null) use ($self, $options, $program) {
-            return $self->executeProgramById($program, $arg, $data);
+        $prog = function ($context = null, $options = null) use ($self, $program) {
+            return $self->executeProgramById($program, $context, $options);
         };
 
         $prog = $this->executeDecorators($program, $prog, $options);
