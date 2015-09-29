@@ -237,8 +237,12 @@ class Utils
      */
     public static function noop()
     {
-        return function () {
-            
-        };
+        static $noop;
+        if( null === $noop ) {
+            $noop = function () {
+
+            };
+        }
+        return $noop;
     }
 }
