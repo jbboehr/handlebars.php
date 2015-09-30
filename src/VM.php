@@ -12,13 +12,6 @@ class VM
     private $decorators;
 
     /**
-     * Original input data
-     *
-     * @var mixed
-     */
-    private $data;
-
-    /**
      * Input helpers
      *
      * @var array
@@ -26,23 +19,11 @@ class VM
     private $helpers;
 
     /**
-     * Input partial opcodes
-     *
-     * @var array
-     */
-    private $partialOpcodes;
-
-    /**
      * Input options
      *
      * @var array
      */
     private $options;
-
-    /**
-     * @var \SplStack
-     */
-    private $dataStack;
 
     /**
      * @var \SplStack
@@ -122,8 +103,6 @@ class VM
         $this->partials = $runtime->getPartials();
         $this->decorators = $runtime->getDecorators();
 
-
-        $this->data = $context;
         $this->options = (array) $options;
 
         // Flags
@@ -134,7 +113,6 @@ class VM
         $this->useDepths = !empty($options['useDepths']);
 
         // Stacks
-        $this->dataStack = new SplStack();
         $this->hashStack = new SplStack();
         $this->stack = new SplStack();
 
@@ -166,11 +144,6 @@ class VM
         if( isset($this->helpers[$name]) ) {
             return $this->helpers[$name];
         }
-    }
-
-    public function getPartials()
-    {
-        return $this->partialOpcodes;
     }
 
     /**
