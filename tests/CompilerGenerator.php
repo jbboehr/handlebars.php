@@ -68,7 +68,7 @@ class CompilerGenerator extends Generator
         $parts = array();
         $parts[] = '// @todo make runtime partials work';
         $parts[] = '$fn = $handlebars->compile($tmpl, $compileOptions);';
-        $parts[] = '$options["data"] = $data;';
+        //$parts[] = '$options["data"] = $data;';
         $parts[] = '$options["helpers"] = $helpers;';
         $parts[] = '$options["partials"] = $partials;';
         $parts[] = '$options["decorators"] = $decorators;';
@@ -100,7 +100,6 @@ class CompilerGenerator extends Generator
             echo \$templateSpecStr; exit(1);
         };
         \$fn = new \Handlebars\Compiler\Runtime(\$handlebars, \$templateSpec);
-        if( isset(\$compileOptions['data']) || true ) { \$options['data'] = \$data; }
         \$options["helpers"] = \$helpers;
         \$options["partials"] = \$partials;
         \$options["decorators"] = \$decorators;

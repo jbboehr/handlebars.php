@@ -202,7 +202,10 @@ EOF; */
 
         // Generate options - @todo merge compile and runtime options for now
         $parts[] = '$compileOptions = ' . $this->indentVarExport(2, isset($test['compileOptions']) ? $test['compileOptions'] : array()) . ";";
+
+        $this->convertLambdas($test['options']);
         $parts[] = '$options = ' . $this->indentVarExport(2, isset($test['options']) ? $test['options'] : array()) . ";";
+
         $parts[] = '$allOptions = array_merge($compileOptions, $options);';
 
 

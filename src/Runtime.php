@@ -420,7 +420,6 @@ class Runtime
                 $depths = Utils::arrayUnshift($depths, $context);
             }
             //$depths = Utils::arrayUnshift($depths, $context);
-            
             return call_user_func(
                 $fn,
                 $context,
@@ -455,5 +454,22 @@ class Runtime
             }
         }
         return $prog;
+    }
+
+    /**
+     * @param array $options
+     * @param mixed $context
+     * @return array
+     */
+    protected function processDataOption($options, $context)
+    {
+        $data = isset($options['data']) ? $options['data'] : array();
+        if( empty($options['partial']) && !empty($this->options['useData']) ) {
+            if( !$data || !isset($data['root']) ) {
+                $data = $data ? Utils::createFrame($data) : array();
+                $data['root'] = $context;
+            }
+        }
+        return $data;
     }
 }

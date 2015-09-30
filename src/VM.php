@@ -130,7 +130,7 @@ class VM
         $this->compat = !empty($options['compat']);
         $this->stringParams = !empty($options['stringParams']);
         $this->trackIds = !empty($options['trackIds']);
-        $this->useData = !empty($options['data']);
+        $this->useData = isset($options['data']);
         $this->useDepths = !empty($options['useDepths']);
 
         // Stacks
@@ -192,7 +192,7 @@ class VM
     }
 
 
-    public function executeProgramByRef($program, $context = null, $data = null)
+    public function executeProgramByRef($program, $context = null, $options = null)
     {
         // Push the frame stack
         $parentFrame = $this->frameStack->count() ? $this->frameStack->top() : null;
@@ -205,24 +205,19 @@ class VM
         // Set context
         $frame->context = $context;
 
-        // Push the data stack
-        if( $data !== null ) {
-            $this->dataStack->push($data);
-        }
+        // Set data
+        $frame->data = isset($options['data']) && $options['data'] !== true ? $options['data'] :
+            ($parentFrame ? $parentFrame->data : null);
 
-        if( isset($data['blockParams']) ) {
+        // Set block params
+        if( isset($options['blockParams']) ) {
             $top = $parentFrame && $parentFrame->blockParams ? $parentFrame->blockParams : array();
-            $next = array_merge(array($data['blockParams']), $top);
+            $next = array_merge(array($options['blockParams']), $top);
             $frame->blockParams = $next;
         }
 
         // Execute the program
         $this->accept($program['opcodes']);
-
-        // Pop the data stack, if necessary
-        if( $data !== null ) {
-            $this->dataStack->pop();
-        }
 
         // Pop the frame stack
         $this->frameStack->pop();
@@ -401,13 +396,7 @@ class VM
         }
 
         // This might not work right?
-        if( $this->dataStack->count() &&
-                ($top = $this->dataStack->top()) &&
-                !empty($top['data']) && is_array($top['data']) ) {
-            $options->data = array_merge($this->data, $top['data']);
-        } else {
-            $options->data = (array) $this->data;
-        }
+        $options->data = $this->frame()->data ?: array();
 
         return $options;
     }
@@ -719,24 +708,14 @@ class VM
      */
     private function lookupData($depth, $parts, $strict)
     {
-        if( $depth >= $this->dataStack->count() ) {
-            $data = array();
-        } else if( $depth === 0 ) {
-            $data = $this->dataStack->top();
-        } else {
-            $count = $this->dataStack->count();
-            $index = defined('HHVM_VERSION_ID') && HHVM_VERSION_ID < 30700 ? $count - $depth - 1 : $depth;
-            $data = $this->dataStack->offsetGet($index);
+        $data = $this->frame()->data;
+        if( $depth ) {
+            $data = $this->runtime->data($data, $depth);
         }
 
         $first = array_shift($parts);
-
-        if( $first === 'root' && !isset($this->data['root']) ) {
-            $val = $this->data;
-        } else if( isset($data['data'][$first]) ) {
-            $val = $data['data'][$first];
-        } else if( isset($this->data[$first]) ) {
-            $val = $this->data[$first];
+        if( isset($data[$first]) ) {
+            $val = $data[$first];
         } else {
             $val = null;
         }

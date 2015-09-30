@@ -65,23 +65,6 @@ class Runtime extends BaseRuntime
     /**
      * @param array $options
      * @param mixed $context
-     * @return array
-     */
-    private function processDataOption($options, $context)
-    {
-        $data = isset($options['data']) ? $options['data'] : array();
-        if( empty($options['partial']) && !empty($this->options['useData']) ) {
-            if( !$data || !isset($data['root']) ) {
-                $data = $data ? Utils::createFrame($data) : array();
-                $data['root'] = $context;
-            }
-        }
-        return $data;
-    }
-
-    /**
-     * @param array $options
-     * @param mixed $context
      * @return \Handlebars\DepthList
      */
     private function processDepthsOption($options, $context)

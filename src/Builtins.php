@@ -120,7 +120,7 @@ class Builtins
         }
 
         $data = null;
-        if( $options->data ) {
+        if( $options->data !== null ) {
             $data = Utils::createFrame($options->data);
         }
 
@@ -221,7 +221,7 @@ class Builtins
         if( $context !== null ) { // An empty object is true in javascript...
             $fn = $options->fn;
             $data = $options['data'];
-            if( !empty($options->data) && !empty($options->ids) ) {
+            if( $options->data !== null && $options->ids !== null ) {
                 $data = Utils::createFrame($options['data']);
                 $data['contextPath'] = Utils::appendContextPath($options['data'], $options['ids'][0]);
             }
