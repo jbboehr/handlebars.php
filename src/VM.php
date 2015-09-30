@@ -3,6 +3,7 @@
 namespace Handlebars;
 
 use SplStack;
+use SplDoublyLinkedList;
 
 /**
  * Virtual Machine
@@ -106,6 +107,9 @@ class VM
         $this->options = (array) $options;
 
         $this->depths = isset($options['depths']) ? $options['depths'] : new DepthList();
+        /* if( $this->depths instanceof \SplDoublyLinkedList ) {
+            $this->depths->setIteratorMode(SplDoublyLinkedList::IT_MODE_FIFO);
+        } */
 
         // Flags
         $this->compat = !empty($options['compat']);
@@ -293,6 +297,9 @@ class VM
      */
     private function depthedLookup($key)
     {
+        // @todo change depthslist to an SplStack
+        $this->depths->setIteratorMode(SplDoublyLinkedList::IT_MODE_LIFO | SplDoublyLinkedList::IT_MODE_KEEP);
+
         $val = null;
         foreach( $this->depths as $depth ) {
             if( isset($depth[$key]) ) {
@@ -301,6 +308,8 @@ class VM
             }
         }
         $this->push($val);
+
+        $this->depths->setIteratorMode(SplDoublyLinkedList::IT_MODE_FIFO | SplDoublyLinkedList::IT_MODE_KEEP);
     }
 
     /**

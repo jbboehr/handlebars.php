@@ -18,8 +18,10 @@ class Runtime extends BaseRuntime
             $this->options = isset($opcodes['options']) ? $opcodes['options'] : array();
             $this->options['useData'] = !empty($opcodes['options']['data']);
         } else {
-            // @todo PHP extension needs to expose compile options?
+            // @todo PHP extension needs to expose compile options
             $this->options['useData'] = true;
+            $this->options['useDepths'] = true;
+            //$this->options['compat'] = true; // @todo this is broken
         }
 
         $preprocessor = new Preprocessor();
