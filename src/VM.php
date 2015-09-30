@@ -105,6 +105,8 @@ class VM
 
         $this->options = (array) $options;
 
+        $this->depths = isset($options['depths']) ? $options['depths'] : new DepthList();
+
         // Flags
         $this->compat = !empty($options['compat']);
         $this->stringParams = !empty($options['stringParams']);
@@ -178,6 +180,13 @@ class VM
         // Set context
         $frame->context = $context;
 
+        // Push depths
+        $pushedDepths = false;
+        if( !$this->depths->count() || $this->depths->top() !== $context ) {
+            $this->depths->push($context);
+            $pushedDepths = true;
+        }
+
         // Set data
         $frame->data = isset($options['data']) && $options['data'] !== true ? $options['data'] :
             ($parentFrame ? $parentFrame->data : null);
@@ -191,6 +200,11 @@ class VM
 
         // Execute the program
         $this->accept($program['opcodes']);
+
+        // Pop depths
+        if( $pushedDepths ) {
+            $this->depths->pop();
+        }
 
         // Pop the frame stack
         $this->frameStack->pop();
@@ -280,10 +294,9 @@ class VM
     private function depthedLookup($key)
     {
         $val = null;
-        foreach( $this->frameStack as $frame ) {
-            $context = $frame->context;
-            if( is_array($context) && isset($context[$key]) ) {
-                $val = $context[$key];
+        foreach( $this->depths as $depth ) {
+            if( isset($depth[$key]) ) {
+                $val = $depth[$key];
                 break;
             }
         }
@@ -589,14 +602,13 @@ class VM
      */
     private function getContext($depth)
     {
-        $count = $this->frameStack->count();
+        $count = $this->depths->count();
         if( $depth >= $count ) {
             return;
         } else if( $depth === 0 ) {
-            $this->lastContext = $this->frame()->context;
+            $this->lastContext = $this->depths->top();
         } else {
-            $index = defined('HHVM_VERSION_ID') && HHVM_VERSION_ID < 30700 ? $count - $depth - 1 : $depth;
-            $this->lastContext = $this->frameStack->offsetGet($index)->context;
+            $this->lastContext = $this->depths->offsetGet($count - $depth - 1);
         }
     }
 
@@ -789,6 +801,7 @@ class VM
         $options['helpers'] = $this->runtime->getHelpers();
         $options['partials'] = $this->runtime->getPartials();
         $options['decorators'] = $this->runtime->getDecorators();
+        $options['depths'] = $this->depths;
 
         if( !$isDynamic ) {
             $partial = $this->runtime->nameLookup($this->partials, $name);
