@@ -339,6 +339,13 @@ class Runtime
         }
         return $this;
     }
+
+    public function setPartials($partials)
+    {
+        $this->partials = $partials;
+        return $this;
+    }
+
     
     /**
      * Create a new options object from an array

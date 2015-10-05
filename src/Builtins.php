@@ -244,13 +244,14 @@ class Builtins
             $props->partials = array();
             $ret = new ClosureWrapper(function($context, $options) use ($runtime, $fn, $props) {
                 $original = $runtime->getPartials();
-                $runtime->registerPartials($props->partials);
+                $partials = Utils::arrayMerge($original, $props->partials);
+                $runtime->setPartials($partials);
                 $ret = $fn($context, $options);
-                $runtime->registerPartials($original);
+                $runtime->setPartials($original);
                 return $ret;
             });
         }
-        
+
         $props->partials[$options->args[0]] = $options->fn;
         
         return $ret;
