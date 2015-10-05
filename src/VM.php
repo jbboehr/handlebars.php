@@ -811,6 +811,7 @@ class VM
         $options['partials'] = $this->runtime->getPartials();
         $options['decorators'] = $this->runtime->getDecorators();
         $options['depths'] = $this->depths;
+        $options['blockParams'] = $this->frame()->blockParams;
 
         if( !$isDynamic ) {
             $partial = $this->runtime->nameLookup($this->partials, $name);

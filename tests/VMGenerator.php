@@ -32,6 +32,7 @@ class VMGenerator extends Generator
         'testExportInlinePartialsShouldOverrideTemplatePartials1',
         'testExportInlinePartialsShouldOverridePartialsDownTheEntireStack1',
         'testExportInlinePartialsShouldDefineInlinePartialsForPartialCall1',
+        'testExportInlinePartialsShouldDefineInlinePartialsForBlock2',
         'testExportInlinePartialsShouldDefineInlinePartialsForBlock3',
     );
     
