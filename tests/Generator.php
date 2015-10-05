@@ -331,6 +331,7 @@ EOF; */
             $v = var_export($var, true);
             if( is_string($var) ) {
                 $v = str_replace("\n", $v[0] . ' . "\n" . ' . $v[0], $v);
+                $v = str_replace("\r", $v[0] . ' . "\r" . ' . $v[0], $v);
             }
             return $v;
         }
