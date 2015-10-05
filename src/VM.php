@@ -703,13 +703,16 @@ class VM
     private function lookupData($depth, $parts, $strict)
     {
         $data = $this->frame()->data;
+        $first = array_shift($parts);
+
         if( $depth ) {
             $data = $this->runtime->data($data, $depth);
         }
 
-        $first = array_shift($parts);
         if( isset($data[$first]) ) {
             $val = $data[$first];
+        } else if( $first === 'root' ) {
+            $val = $this->depths->bottom();
         } else {
             $val = null;
         }
