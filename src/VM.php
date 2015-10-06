@@ -125,7 +125,7 @@ class VM
         // Alternate stacks
         $this->frameStack = new SplStack();
 
-        // Register decorators
+        // Register and execute decorators
         if( isset($this->opcodes['0_d']) && null === $this->currentDecoratorGuid ) {
             $this->currentDecoratorGuid = 0;
             $this->executeProgramById('0_d', $context);
@@ -133,7 +133,8 @@ class VM
         }
 
         // Execute
-        $buffer = $this->executeProgramById(0, $context, $options);
+        $fn = $this->wrapProgram(0);
+        $buffer = $fn($context, $options);
 
         return $buffer;
     }
@@ -361,8 +362,8 @@ class VM
             $options->hashContexts = $this->pop();
         }
 
-        $options->inverse = $this->wrapProgram($this->pop(), $options);
-        $options->fn = $this->wrapProgram($this->pop(), $options);
+        $options->inverse = $this->wrapProgram($this->pop());
+        $options->fn = $this->wrapProgram($this->pop());
 
         $i = $paramSize;
         $ids = $types = $contexts = array();
@@ -423,10 +424,9 @@ class VM
 
     /**
      * @param integer $program
-     * @param \Handlebars\Options $options
      * @return \Closure
      */
-    private function wrapProgram($program, Options $options)
+    private function wrapProgram($program)
     {
         if( $program === null ) {
             return Utils::noop();
@@ -437,12 +437,12 @@ class VM
             return $self->executeProgramById($program, $context, $options);
         };
 
-        $prog = $this->executeDecorators($program, $prog, $options);
+        $prog = $this->executeDecorators($program, $prog);
 
         return $prog;
     }
 
-    private function executeDecorators($program, $prog, $options)
+    private function executeDecorators($program, $prog)
     {
         if( isset($this->decoratorMap[$program]) ) {
             $decorators = $this->decoratorMap[$program];
