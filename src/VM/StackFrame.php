@@ -10,4 +10,5 @@ class StackFrame
     public $buffer = '';
     public $blockParams;
     public $decorators;
+    public $optionsRegister;
 }

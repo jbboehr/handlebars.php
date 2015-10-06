@@ -315,12 +315,13 @@ class VM
     /**
      * @param integer $paramSize
      * @param string $name
+     * @param boolean $blockHelper
      * @return array
      */
-    private function setupHelper($paramSize, $name)
+    private function setupHelper($paramSize, $name, $blockHelper = false)
     {
         $params = array();
-        $this->setupParams($name, $paramSize, $params);
+        $this->setupParams($name, $paramSize, $params, $blockHelper);
         $foundHelper = isset($this->helpers[$name]) ? $name : null;
         return array(
             'params' => $params,
@@ -400,12 +401,20 @@ class VM
      * @param string $helperName
      * @param integer $paramSize
      * @param array $params
+     * @param boolean $blockHelper
      * @return void
      */
-    private function setupParams($helperName, $paramSize, &$params)
+    private function setupParams($helperName, $paramSize, &$params, $useRegister = false)
     {
         $options = $this->setupOptions($helperName, $paramSize, $params);
-        if( $params === false ) {
+        if( $useRegister ) {
+            if( $useRegister === 'read' ) {
+                $params[] = $this->frame()->optionsRegister;
+            } else {
+                $this->frame()->optionsRegister = $options;
+                $params[] = $this->frame()->optionsRegister;
+            }
+        } else if( $params === false ) {
             return $options;
         } else {
             $params[] = $options;
@@ -463,7 +472,7 @@ class VM
     private function ambiguousBlockValue()
     {
         $params = array($this->frame()->context);
-        $this->setupParams($this->lastHelperName, 0, $params);
+        $this->setupParams($this->lastHelperName, 0, $params, 'read');
 
         $current = $this->pop();
         $params[0] = $current;
@@ -625,12 +634,12 @@ class VM
      * @param string $name
      * @return void
      */
-    private function invokeAmbiguous($name)
+    private function invokeAmbiguous($name, $helperCall)
     {
         $nonhelper = $this->pop();
         $this->emptyHash();
 
-        $helper = $this->setupHelper(0, $name);
+        $helper = $this->setupHelper(0, $name, $helperCall);
         $this->lastHelper = $helper['name'];
         $this->lastHelperName = $name;
 
@@ -913,7 +922,9 @@ class VM
     private function pushProgram($program)
     {
         // Register decorators
-        if( isset($this->opcodes[$program . '_d']) && null === $this->currentDecoratorGuid ) {
+        if( isset($this->opcodes[$program . '_d']) &&
+                null === $this->currentDecoratorGuid &&
+                empty($this->decoratorMap[$program]) ) {
             $this->currentDecoratorGuid = $program;
             $this->executeProgramById($program . '_d');
             $this->currentDecoratorGuid = null;
