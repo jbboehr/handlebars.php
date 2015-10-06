@@ -128,7 +128,7 @@ class VM
         // Register decorators
         if( isset($this->opcodes['0_d']) && null === $this->currentDecoratorGuid ) {
             $this->currentDecoratorGuid = 0;
-            $this->executeProgramById('0_d');
+            $this->executeProgramById('0_d', $context);
             $this->currentDecoratorGuid = null;
         }
 
@@ -926,7 +926,7 @@ class VM
                 null === $this->currentDecoratorGuid &&
                 empty($this->decoratorMap[$program]) ) {
             $this->currentDecoratorGuid = $program;
-            $this->executeProgramById($program . '_d');
+            $this->executeProgramById($program . '_d', $this->depths->top());
             $this->currentDecoratorGuid = null;
         }
 
