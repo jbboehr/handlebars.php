@@ -34,6 +34,9 @@ class VMGenerator extends Generator
         'testExportInlinePartialsShouldDefineInlinePartialsForPartialCall1',
         'testExportInlinePartialsShouldDefineInlinePartialsForBlock2',
         'testExportInlinePartialsShouldDefineInlinePartialsForBlock3',
+        'testExportRegressionsGH1089ShouldSupportFailoverContentInMultipleLevelsOfInlinePartials1',
+        'testExportRegressionsShouldSupportMultipleLevelsOfInlinePartials1',
+        'testExportInlinePartialsShouldDefineInlinePartialsInPartialBlockCall1',
     );
     
     public function __construct(array $options)
