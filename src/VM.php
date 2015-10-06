@@ -446,6 +446,7 @@ class VM
     {
         if( isset($this->decoratorMap[$program]) ) {
             $decorators = $this->decoratorMap[$program];
+            $props = new \stdClass;
             foreach( $decorators as $decoratorInfo ) {
                 list($decorator, $decoratorOptions) = $decoratorInfo;
                 $prog = (!($prog instanceof ClosureWrapper) ? new ClosureWrapper($prog) : $prog);
@@ -453,11 +454,10 @@ class VM
                     $decoratorOptions->fn = new ClosureWrapper($decoratorOptions->fn);
                 }
 
-                $props = new \stdClass;
                 $prog = $decorator($prog, $props, $this->runtime, $decoratorOptions) ?: $prog;
-                foreach( $props as $k => $v ) {
-                    $prog->$k = $v;
-                }
+            }
+            foreach( $props as $k => $v ) {
+                $prog->$k = $v;
             }
         }
 
@@ -972,7 +972,7 @@ class VM
         if( null === $this->currentDecoratorGuid ) {
             throw new \Exception('currentDecoratorGuid should not be null');
         }
-
+        
         $this->decoratorMap[$this->currentDecoratorGuid][] = array($found, $options);
     }
 

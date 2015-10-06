@@ -255,6 +255,5 @@ class Builtins
         $props->partials[$options->args[0]] = $options->fn;
         
         return $ret;
-        //throw new Exception('Not yet implemented');
     }
 }
