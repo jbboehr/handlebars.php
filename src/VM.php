@@ -82,8 +82,6 @@ class VM
      */
     private $useDepths = false;
 
-    private $decoratorMap;
-
     private $currentDecoratorGuid;
 
     /**
@@ -124,13 +122,6 @@ class VM
 
         // Alternate stacks
         $this->frameStack = new SplStack();
-
-        // Register and execute decorators
-        if( isset($this->opcodes['0_d']) && null === $this->currentDecoratorGuid ) {
-            $this->currentDecoratorGuid = 0;
-            $this->executeProgramById('0_d', $context);
-            $this->currentDecoratorGuid = null;
-        }
 
         // Execute
         $fn = $this->wrapProgram(0);
@@ -184,6 +175,11 @@ class VM
 
         // Set context
         $frame->context = $context;
+
+        // Set internal options
+        if( !empty($options['internal']) ) {
+            $frame->internal = $options['internal'];
+        }
 
         // Push depths
         $pushedDepths = false;
@@ -437,25 +433,18 @@ class VM
             return $self->executeProgramById($program, $context, $options);
         };
 
-        $prog = $this->executeDecorators($program, $prog);
+        // @todo don't execute this more than once?
 
-        return $prog;
-    }
-
-    private function executeDecorators($program, $prog)
-    {
-        if( isset($this->decoratorMap[$program]) ) {
-            $decorators = $this->decoratorMap[$program];
+        // Register decorators
+        if( isset($this->opcodes[$program . '_d']) ) {
             $props = new \stdClass;
-            foreach( $decorators as $decoratorInfo ) {
-                list($decorator, $decoratorOptions) = $decoratorInfo;
-                $prog = (!($prog instanceof ClosureWrapper) ? new ClosureWrapper($prog) : $prog);
-                if( $decoratorOptions->fn instanceof \Closure ) {
-                    $decoratorOptions->fn = new ClosureWrapper($decoratorOptions->fn);
-                }
-
-                $prog = $decorator($prog, $props, $this->runtime, $decoratorOptions) ?: $prog;
-            }
+            $context = $this->depths->count() ? $this->depths->top() : null;
+            $prog = $this->executeProgramById($program . '_d', $context, array(
+                'internal' => (object) array(
+                    'prog' => $prog,
+                    'props' => $props
+                ),
+            ));
             foreach( $props as $k => $v ) {
                 $prog->$k = $v;
             }
@@ -921,15 +910,6 @@ class VM
      */
     private function pushProgram($program)
     {
-        // Register decorators
-        if( isset($this->opcodes[$program . '_d']) &&
-                null === $this->currentDecoratorGuid &&
-                empty($this->decoratorMap[$program]) ) {
-            $this->currentDecoratorGuid = $program;
-            $this->executeProgramById($program . '_d', $this->depths->top());
-            $this->currentDecoratorGuid = null;
-        }
-
         $this->push($program);
     }
 
@@ -964,16 +944,28 @@ class VM
         if( !isset($this->decorators[$name]) ) {
             throw new RuntimeException('Unknown decorator: ' . $name);
         }
-        $found = $this->decorators[$name];
+        $decorator = $this->decorators[$name];
         
         $params = false;
         $options = $this->setupParams($name, $paramSize, $params);
 
-        if( null === $this->currentDecoratorGuid ) {
-            throw new \Exception('currentDecoratorGuid should not be null');
+        if( !isset($this->frame()->internal) ) {
+            throw new \Exception('registerDecorator called without internal context');
         }
-        
-        $this->decoratorMap[$this->currentDecoratorGuid][] = array($found, $options);
+
+        $prog = $this->frame()->internal->prog;
+        $props = $this->frame()->internal->props;
+        $decoratorOptions = $options;
+
+        $prog = (!($prog instanceof ClosureWrapper) ? new ClosureWrapper($prog) : $prog);
+
+        if( $decoratorOptions->fn instanceof \Closure ) {
+            $decoratorOptions->fn = new ClosureWrapper($decoratorOptions->fn);
+        }
+
+        $prog = $decorator($prog, $props, $this->runtime, $decoratorOptions) ?: $prog;
+
+        $this->frame()->buffer = $this->frame()->internal->prog = $prog; // fear
     }
 
     /**

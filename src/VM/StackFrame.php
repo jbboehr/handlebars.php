@@ -11,4 +11,5 @@ class StackFrame
     public $blockParams;
     public $decorators;
     public $optionsRegister;
+    public $internal;
 }
