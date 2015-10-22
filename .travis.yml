@@ -7,7 +7,7 @@ php:
   - 5.6
   - 7.0
 
-env: LIBHANDLEBARS_VERSION=0.3.1 PHP_HANDLEBARS_VERSION=0.5.1
+env: LIBHANDLEBARS_VERSION=0.2.6 PHP_HANDLEBARS_VERSION=0.4.4
 
 matrix:
   fast_finish: true
@@ -17,7 +17,7 @@ matrix:
 branches:
   only:
     - master
-    - travis-fix
+    - dev-0.4
 
 sudo: false
 
@@ -58,4 +58,3 @@ script:
 
 after_success:
   - ./.travis.sh after_success
-
