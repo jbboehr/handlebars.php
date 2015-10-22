@@ -100,7 +100,7 @@ class Utils
             }
             $array = $newArray;
         } else {
-            $array = null;
+            throw new InvalidArgumentException('$array was not an array or Traversable');
         }
         
         return $array;
@@ -140,6 +140,18 @@ class Utils
         }
 
         return (string) $value;
+    }
+
+    public static function escapeExpression($value, $compat = true)
+    {
+        if( $value instanceof SafeString ) {
+            return $value->__toString();
+        }
+        $value = $compat ? self::expression($value) : $value;
+        $value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+        // Handlebars uses hex entities >.>
+        $value = str_replace(array('`', '&#039;'), array('&#x60;', '&#x27;'), $value);
+        return $value;
     }
 
     /**

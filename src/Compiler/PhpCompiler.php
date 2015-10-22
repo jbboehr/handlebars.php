@@ -1,9 +1,9 @@
 <?php
 
-namespace Handlebars;
+namespace Handlebars\Compiler;
 
 use SplStack;
-use Handlebars\Compiler\CodeGen;
+use Handlebars\Hash;
 
 /**
  * PHP compiler
@@ -61,7 +61,7 @@ class PhpCompiler
     private $lastContext;
 
     /**
-     * @var array
+     * @var \Handlebars\Compiler\CodeGen
      */
     private $source;
 
@@ -141,22 +141,11 @@ class PhpCompiler
     private $useBlockParams;
     
     private $blockParams;
-    
-    private $decorators;
-    
-    
+
     /**
-     * Magic call method
-     *
-     * @internal
-     * @param string $method
-     * @param array $args
-     * @throws \Handlebars\CompileException
+     * @var \Handlebars\Compiler\CodeGen
      */
-    public function __call($method, $args)
-    {
-        throw new CompileException('Undefined method: ' . $method);
-    }
+    private $decorators;
 
     /**
      * @param array $environment
@@ -185,7 +174,7 @@ class PhpCompiler
         $this->pushSource('');
 
         if( $this->stackSlot || $this->inlineStack->count() || $this->compileStack->count() ) {
-            throw new CompileException('Compile completed with content left on stack');
+            throw new CompileException('Compile completed with content left on stack'); // @codeCoverageIgnore
         }
         
         // @todo https://github.com/wycats/handlebars.js/compare/v3.0.3...v4.0.2#diff-12fc6be51b9642b813f72c8bd16d891aR111
@@ -219,12 +208,7 @@ class PhpCompiler
         $this->stringParams = !empty($this->options['stringParams']);
         $this->trackIds = !empty($this->options['trackIds']);
         $this->jsCompat = empty($this->options['disableJsCompat']);
-        
-        if( version_compare(phpversion('handlebars'), '0.4.0', '<') ) {
-            $this->nativeRuntime = false;
-        } else {
-            //$this->nativeRuntime = empty($this->options['disableNativeRuntime']);
-        }
+        $this->nativeRuntime = empty($this->options['disableNativeRuntime']);
 
         if( !isset($this->options['data']) ) {
             $this->options['data'] = true;
@@ -234,8 +218,7 @@ class PhpCompiler
         }
 
         $this->name = isset($this->environment['name']) ? $this->environment['name'] : null;
-        
-        
+
         $this->lastContext = 0;
         $this->source = new CodeGen(!empty($this->options['srcName']) ? $this->options['srcName'] : null);
         $this->decorators = new CodeGen(!empty($this->options['srcName']) ? $this->options['srcName'] : null);
@@ -290,8 +273,6 @@ class PhpCompiler
         if( !empty($locals) ) {
             $varDeclarations .= implode(' = null' . ';' . self::EOL . $this->i(1), $locals) . ' = null';
         }
-
-        // @todo aliases?
 
         $params = array('$depth0', '$helpers', '$partials', '$data', '$runtime');
 
@@ -358,7 +339,6 @@ class PhpCompiler
             
             $this->source->currentLocation = array('start' => array('line' => 1, 'column' => 0));
             $ret = $this->objectLiteral($ret);
-            // @todo stuff was here
         }
         return $ret;
     }
@@ -446,7 +426,9 @@ class PhpCompiler
 
     /**
      * @param string $source
-     * @return string|\Handlebars\AppendToBuffer
+     * @param array $location
+     * @param boolean $explicit
+     * @return \Handlebars\Compiler\SourceNode|array
      */
     private function appendToBuffer($source, $location = null, $explicit = false)
     {
@@ -459,7 +441,6 @@ class PhpCompiler
         if( !empty($this->environment['isSimple']) ) {
             return array('return ', $fn, '(', $source, ');');
         } else if( $explicit ) {
-            // @todo make sure this is right
             return array('$buffer .= ', $fn, '(', $source, ');');
         } else {
             $source->appendToBuffer = true;
@@ -469,6 +450,7 @@ class PhpCompiler
 
     /**
      * @param integer $context
+     * @return string
      */
     private function contextName($context)
     {
@@ -582,27 +564,6 @@ class PhpCompiler
      */
     public function nameLookup($parent, $name, $type = null)
     {
-        /*
-        if( $this->nativeRuntime ) {
-            // Note: this isn't working quite right yet
-            return '\\Handlebars\Native::nameLookup(' . $parent . ', ' . var_export($name, true) . ')';
-        }
-        if( !empty($this->options['nameLookup'][$type]) ) {
-            switch( $this->options['nameLookup'][$type] ) {
-                case 'arrayaccess':
-                    return $parent . '[' . var_export($name, true) . ']';
-                    break;
-                case 'array':
-                    $expr = $parent . '[' . var_export($name, true) . ']';
-                    return '(isset(' . $expr . ') ? ' . $expr . ' : null)';
-                    break;
-                case 'object':
-                    $expr = $parent . '->' . var_export($name, true) . '}';
-                    return '(isset(' . $expr . ') ? ' . $expr . ' : null)';
-                    break;
-            }
-        }
-        */
         return array('$runtime->nameLookup(', $parent, ', ', var_export($name, true), ')');
     }
 
@@ -610,21 +571,9 @@ class PhpCompiler
      * @param mixed $obj
      * @return string
      */
-    private function objectLiteral($obj, $i = null)
+    private function objectLiteral($obj)
     {
         return $this->source->objectLiteral($obj);
-        /*
-        $pairs = array();
-        foreach( $obj as $k => $v ) {
-            $pairs[] = var_export($k, true) . ' => ' . ($v === null ? 'null' : $v);
-        }
-        $i1 = $i ? self::EOL . $this->i($i + 1) : '';
-        $i2 = $i ? $i1 : ' ';
-        $i3 = $i ? self::EOL . $this->i($i) : '';
-        return 'array(' . $i1
-            . $this->safeJoin(',' . $i2, $pairs)
-            . $i3 . ')';
-        */
     }
 
     /**
@@ -643,20 +592,11 @@ class PhpCompiler
         
         if( !$inline ) {
             if( !$this->stackSlot ) {
-                throw new CompileException('Invalid stack pop');
+                throw new CompileException('Invalid stack pop'); // @codeCoverageIgnore
             }
             $this->stackSlot--;
         }
         return $item;
-    }
-
-    /**
-     * @return void
-     */
-    private function preamble()
-    {
-        $this->lastContext = 0;
-        $this->source = array();
     }
 
     /**
@@ -704,23 +644,13 @@ class PhpCompiler
                 '$blockParams[' . $name[0] . ']["path"][' . $name[1] . ']'
                     . ($child ? ' . ' . var_export('.' . $child, true) . '' : '')
             );
-        } else if( $type === 'PathExpression' ) { // @todo make sure it's right
+        } else if( $type === 'PathExpression' ) {
             $this->pushString($name);
-        } else if( $type === 'SubExpression' ) { // @todo make sure it's right
+        } else if( $type === 'SubExpression' ) {
             $this->pushStackLiteral('true');
         } else {
             $this->pushStackLiteral('null');
         }
-    }
-
-    /**
-     * @deprecated
-     * @param mixed $item
-     * @return string
-     */
-    private function pushStack($item)
-    {
-        throw new BadMethodCallException('pushStack is deprecated');
     }
 
     /**
@@ -765,7 +695,7 @@ class PhpCompiler
     private function replaceStack($callback)
     {
         if( !$this->isInline() ) {
-            throw new CompileException('replaceStack on non-inline');
+            throw new CompileException('replaceStack on non-inline'); // @codeCoverageIgnore
         }
         
         $createdStack = false;
@@ -832,11 +762,13 @@ class PhpCompiler
 
     /**
      * @param string $str
+     * @return string
+     * @throws InvalidArgumentException
      */
     private function safeString($str)
     {
         if( is_array($str) ) {
-            throw new \Exception("AADASDFJKSOEDJFLSDKJFG");
+            throw new InvalidArgumentException("safeString was given an array"); // @codeCoverageIgnore
         }
         
         $strval = (string) $str;
@@ -855,10 +787,10 @@ class PhpCompiler
     private function topStack()
     {
         $stack = count($this->inlineStack) ? $this->inlineStack : $this->compileStack;
-        $item = $stack->top(); // @todo make sure this is right
+        $item = $stack->top();
 
         if( $item instanceof Literal ) {
-            return $item->getValue();
+            return $item->getValue(); // @codeCoverageIgnore
         } else {
             return $item;
         }
@@ -912,7 +844,7 @@ class PhpCompiler
     private function setupOptions($helper, $paramSize, &$params)
     {
         if( $params === false ) {
-            unset($params); // @todo make sure this works right, needs to break the reference
+            unset($params);
             $params = array();
             $objectArgs = true;
         } else {
@@ -1062,10 +994,7 @@ class PhpCompiler
             $local = $this->popStack();
             $this->pushSource(array(
                 'if( ', $local, ' !== null ) { ',
-                //$fn,
-                //'(',
                 $this->appendToBuffer($local, null, true),
-                //')',
                 ' }'
             ));
             if( !empty($this->environment['isSimple']) ) {
@@ -1145,7 +1074,6 @@ class PhpCompiler
         array_splice($params, 0, 1, array($blockName));
         
         $this->push($this->source->functionCall($blockHelperMissingName, 'call', $params));
-        //$this->push('call_user_func(' . $this->safeJoin(', ', $params) . ');');
     }
 
     /**
@@ -1205,8 +1133,6 @@ class PhpCompiler
             $register,
             ' : ', 
             $this->source->functionCall($register, 'call', $helper['callParams'])
-            /* call_user_func(',
-            $this->safeJoin(', ', $params) . ')' */
         ));
     }
 
@@ -1226,24 +1152,13 @@ class PhpCompiler
 
         $helperName = ($isSimple ? $helper['name'] : array('null'));
         $helperMissingName = $this->nameLookup('$helpers', 'helperMissing', 'helper');
-        
-        // @todo some stuff might've changed here
+
         $this->pushSource('(' . $register . ' = ' . join('', $helperName) . ') !== null' . self::EOL
             . $this->i(2) . ' ?: (' . $register . ' = ' . $nonhelper . ') !== null' . self::EOL
             . $this->i(2) . ' ?: (' . $register . ' = ' . join('', $helperMissingName) . ') !== null' . self::EOL
             . $this->i(2) . ' ?: $runtime->helperMissingMissing();');
 
-        //$params = $helper['params'];
-        //array_unshift($params, $register);
-        
         $this->push($this->source->functionCall($register, 'call', $helper['callParams']));
-        /*
-        $this->push(array(
-            '!' . $this->isCallableFunctionName() . '(' . $register . ') ? ',
-            $register . ' : call_user_func(',
-            $this->safeJoin(', ', $params) . ')'
-        ));
-        */
     }
 
     /**
@@ -1255,16 +1170,6 @@ class PhpCompiler
     {
         $helper = $this->setupHelper($paramSize, $name, false);
         $this->push($this->source->functionCall($helper['name'], 'call', $helper['callParams']));
-        /*
-        $params = $helper['params'];
-        array_unshift($params, $helper['name']);
-        
-        $this->push(array(
-            'call_user_func(' . self::EOL,
-            $this->i(2) . $this->safeJoin(',' . self::EOL . $this->i(2), $params) . self::EOL,
-            $this->i(1) . ')'
-        ));
-        */
     }
 
     /**
@@ -1339,15 +1244,6 @@ class PhpCompiler
         }
 
         $this->resolvePath('data', $parts, 0, true, $strict);
-        /*
-        $self = $this;
-        foreach( $parts as $part ) {
-            $this->replaceStack(function ($current) use ($self, $part) {
-                $lookup = $self->nameLookup($current, $part, 'data');
-                return ' ? ' . $lookup . ' : null';
-            });
-        }
-        */
     }
 
     /**
@@ -1368,19 +1264,6 @@ class PhpCompiler
         }
 
         $this->resolvePath('context', $parts, $i, $falsy, $strict);
-        /*
-        $self = $this;
-        for( $l = count($parts); $i < $l; $i++ ) {
-            $this->replaceStack(function ($current) use ($self, &$parts, &$i, $falsy) {
-                $lookup = $self->nameLookup($current, $parts[$i], 'context');
-                if( !$falsy ) {
-                    return ' !== null ? ' . $lookup . ' : ' . $current;
-                } else {
-                    return ' ? ' . $lookup . ' : null';
-                }
-            });
-        }
-        */
     }
 
     /**
@@ -1462,7 +1345,7 @@ class PhpCompiler
         $this->pushContext();
         $this->pushString($type);
 
-        if( $type != 'SubExpression' ) { // @todo make sure this is right
+        if( $type != 'SubExpression' ) {
             if( is_string($string) ) {
                 $this->pushString($string);
             } else {

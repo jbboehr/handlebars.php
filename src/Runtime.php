@@ -115,10 +115,7 @@ class Runtime
      */
     public function escapeExpression($value)
     {
-        if( $value instanceof SafeString ) {
-            return $value->__toString();
-        }
-        return htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+        return Utils::escapeExpression($value, false);
     }
 
     /**
@@ -131,14 +128,7 @@ class Runtime
      */
     public function escapeExpressionCompat($value)
     {
-        if( $value instanceof SafeString ) {
-            return $value->__toString();
-        }
-        $value = $this->expression($value);
-        $value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
-        // Handlebars uses hex entities >.>
-        $value = str_replace(array('`', '&#039;'), array('&#x60;', '&#x27;'), $value);
-        return $value;
+        return Utils::escapeExpression($value);
     }
 
     /**
@@ -270,14 +260,6 @@ class Runtime
             return $current;
         }
     }
-
-    /**
-     * Deprecated, use lookupData
-     */
-    public function lookup($depths, $name)
-    {
-        return $this->lookupData($depths, $name);
-    }
     
     /**
      * Lookup recursively the specified field in the depths list
@@ -331,14 +313,6 @@ class Runtime
         }
         return $programWrapper;
     }
-    
-    public function registerPartials($partials)
-    {
-        foreach( $partials as $k => $v ) {
-            $this->partials[$k] = $v;
-        }
-        return $this;
-    }
 
     public function setPartials($partials)
     {
@@ -356,31 +330,6 @@ class Runtime
     public function setupOptions(array $options)
     {
         return new Options($options);
-    }
-
-    /**
-     * @param mixed $partial
-     * @param mixed $data
-     * @return callable
-     */
-    private function compilePartial($partial, $data)
-    {
-        // Maybe allow closures
-        if( is_string($partial) ) {
-            if( isset($this->partials[$partial]) ) {
-                $partial = $this->partials[$partial];
-            }
-            if( !$partial ) {
-                //return Utils::noop();
-            } else {
-                return $this->handlebars->compile($partial, array(
-                    'data' => ($data !== null),
-                    'compat' => !empty($this->options['compat']),
-                ));
-            }
-        } else if( Utils::isCallable($partial) ) {
-            return $partial;
-        }
     }
     
     private function resolvePartial($partial, &$options)

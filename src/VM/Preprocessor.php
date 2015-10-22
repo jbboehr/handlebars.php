@@ -3,6 +3,7 @@
 namespace Handlebars\VM;
 
 use SplStack;
+use Handlebars\CompileException;
 
 class Preprocessor
 {
@@ -72,7 +73,7 @@ class Preprocessor
                 if( $program !== null ) {
                     $top = $this->programStack->top();
                     if( !isset($top['children'][$program]) ) {
-                        throw new \Exception('Missing program: ' . $program);
+                        throw new CompileException('Missing program: ' . $program);
                     }
                     $guid = $top['children'][$program]['guid'];
                     $opcode['args'][0] = $guid;

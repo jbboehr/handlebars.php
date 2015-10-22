@@ -4,7 +4,7 @@ namespace Handlebars\Compiler;
 
 use Handlebars\Handlebars;
 use Handlebars\Runtime as BaseRuntime;
-use Handlebars\Utils;
+use Handlebars\RuntimeException;
 use Handlebars\DepthList;
 
 class Runtime extends BaseRuntime

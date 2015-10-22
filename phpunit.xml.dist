@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <phpunit backupGlobals="false"
-         backupStaticAttributes="false" 
+         backupStaticAttributes="false"
          bootstrap="tests/bootstrap.php"
          cacheTokens="true"
          colors="false"
@@ -12,19 +12,29 @@
          stopOnFailure="false"
          syntaxCheck="false"
          verbose="false">
-         
-  <testsuites>
-    <testsuite name="Handlebars Test">
-      <directory>./tests/</directory>
-    </testsuite>
-  </testsuites>
-  
-  <filter>
-    <blacklist>
-      <directory>vendor</directory>
-      <directory>doc</directory>
-      <directory>reports</directory>
-      <directory>tests</directory>
-    </blacklist>
-  </filter>
+
+    <testsuites>
+        <testsuite name="Handlebars Test">
+            <directory>tests</directory>
+        </testsuite>
+    </testsuites>
+
+    <filter>
+        <whitelist>
+            <directory processUncoveredFilesFromWhitelist="true">src</directory>
+            <exclude>
+                <file>src/CompileException.php</file>
+                <file>src/Exception.php</file>
+                <file>src/InvalidArgumentException.php</file>
+                <file>src/RuntimeException.php</file>
+                <file>src/SafeString.php</file>
+            </exclude>
+        </whitelist>
+        <blacklist>
+            <directory>doc</directory>
+            <directory>reports</directory>
+            <directory>tests</directory>
+            <directory>vendor</directory>
+        </blacklist>
+    </filter>
 </phpunit>

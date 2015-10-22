@@ -17,11 +17,6 @@ class Runtime extends BaseRuntime
         if( isset($opcodes['options']) ) {
             $this->options = isset($opcodes['options']) ? $opcodes['options'] : array();
             $this->options['useData'] = !empty($opcodes['options']['data']);
-        } else {
-            // @todo PHP extension needs to expose compile options
-            $this->options['useData'] = true;
-            $this->options['useDepths'] = true;
-            //$this->options['compat'] = true; // @todo this is broken
         }
 
         $preprocessor = new Preprocessor();
@@ -30,8 +25,6 @@ class Runtime extends BaseRuntime
 
     public function __invoke($context = null, $options = null)
     {
-        // @todo get from opcodes
-        //$this->options = $options;
         $options = array_merge((array) $this->options, (array) $options);
 
         parent::__invoke($context, $options);
@@ -42,7 +35,7 @@ class Runtime extends BaseRuntime
             $options['data'] = $data;
         }
 
-        $vm = new \Handlebars\VM();
+        $vm = new VM();
         $result = $vm->execute($this, $this->opcodes, $context, $options);
         return $result;
     }

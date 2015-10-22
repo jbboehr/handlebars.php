@@ -81,7 +81,7 @@ abstract class Generator
 namespace {$this->namespace};
 
 use \Handlebars\Handlebars;
-use \Handlebars\PhpCompiler;
+use \Handlebars\Compiler\PhpCompiler;
 use \Handlebars\Runtime;
 use \Handlebars\SafeString;
 use \Handlebars\Utils;

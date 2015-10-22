@@ -1,6 +1,7 @@
 <?php
 
-namespace Handlebars;
+
+namespace Handlebars\Compiler;
 
 /**
  * @internal

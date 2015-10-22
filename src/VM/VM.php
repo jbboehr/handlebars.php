@@ -1,15 +1,32 @@
 <?php
 
-namespace Handlebars;
+namespace Handlebars\VM;
 
 use SplStack;
 use SplDoublyLinkedList;
+
+use Handlebars\ClosureWrapper;
+use Handlebars\DepthList;
+use Handlebars\Hash;
+use Handlebars\Options;
+use Handlebars\RuntimeException;
+use Handlebars\Utils;
 
 /**
  * Virtual Machine
  */
 class VM
 {
+    /**
+     * @var \Handlebars\VM\Runtime
+     */
+    private $runtime;
+
+    /**
+     * Input decorators
+     *
+     * @var array
+     */
     private $decorators;
 
     /**
@@ -144,19 +161,6 @@ class VM
         }
     }
 
-    /**
-     * Magic call method
-     *
-     * @internal
-     * @param string $method
-     * @param array $args
-     * @throws \Handlebars\RuntimeException
-     */
-    public function __call($method, $args)
-    {
-        throw new RuntimeException('Undefined method: ' . $method);
-    }
-
     public function frame()
     {
         return $this->frameStack->top();
@@ -167,7 +171,7 @@ class VM
     {
         // Push the frame stack
         $parentFrame = $this->frameStack->count() ? $this->frameStack->top() : null;
-        $this->frameStack->push(new VM\StackFrame());
+        $this->frameStack->push(new StackFrame());
         $frame = $this->frameStack->top();
 
         // Set program
@@ -228,7 +232,7 @@ class VM
     public function executeProgramById($program, $context = null, $options = null)
     {
         if( !isset($this->opcodes[$program]) ) {
-            throw new RuntimeException('Assertion failed: undefined program #' . $program);
+            throw new RuntimeException('Assertion failed: undefined program #' . $program); // @codeCoverageIgnore
         }
 
         return $this->executeProgramByRef($this->opcodes[$program], $context, $options);
@@ -335,7 +339,7 @@ class VM
     private function setupOptions($helper, $paramSize, &$params)
     {
         if( $params === false ) {
-            unset($params); // @todo make sure this works right, needs to break the reference
+            unset($params);
             $params = array();
             $objectArgs = true;
         } else {
@@ -480,10 +484,6 @@ class VM
     {
         $local = $this->pop();
         if( $local !== null ) {
-            // Stringify booleans
-            if( is_bool($local) ) {
-                $local = $local ? 'true' : 'false';
-            }
             $this->frame()->buffer .= Utils::expression($local);
         }
     }
@@ -494,7 +494,7 @@ class VM
      */
     private function appendContent($content)
     {
-        $this->frame()->buffer .= Utils::expression($content);
+        $this->frame()->buffer .= $this->runtime->expression($content);
     }
 
     /**
@@ -502,39 +502,10 @@ class VM
      */
     private function appendEscaped()
     {
-        // Get top of stack
-        $top = $this->pop();
-        if( $top === null ) {
-            // do nothing
-            return;
+        $local = $this->pop();
+        if( $local !== null ) {
+            $this->frame()->buffer .= $this->runtime->escapeExpressionCompat($local);
         }
-
-        if( Utils::isCallable($top) ) {
-            $top = call_user_func($top, $this->frame()->context);
-        }
-
-        if( $top instanceof SafeString ) {
-            $this->frame()->buffer .= Utils::expression($top);
-            return;
-        }
-
-        if( is_array($top) ) {
-            // this is javascript behaviour, perhaps remove
-            $top = implode(',', $top);
-        }
-        if( !is_scalar($top) ) {
-            throw new RuntimeException('Top of stack was not scalar or lambda, was: ' . gettype($top));
-        }
-
-        // Stringify booleans
-        if( is_bool($top) ) {
-            $top = $top ? 'true' : 'false';
-        }
-
-        $v = htmlspecialchars($top, ENT_QUOTES, 'UTF-8');
-        // Handlebars uses hex entities >.>
-        $v = str_replace(array('`', '&#039;'), array('&#x60;', '&#x27;'), $v);
-        $this->frame()->buffer .= $v;
     }
 
     /**
@@ -686,7 +657,7 @@ class VM
         $helper = $this->setupHelper($paramSize, $name);
         $helperFn = $this->getHelper($helper['name']);
         if( !$helperFn ) {
-            throw new RuntimeException('Unknown helper: ' . $name);
+            throw new RuntimeException('Unknown helper: ' . $name); // @codeCoverageIgnore
         }
         $result = call_user_func_array($helperFn, $helper['params']);
         $this->push($result);
@@ -739,8 +710,10 @@ class VM
             if( isset($value[$k]) ) {
                 $value = $value[$k];
             } else {
+                // @codeCoverageIgnoreStart
                 $value = null;
                 break;
+                // @codeCoverageIgnoreEnd
             }
         }
 
@@ -942,7 +915,7 @@ class VM
     private function registerDecorator($paramSize, $name)
     {
         if( !isset($this->decorators[$name]) ) {
-            throw new RuntimeException('Unknown decorator: ' . $name);
+            throw new RuntimeException('Unknown decorator: ' . $name); // @codeCoverageIgnore
         }
         $decorator = $this->decorators[$name];
         
@@ -950,7 +923,7 @@ class VM
         $options = $this->setupParams($name, $paramSize, $params);
 
         if( !isset($this->frame()->internal) ) {
-            throw new \Exception('registerDecorator called without internal context');
+            throw new RuntimeException('registerDecorator called without internal context'); // @codeCoverageIgnore
         }
 
         $prog = $this->frame()->internal->prog;
@@ -959,8 +932,8 @@ class VM
 
         $prog = (!($prog instanceof ClosureWrapper) ? new ClosureWrapper($prog) : $prog);
 
-        if( $decoratorOptions->fn instanceof \Closure ) {
-            $decoratorOptions->fn = new ClosureWrapper($decoratorOptions->fn);
+        if( $decoratorOptions->fn ) {
+            $decoratorOptions->fn = ClosureWrapper::wrap($decoratorOptions->fn);
         }
 
         $prog = $decorator($prog, $props, $this->runtime, $decoratorOptions) ?: $prog;

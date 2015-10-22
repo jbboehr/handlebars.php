@@ -103,6 +103,12 @@ class UtilsTest extends Common
         $this->assertEquals($arr6[0], 'b');
         $this->assertEquals($arr6[1], 'a');
     }
+
+    public function testArrayUnshiftThrowsWithScalar()
+    {
+        $this->setExpectedException('\\Handlebars\\InvalidArgumentException');
+        Utils::arrayUnshift('b', 'b');
+    }
     
     public function testCreateFrame()
     {

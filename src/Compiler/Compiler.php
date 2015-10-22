@@ -1,6 +1,8 @@
 <?php
 
-namespace Handlebars;
+namespace Handlebars\Compiler;
+
+use Handlebars\Native;
 
 /**
  * Compile wrapper class
@@ -33,29 +35,6 @@ class Compiler
     }
 
     /**
-     * Compile an array of templates (for use with partials, typically)
-     *
-     * @param $tmpls
-     * @param $options
-     * @return array
-     */
-    public function compileMany(array $tmpls = null, array $options = null)
-    {
-        $opcodes = array();
-        foreach( (array) $tmpls as $index => $tmpl ) {
-            if( !$tmpl ) {
-                $opcodes[$index] = array(
-                    'opcodes' => array(),
-                    'children' => array()
-                );
-            } else {
-                $opcodes[$index] = $this->compile($tmpl, $options);
-            }
-        }
-        return $opcodes;
-    }
-
-    /**
      * Convert options array to integer compiler flags
      *
      * @param $options
@@ -66,31 +45,31 @@ class Compiler
         // Make flags
         $flags = 0;
         if( !empty($options['compat']) ) {
-            $flags |= COMPILER_FLAG_COMPAT;
+            $flags |= \Handlebars\COMPILER_FLAG_COMPAT;
         }
         if( !empty($options['stringParams']) ) {
-            $flags |= COMPILER_FLAG_STRING_PARAMS;
+            $flags |= \Handlebars\COMPILER_FLAG_STRING_PARAMS;
         }
         if( !empty($options['trackIds']) ) {
-            $flags |= COMPILER_FLAG_TRACK_IDS;
+            $flags |= \Handlebars\COMPILER_FLAG_TRACK_IDS;
         }
         if( !empty($options['useDepths']) ) {
-            $flags |= COMPILER_FLAG_USE_DEPTHS;
+            $flags |= \Handlebars\COMPILER_FLAG_USE_DEPTHS;
         }
         if( !empty($options['knownHelpersOnly']) ) {
-            $flags |= COMPILER_FLAG_KNOWN_HELPERS_ONLY;
+            $flags |= \Handlebars\COMPILER_FLAG_KNOWN_HELPERS_ONLY;
         }
         if( !empty($options['preventIndent']) ) {
-            $flags |= COMPILER_FLAG_PREVENT_INDENT;
+            $flags |= \Handlebars\COMPILER_FLAG_PREVENT_INDENT;
         }
         if( !empty($options['explicitPartialContext']) ) {
-            $flags |= COMPILER_FLAG_EXPLICIT_PARTIAL_CONTEXT;
+            $flags |= \Handlebars\COMPILER_FLAG_EXPLICIT_PARTIAL_CONTEXT;
         }
         if( !empty($options['ignoreStandalone']) ) {
-            $flags |= COMPILER_FLAG_IGNORE_STANDALONE;
+            $flags |= \Handlebars\COMPILER_FLAG_IGNORE_STANDALONE;
         }
         if( !empty($options['alternateDecorators']) ) {
-            $flags |= COMPILER_FLAG_ALTERNATE_DECORATORS;
+            $flags |= \Handlebars\COMPILER_FLAG_ALTERNATE_DECORATORS;
         }
         return $flags;
     }

@@ -77,8 +77,8 @@ class Handlebars
             $this->decorators = $options['decorators'];
         }
 
-        $this->compiler = new Compiler();
-        $this->phpCompiler = new PhpCompiler();
+        $this->compiler = new Compiler\Compiler();
+        $this->phpCompiler = new Compiler\PhpCompiler();
 
         $this->setupBuiltins();
     }
