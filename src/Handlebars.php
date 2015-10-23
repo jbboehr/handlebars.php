@@ -310,16 +310,13 @@ class Handlebars
      */
     private function setupBuiltins()
     {
-        $builtins = new Builtins($this);
-        foreach( $builtins->getAllHelpers() as $name => $helper ) {
-            if( !isset($this->helpers[$name]) ) {
-                $this->helpers[$name] = $helper;
-            }
-        }
-        foreach( $builtins->getAllDecorators() as $name => $decorator ) {
-            if( !isset($this->decorators[$name]) ) {
-                $this->decorators[$name] = $decorator;
-            }
-        }
+        $this->helpers['blockHelperMissing'] = new Helper\BlockHelperMissing($this);
+        $this->helpers['if'] = new Helper\IfHelper();
+        $this->helpers['each'] = new Helper\Each();
+        $this->helpers['helperMissing'] = new Helper\HelperMissing();
+        $this->helpers['lookup'] = new Helper\Lookup();
+        $this->helpers['unless'] = new Helper\Unless();
+        $this->helpers['with'] = new Helper\With();
+        $this->decorators['inline'] = new Decorator\Inline();
     }
 }
