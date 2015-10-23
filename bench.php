@@ -38,6 +38,9 @@ function runCompiled($test) {
     $helpers = isset($test['helpers']) ? evalLambdas($test['helpers']) : null;
     $partials = isset($test['partials']) ? $test['partials'] : null;
     $options = isset($test['compileOptions']) ? $test['compileOptions'] : null;
+
+    // @todo fix this
+    $options['data'] = true;
     
     $handlebars = new \Handlebars\Handlebars();
     $fn = $handlebars->compile($tmpl, $options);
