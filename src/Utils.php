@@ -198,7 +198,7 @@ class Utils
      */
     public static function isCallable($name)
     {
-        return !is_scalar($name) && is_callable($name);
+        return is_object($name) && is_callable($name);
     }
 
     /**
