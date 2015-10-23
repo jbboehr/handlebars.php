@@ -352,7 +352,7 @@ class Runtime
      * @param mixed $data
      * @param mixed $declaredBlockParams
      * @param mixed $blockParams
-     * @param \Handlebars\DepthList|null $depths
+     * @param \Handlebars\DepthList $depths
      * @return \Closure
      */
     private function wrapProgram($fn, $data = null, $declaredBlockParams = null, $blockParams = null, $depths = null)
