@@ -959,6 +959,7 @@ class PhpCompiler
         $this->flushInline();
 
         $current = $this->topStack();
+        array_unshift($params, '$runtime');
         array_unshift($params, $current);
         
         $blockHelperMissingName = $this->nameLookup('$helpers', 'blockHelperMissing', 'helper');
@@ -1071,7 +1072,7 @@ class PhpCompiler
 
         $blockName = $this->popStack();
         $blockHelperMissingName = $this->nameLookup('$helpers', 'blockHelperMissing', 'helper');
-        array_splice($params, 0, 1, array($blockName));
+        array_splice($params, 0, 1, array($blockName, '$runtime'));
         
         $this->push($this->source->functionCall($blockHelperMissingName, 'call', $params));
     }

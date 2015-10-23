@@ -6,20 +6,15 @@ use Handlebars\Utils;
 
 class BlockHelperMissing
 {
-    public function __construct($handlebars)
-    {
-        $this->handlebars = $handlebars;
-    }
-
-
     /**
      * blockHelperMissing builtin
      *
      * @param mixed $context
+     * @param \Handlebars\Runtime $runtime
      * @param \Handlebars\Options $options
      * @return mixed
      */
-    public function __invoke($context, $options)
+    public function __invoke($context, $runtime, $options)
     {
         if( $context === true ) {
             return $options->fn($options->scope);
@@ -29,7 +24,7 @@ class BlockHelperMissing
             if( $options->ids !== null ) {
                 $options->ids[] = $options->name;
             }
-            $eachHelper = $this->handlebars->getHelper('each');
+            $eachHelper = $runtime->nameLookup($runtime->getHelpers(), 'each');
             return call_user_func($eachHelper, $context, $options);
         } else {
             $tmpOptions = $options;

@@ -310,7 +310,7 @@ class Handlebars
      */
     private function setupBuiltins()
     {
-        $this->helpers['blockHelperMissing'] = new Helper\BlockHelperMissing($this);
+        $this->helpers['blockHelperMissing'] = new Helper\BlockHelperMissing();
         $this->helpers['if'] = new Helper\IfHelper();
         $this->helpers['each'] = new Helper\Each();
         $this->helpers['helperMissing'] = new Helper\HelperMissing();

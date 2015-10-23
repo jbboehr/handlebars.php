@@ -472,6 +472,7 @@ class VM
 
         if( !$this->lastHelper ) {
             $helper = $this->getHelper('blockHelperMissing');
+            array_splice($params, 1, 0, array($this->runtime));
             $result = call_user_func_array($helper, $params);
             $this->frame()->buffer .= Utils::expression($result);
         }
@@ -552,6 +553,7 @@ class VM
         $params[0] = $current;
 
         $helper = $this->getHelper('blockHelperMissing');
+        array_splice($params, 1, 0, array($this->runtime));
         $result = call_user_func_array($helper, $params);
         $this->frame()->buffer .= Utils::expression($result);
     }
