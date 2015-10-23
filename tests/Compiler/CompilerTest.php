@@ -7,6 +7,13 @@ use Handlebars\Compiler\Compiler;
 
 class CompilerTest extends Common
 {
+    public function setUp()
+    {
+        if( !extension_loaded('handlebars') ) {
+            return $this->markTestSkipped('The handlebars extension is not loaded.');
+        }
+    }
+
     public function testInvalidTemplate()
     {
         $compiler = new Compiler();

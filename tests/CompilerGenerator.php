@@ -66,6 +66,7 @@ class CompilerGenerator extends Generator
         $footer = $this->generateFunctionFooter($test);
         
         $parts = array();
+        $parts[] = 'if( !extension_loaded("handlebars") ) return $this->markTestSkipped("Integration tests require the handlebars extension");';
         $parts[] = '// @todo make runtime partials work';
         $parts[] = '$fn = $handlebars->compile($tmpl, $compileOptions);';
         //$parts[] = '$options["data"] = $data;';

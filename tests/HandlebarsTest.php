@@ -9,6 +9,13 @@ use ReflectionObject;
 
 class HandlebarsTest extends Common
 {
+    public function setUp()
+    {
+        if( !extension_loaded('handlebars') ) {
+            return $this->markTestSkipped('The handlebars extension is not loaded.');
+        }
+    }
+
     public function testCompileThrowsExceptionWithInvalidTemplate1()
     {
         $stub = $this->getMockBuilder('\\Handlebars\\Compiler\\PhpCompiler')

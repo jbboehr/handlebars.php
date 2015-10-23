@@ -2,6 +2,7 @@
 
 namespace Handlebars\Compiler;
 
+use Handlebars\CompileException;
 use Handlebars\Native;
 
 /**
@@ -19,6 +20,10 @@ class Compiler
      */
     public function compile($tmpl, array $options = null)
     {
+        if( !extension_loaded('handlebars') ) {
+            throw new CompileException("The handlebars extension is not loaded.");
+        }
+
         $flags = $this->makeCompilerFlags($options);
         $knownHelpers = null;
         if( !empty($options['knownHelpers']) ) {

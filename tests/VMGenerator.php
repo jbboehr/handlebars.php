@@ -58,9 +58,10 @@ class VMGenerator extends Generator
         $header = $this->generateFunctionHeader($test);
         $header .= $this->generateTestVars($test);
         $footer = $this->generateFunctionFooter($test);
-        
+
+        $parts = array();
+        $parts[] = 'if( !extension_loaded("handlebars") ) return $this->markTestSkipped("Integration tests require the handlebars extension");';
         $parts[] = '$allOptions["alternateDecorators"] = true;';
-        
         $parts[] = '$allOptions["helpers"] = $helpers;';
         $parts[] = '$allOptions["partials"] = $partials;';
         $parts[] = '$allOptions["decorators"] = $decorators;';

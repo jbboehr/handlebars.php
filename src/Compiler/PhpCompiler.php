@@ -208,7 +208,7 @@ class PhpCompiler
         $this->stringParams = !empty($this->options['stringParams']);
         $this->trackIds = !empty($this->options['trackIds']);
         $this->jsCompat = empty($this->options['disableJsCompat']);
-        $this->nativeRuntime = empty($this->options['disableNativeRuntime']);
+        $this->nativeRuntime = false; //empty($this->options['disableNativeRuntime']);
 
         if( !isset($this->options['data']) ) {
             $this->options['data'] = true;
