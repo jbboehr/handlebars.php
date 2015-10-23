@@ -225,7 +225,7 @@ class Runtime
         $partialBlock = null;
         if( !empty($options['fn']) && $options['fn'] !== Utils::noop() ) {
             $partialBlock = $options['data']['partial-block'] = $options['fn'];
-            $options['fn'] = new ClosureWrapper($options['fn']);
+            $options['fn'] = ClosureWrapper::wrap($options['fn']);
             
             if( $partialBlock instanceof ClosureWrapper && !empty($partialBlock->partials) ) {
                 $options['partials'] = Utils::arrayMerge($options['partials'], $partialBlock->partials);

@@ -930,7 +930,7 @@ class VM
         $props = $this->frame()->internal->props;
         $decoratorOptions = $options;
 
-        $prog = (!($prog instanceof ClosureWrapper) ? new ClosureWrapper($prog) : $prog);
+        $prog = ClosureWrapper::wrap($prog);
 
         if( $decoratorOptions->fn ) {
             $decoratorOptions->fn = ClosureWrapper::wrap($decoratorOptions->fn);

@@ -2,11 +2,18 @@
 
 namespace Handlebars;
 
+use Closure as BaseClosure;
+
 class ClosureWrapper extends \stdClass
 {
     private $fn;
 
-    public function __construct($fn)
+    public static function wrap($fn)
+    {
+        return $fn instanceof self ? $fn : new self($fn);
+    }
+
+    public function __construct(BaseClosure $fn)
     {
         $this->fn = $fn;
     }
