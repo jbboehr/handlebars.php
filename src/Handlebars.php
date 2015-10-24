@@ -2,6 +2,10 @@
 
 namespace Handlebars;
 
+use ArrayObject;
+use Handlebars\Registry\Registry;
+use Handlebars\Registry\DefaultRegistry;
+
 /**
  * Main class
  */
@@ -20,14 +24,14 @@ class Handlebars
      *
      * @var array
      */
-    protected $decorators = array();
+    protected $decorators;
 
     /**
      * Array of global helpers
      *
      * @var array
      */
-    protected $helpers = array();
+    protected $helpers;
 
     /**
      * The default render mode (compiler or vm)
@@ -41,7 +45,7 @@ class Handlebars
      *
      * @var array
      */
-    protected $partials = array();
+    protected $partials;
 
     /**
      * @var \Handlebars\PhpCompiler
@@ -62,25 +66,33 @@ class Handlebars
      */
     public function __construct($options = array())
     {
-        if( isset($options['mode']) ) {
-            $this->mode = $options['mode'];
-        } else {
-            $this->mode = self::MODE_COMPILER;
-        }
-        if( isset($options['helpers']) ) {
-            $this->helpers = $options['helpers'];
-        }
-        if( isset($options['partials']) ) {
-            $this->partials = $options['partials'];
-        }
-        if( isset($options['decorators']) ) {
-            $this->decorators = $options['decorators'];
-        }
+        $this->setOptions($options);
 
         $this->compiler = new Compiler\Compiler();
         $this->phpCompiler = new Compiler\PhpCompiler();
 
         $this->setupBuiltins();
+    }
+
+    private function setOptions($options)
+    {
+        if( isset($options['mode']) ) {
+            $this->mode = $options['mode'];
+        } else {
+            $this->mode = self::MODE_COMPILER;
+        }
+
+        foreach( array('helpers', 'partials', 'decorators') as $key ) {
+            if( isset($options[$key]) ) {
+                if( $options[$key] instanceof Registry ) {
+                    $this->$key = $options[$key];
+                } else {
+                    $this->$key = new DefaultRegistry($options[$key]);
+                }
+            } else {
+                $this->$key = new DefaultRegistry();
+            }
+        }
     }
 
     /**
@@ -110,7 +122,7 @@ class Handlebars
     /**
      * Get the currently registered decorators
      *
-     * @return array
+     * @return \Handlebars\Registry\Registry
      */
     public function getDecorators()
     {
@@ -131,7 +143,7 @@ class Handlebars
     /**
      * Get the currently registered helpers
      *
-     * @return array
+     * @return \Handlebars\Registry\Registry
      */
     public function getHelpers()
     {
@@ -141,7 +153,7 @@ class Handlebars
     /**
      * Get the currently registered partials
      *
-     * @return array
+     * @return \Handlebars\Registry\Registry
      */
     public function getPartials()
     {

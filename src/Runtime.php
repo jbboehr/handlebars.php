@@ -27,19 +27,22 @@ class Runtime
     protected $programWrappers;
     
     /**
-     * @var array
+     * @var \Handlebars\Registry\Registry
      */
     protected $decorators;
 
+    /**
+     * @var \SplObjectStorage
+     */
     protected $decoratorMap;
     
     /**
-     * @var array
+     * @var \Handlebars\Registry\Registry
      */
     protected $helpers;
     
     /**
-     * @var array
+     * @var \Handlebars\Registry\Registry
      */
     protected $partials;
     
@@ -59,14 +62,13 @@ class Runtime
      * Constructor
      *
      * @param \Handlebars\Handlebars $handlebars
-     * @param array $templateSpec
      */
     public function __construct(Handlebars $handlebars)
     {
         $this->handlebars = $handlebars;
-        $this->helpers = Utils::arrayCopy($handlebars->getHelpers());
-        $this->partials = Utils::arrayCopy($handlebars->getPartials());
-        $this->decorators = Utils::arrayCopy($handlebars->getDecorators());
+        $this->helpers = clone $handlebars->getHelpers();
+        $this->partials = clone $handlebars->getPartials();
+        $this->decorators = clone $handlebars->getDecorators();
         $this->decoratorMap = new SplObjectStorage();
     }
     
@@ -79,16 +81,13 @@ class Runtime
      */
     public function __invoke($context = null, array $options = array())
     {
-        if( !empty($options['helpers']) ) {
-            Utils::arrayMergeByRef($this->helpers, $options['helpers']);
-        }
-        
-        if( !empty($options['partials']) ) {
-            Utils::arrayMergeByRef($this->partials, $options['partials']);
-        }
-        
-        if( !empty($options['decorators']) ) {
-            Utils::arrayMergeByRef($this->decorators, $options['decorators']);
+        foreach( array('helpers', 'partials', 'decorators') as $key ) {
+            if( !empty($options[$key]) ) {
+                $registry = $this->$key;
+                foreach( $options[$key] as $k => $v ) {
+                    $registry[$k] = $v;
+                }
+            }
         }
     }
 
@@ -149,7 +148,7 @@ class Runtime
     /**
      * Get registered decorators
      *
-     * @return array
+     * @return \Handlebars\Registry\Registry
      */
     public function getDecorators()
     {
@@ -159,7 +158,7 @@ class Runtime
     /**
      * Get registered helpers
      *
-     * @return array
+     * @return \Handlebars\Registry\Registry
      */
     public function getHelpers()
     {
@@ -169,7 +168,7 @@ class Runtime
     /**
      * Get registered partials
      *
-     * @return array
+     * @return \Handlebars\Registry\Registry
      */
     public function getPartials()
     {
@@ -180,14 +179,8 @@ class Runtime
      * Invoke partial runtime helper
      *
      * @param mixed $partial
-     * @param string $indent
-     * @param string $name
      * @param mixed $context
-     * @param mixed $hash
-     * @param mixed $helpers
-     * @param mixed $partials
-     * @param mixed $data
-     * @param mixed $depths
+     * @param mixed $options
      * @return string
      * @throws \Handlebars\RuntimeException if the partial could not be executed.
      */
@@ -203,7 +196,7 @@ class Runtime
         if( null === $result ) {
             if( !$partial ) {
                 $options['partials'][$options['name']] = Utils::noop();
-            } else {
+            } else if( is_string($partial) ) {
                 $options['partials'][$options['name']] = $this->handlebars->compile($partial, $this->options);
             }
             $result = call_user_func($options['partials'][$options['name']], $context, $options);
@@ -228,7 +221,9 @@ class Runtime
             $options['fn'] = ClosureWrapper::wrap($options['fn']);
             
             if( $partialBlock instanceof ClosureWrapper && !empty($partialBlock->partials) ) {
-                $options['partials'] = Utils::arrayMerge($options['partials'], $partialBlock->partials);
+                foreach( $partialBlock->partials as $k => $v ) {
+                    $options['partials'][$k] = $v;
+                }
             }
         }
         
@@ -355,7 +350,7 @@ class Runtime
      * @param \Handlebars\DepthList $depths
      * @return \Closure
      */
-    private function wrapProgram($fn, $data = null, $declaredBlockParams = null, $blockParams = null, $depths = null)
+    private function wrapProgram($fn, $data = null, $declaredBlockParams = null, $blockParams = null, DepthList $depths = null)
     {
         $runtime = $this;
         $prog = function ($context = null, $options = null) use ($runtime, $data, $depths, $blockParams, $fn) {
@@ -370,12 +365,11 @@ class Runtime
                     Utils::lookup($options, 'blockParams'),
                 ), $blockParams);
             }
-            
-            $currentDepths = $depths;
+
             if( $depths && $context !== $depths[0] ) {
-                $depths = Utils::arrayUnshift($depths, $context);
+                $depths = clone $depths;
+                $depths->unshift($context);
             }
-            //$depths = Utils::arrayUnshift($depths, $context);
             return call_user_func(
                 $fn,
                 $context,

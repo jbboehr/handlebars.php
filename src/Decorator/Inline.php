@@ -14,7 +14,10 @@ class Inline
             $props->partials = array();
             $ret = ClosureWrapper::wrap(function($context, $options) use ($runtime, $fn, $props) {
                 $original = $runtime->getPartials();
-                $partials = Utils::arrayMerge($original, $props->partials);
+                $partials = clone $original;
+                foreach( $props->partials as $k => $v ) {
+                    $partials[$k] = $v;
+                }
                 $runtime->setPartials($partials);
                 $ret = $fn($context, $options);
                 $runtime->setPartials($original);

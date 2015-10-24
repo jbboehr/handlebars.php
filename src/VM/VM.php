@@ -156,7 +156,8 @@ class VM
      */
     public function getHelper($name)
     {
-        if( isset($this->helpers[$name]) ) {
+        // @todo find out what's passing it a non-scalar
+        if( is_scalar($name) && isset($this->helpers[$name]) ) {
             return $this->helpers[$name];
         }
     }
