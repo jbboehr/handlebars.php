@@ -174,23 +174,6 @@ class Utils
     }
 
     /**
-     * Convert path-fragment to PathFragment
-     *
-     * @param string $str
-     * @return string
-     */
-    public static function inflect($str)
-    {
-        return trim(
-            str_replace(
-                ' ',
-                '',
-                ucwords(preg_replace('/[^a-zA-Z0-9]+/', ' ', $str))
-            )
-        );
-    }
-    
-    /**
      * Check if callable, disallow strings
      *
      * @param mixed $name
