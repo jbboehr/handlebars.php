@@ -34,4 +34,8 @@ vendor: composer.json composer.lock
 	composer install $(COMPOSER_OPTS)
 	@touch -c vendor
 
+xhprof: vendor
+	php -d extension=xhprof.so bench.php $(BENCH_OPTS)
+	php -S 127.0.0.1:1234 -t vendor/lox/xhprof/xhprof_html/
+
 .PHONY: cbf clean coverage cs phpunit test
