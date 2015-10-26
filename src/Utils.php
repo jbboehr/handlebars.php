@@ -32,12 +32,9 @@ class Utils
 
     public static function createFrame($object)
     {
-        if( is_object($object) ) {
-            $frame = clone $object;
-            $frame->_parent = $object;
-        } else if( is_scalar($object) ) {
+        if( is_scalar($object) ) {
             $frame = array($object);
-        } else {
+        } else if( is_array($object) ) {
             $frame = $object;
             $frame['_parent'] = $object;
         }
@@ -76,6 +73,11 @@ class Utils
         // Handlebars uses hex entities >.>
         $value = str_replace(array('`', '&#039;'), array('&#x60;', '&#x27;'), $value);
         return $value;
+    }
+
+    public static function escapeExpressionCompat($value)
+    {
+        return self::escapeExpression($value, true);
     }
 
     /**
@@ -140,7 +142,7 @@ class Utils
      * @param string $field
      * @return mixed
      */
-    public static function lookup($objOrArray, $field)
+    public static function nameLookup($objOrArray, $field)
     {
         if( is_array($objOrArray) || $objOrArray instanceof ArrayAccess ) {
             return isset($objOrArray[$field]) ? $objOrArray[$field] : null;

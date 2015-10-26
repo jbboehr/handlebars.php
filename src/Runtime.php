@@ -114,7 +114,7 @@ class Runtime
      */
     public function escapeExpression($value)
     {
-        return Utils::escapeExpression($value, false);
+        return Utils::escapeExpression($value);
     }
 
     /**
@@ -127,7 +127,7 @@ class Runtime
      */
     public function escapeExpressionCompat($value)
     {
-        return Utils::escapeExpression($value);
+        return Utils::escapeExpressionCompat($value);
     }
 
     /**
@@ -195,14 +195,14 @@ class Runtime
         
         if( null === $result ) {
             if( !$partial ) {
-                $options['partials'][$options['name']] = Utils::noop();
+                $options['partials'][$options['name']] = $this->noop();
             } else if( is_string($partial) ) {
                 $options['partials'][$options['name']] = $this->handlebars->compile($partial, $this->options);
             }
             $result = call_user_func($options['partials'][$options['name']], $context, $options);
         }
         if( $result != null && !empty($options['indent']) ) {
-            $result = Utils::indent($result, $options['indent']);
+            $result = $this->indent($result, $options['indent']);
         }
         return $result;
     }
@@ -216,7 +216,7 @@ class Runtime
         }
         
         $partialBlock = null;
-        if( !empty($options['fn']) && $options['fn'] !== Utils::noop() ) {
+        if( !empty($options['fn']) && $options['fn'] !== $this->noop() ) {
             $partialBlock = $options['data']['partial-block'] = $options['fn'];
             $options['fn'] = ClosureWrapper::wrap($options['fn']);
             
@@ -273,7 +273,7 @@ class Runtime
     }
     
     /**
-     * Alias for Utils::lookup()
+     * Alias for Utils::nameLookup()
      *
      * @param mixed $objOrArray
      * @param string $field
@@ -281,7 +281,37 @@ class Runtime
      */
     public function nameLookup($objOrArray, $field)
     {
-        return Utils::lookup($objOrArray, $field);
+        return Utils::nameLookup($objOrArray, $field);
+    }
+
+    public function noop()
+    {
+        static $noop;
+        if( null === $noop ) {
+            $noop = function () {
+
+            };
+        }
+        return $noop;
+    }
+
+    /**
+     * Indent a multi-line string
+     *
+     * @param string $str
+     * @param string $indent
+     * @return string
+     */
+    public function indent($str, $indent)
+    {
+        $lines = explode("\n", $str);
+        for( $i = 0, $l = count($lines); $i < $l; $i++ ) {
+            if( empty($lines[$i]) && $i + 1 == $l ) {
+                break;
+            }
+            $lines[$i] = $indent . $lines[$i];
+        }
+        return implode("\n", $lines);
     }
 
     /**
@@ -333,11 +363,11 @@ class Runtime
             if( $options['name'] === '@partial-block' ) {
                 $partial = $options['data']['partial-block'];
             } else {
-                $partial = Utils::lookup($options['partials'], $options['name']);
+                $partial = Utils::nameLookup($options['partials'], $options['name']);
             }
         } else if( !Utils::isCallable($partial) && empty($options['name']) ) {
             $options['name'] = $partial;
-            $partial = Utils::lookup($options['partials'], $partial);
+            $partial = Utils::nameLookup($options['partials'], $partial);
         }
         return $partial;
     }
@@ -362,7 +392,7 @@ class Runtime
             }
             if( null !== $blockParams ) {
                 $blockParams = array_merge(array(
-                    Utils::lookup($options, 'blockParams'),
+                    Utils::nameLookup($options, 'blockParams'),
                 ), $blockParams);
             }
 

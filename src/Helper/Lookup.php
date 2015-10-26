@@ -15,6 +15,6 @@ class Lookup
      */
     public function __invoke($obj, $field)
     {
-        return Utils::lookup($obj, $field);
+        return Utils::nameLookup($obj, $field);
     }
 }

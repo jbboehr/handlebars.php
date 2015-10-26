@@ -430,7 +430,7 @@ class VM
     private function wrapProgram($program)
     {
         if( $program === null ) {
-            return Utils::noop();
+            return $this->runtime->noop();
         }
 
         $self = $this;

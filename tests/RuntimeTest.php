@@ -30,4 +30,21 @@ class RuntimeTest extends Common
         $runtime = new Runtime(new Handlebars(), array());
         $runtime->helperMissingMissing();
     }
+
+    public function testIndent()
+    {
+        $runtime = new Runtime(new Handlebars(), array());
+        $this->assertEquals(
+            " blah",
+            $runtime->indent("blah", ' ')
+        );
+        $this->assertEquals(
+            "  blah\n  blah",
+            $runtime->indent("blah\nblah", '  ')
+        );
+        $this->assertEquals(
+            "   \n   \n   \n",
+            $runtime->indent("\n\n\n", '   ')
+        );
+    }
 }
