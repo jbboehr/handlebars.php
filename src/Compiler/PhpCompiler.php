@@ -160,11 +160,11 @@ class PhpCompiler
         $this->environment = $environment;
         $this->options = $options;
         $this->isChild = $context !== null;
-        $this->context = $context ?: (object) array(
+        $this->context = $context ?: new \ArrayObject(array(
             'decorators' => array(),
             'programs' => array(),
             'environments' => array(),
-        );
+        ), \ArrayObject::ARRAY_AS_PROPS);
 
         $this->reinit();
         $this->compileChildren($this->environment, $options);

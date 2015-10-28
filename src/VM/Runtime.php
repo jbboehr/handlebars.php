@@ -23,7 +23,7 @@ class Runtime extends BaseRuntime
         $this->opcodes = $preprocessor->compile($opcodes);
     }
 
-    public function __invoke($context = null, $options = null)
+    public function __invoke($context = null, array $options = array())
     {
         $options = array_merge((array) $this->options, (array) $options);
 
