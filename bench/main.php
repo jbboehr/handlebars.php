@@ -27,10 +27,9 @@ if( extension_loaded('xhprof') ) {
     xhprof_enable(XHPROF_FLAGS_CPU + XHPROF_FLAGS_MEMORY);
 }
 
+require __DIR__ . '/../vendor/autoload.php';
 
-require __DIR__ . '/vendor/autoload.php';
-
-$tests = json_decode(file_get_contents(__DIR__ . '/spec/handlebars/spec/bench.json'), true);
+$tests = json_decode(file_get_contents(__DIR__ . '/../vendor/jbboehr/handlebars-spec/spec/bench.json'), true);
 $count = 500;
 $results = array();
 $table = new Console_Table;
