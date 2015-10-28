@@ -1,6 +1,10 @@
 #!/usr/bin/env php
 <?php
 
+use Handlebars\Compiler;
+use Handlebars\Parser;
+use Handlebars\Tokenizer;
+
 foreach( array(__DIR__ . '/../../autoload.php', __DIR__ . '/../vendor/autoload.php', __DIR__ . '/vendor/autoload.php') as $file ) {
     if( file_exists($file) ) {
         require $file;
@@ -62,29 +66,29 @@ if( isset($opts['compile']) ) {
     
     // compile
     if( isset($opts['j']) ) {
-        echo json_encode(\Handlebars\Native::compile($template, $flags), constant('JSON_PRETTY_PRINT'));
+        echo json_encode(Compiler::compile($template, $flags), constant('JSON_PRETTY_PRINT'));
     } else if( isset($opts['p']) ) {
-        var_export(\Handlebars\Native::compile($template, $flags));
+        var_export(Compiler::compile($template, $flags));
     } else {
-        echo \Handlebars\Native::compilePrint($template, $flags);
+        echo Compiler::compilePrint($template, $flags);
     }
 } else if( isset($opts['parse']) ) {
     // parse
     if( isset($opts['j']) ) {
-        echo json_encode(\Handlebars\Native::parse($template), constant('JSON_PRETTY_PRINT'));
+        echo json_encode(Parser::parse($template), constant('JSON_PRETTY_PRINT'));
     } else if( isset($opts['p']) ) {
-        var_export(\Handlebars\Native::parse($template));
+        var_export(Parser::parse($template));
     } else {
-        echo \Handlebars\Native::parsePrint($template);
+        echo Parser::parsePrint($template);
     }
 } else if( isset($opts['lex']) ) {
     // lex
     if( isset($opts['j']) ) {
-        echo json_encode(\Handlebars\Native::lex($template), constant('JSON_PRETTY_PRINT'));
+        echo json_encode(Tokenizer::lex($template), constant('JSON_PRETTY_PRINT'));
     } else if( isset($opts['p']) ) {
-        var_export(\Handlebars\Native::lex($template));
+        var_export(Tokenizer::lex($template));
     } else {
-        echo \Handlebars\Native::lexPrint($template);
+        echo Tokenizer::lexPrint($template);
     }
 } else {
     // precompile

@@ -3,7 +3,7 @@
 namespace Handlebars\Compiler;
 
 use Handlebars\CompileException;
-use Handlebars\Native;
+use Handlebars\Compiler as NativeCompiler;
 
 /**
  * Compile wrapper class
@@ -36,7 +36,7 @@ class Compiler
                 }
             }
         }
-        return Native::compile($tmpl, $flags, $knownHelpers);
+        return NativeCompiler::compile($tmpl, $flags, $knownHelpers);
     }
 
     /**
@@ -50,31 +50,31 @@ class Compiler
         // Make flags
         $flags = 0;
         if( !empty($options['compat']) ) {
-            $flags |= \Handlebars\COMPILER_FLAG_COMPAT;
+            $flags |= NativeCompiler::COMPAT;
         }
         if( !empty($options['stringParams']) ) {
-            $flags |= \Handlebars\COMPILER_FLAG_STRING_PARAMS;
+            $flags |= NativeCompiler::STRING_PARAMS;
         }
         if( !empty($options['trackIds']) ) {
-            $flags |= \Handlebars\COMPILER_FLAG_TRACK_IDS;
+            $flags |= NativeCompiler::TRACK_IDS;
         }
         if( !empty($options['useDepths']) ) {
-            $flags |= \Handlebars\COMPILER_FLAG_USE_DEPTHS;
+            $flags |= NativeCompiler::USE_DEPTHS;
         }
         if( !empty($options['knownHelpersOnly']) ) {
-            $flags |= \Handlebars\COMPILER_FLAG_KNOWN_HELPERS_ONLY;
+            $flags |= NativeCompiler::KNOWN_HELPERS_ONLY;
         }
         if( !empty($options['preventIndent']) ) {
-            $flags |= \Handlebars\COMPILER_FLAG_PREVENT_INDENT;
+            $flags |= NativeCompiler::PREVENT_INDENT;
         }
         if( !empty($options['explicitPartialContext']) ) {
-            $flags |= \Handlebars\COMPILER_FLAG_EXPLICIT_PARTIAL_CONTEXT;
+            $flags |= NativeCompiler::EXPLICIT_PARTIAL_CONTEXT;
         }
         if( !empty($options['ignoreStandalone']) ) {
-            $flags |= \Handlebars\COMPILER_FLAG_IGNORE_STANDALONE;
+            $flags |= NativeCompiler::IGNORE_STANDALONE;
         }
         if( !empty($options['alternateDecorators']) ) {
-            $flags |= \Handlebars\COMPILER_FLAG_ALTERNATE_DECORATORS;
+            $flags |= NativeCompiler::ALTERNATE_DECORATORS;
         }
         return $flags;
     }
