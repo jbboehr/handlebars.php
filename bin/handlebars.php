@@ -55,7 +55,7 @@ $compileOptions = array(
     'alternateDecorators' => isset($opts['alternate-decorators']),
 );
 $handlebars = new \Handlebars\Handlebars();
-$compiler = new \Handlebars\Compiler();
+$compiler = new \Handlebars\Compiler\Compiler();
 
 if( isset($opts['compile']) ) {
     $flags = $compiler->makeCompilerFlags($compileOptions);
