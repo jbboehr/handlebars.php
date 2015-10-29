@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "667c87d73b712b2d671dfab6a1d1708c",
-    "content-hash": "365b975ff363ccdcb1fce33ca093c60b",
+    "hash": "8778003ba6a82f92041e1efb7ae6a2eb",
+    "content-hash": "50a4b34d31d83d356125480803253451",
     "packages": [],
     "packages-dev": [
         {
@@ -322,16 +322,16 @@
         },
         {
             "name": "jbboehr/handlebars-spec",
-            "version": "v2.0.0",
+            "version": "v4.0.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jbboehr/handlebars-spec.git",
-                "reference": "b1dd4f0c34fcf5f790465e7d5b66ddfbf3fb6a0e"
+                "reference": "735662c3e47e32d1d4ec65c53119cb68be19cac4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jbboehr/handlebars-spec/zipball/b1dd4f0c34fcf5f790465e7d5b66ddfbf3fb6a0e",
-                "reference": "b1dd4f0c34fcf5f790465e7d5b66ddfbf3fb6a0e",
+                "url": "https://api.github.com/repos/jbboehr/handlebars-spec/zipball/735662c3e47e32d1d4ec65c53119cb68be19cac4",
+                "reference": "735662c3e47e32d1d4ec65c53119cb68be19cac4",
                 "shasum": ""
             },
             "type": "library",
@@ -351,7 +351,7 @@
                 "handlebars",
                 "mustache"
             ],
-            "time": "2015-06-05 17:36:26"
+            "time": "2015-10-27 07:15:31"
         },
         {
             "name": "jbboehr/mustache-spec",
