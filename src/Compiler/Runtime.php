@@ -74,7 +74,7 @@ class Runtime extends BaseRuntime
         }
 
         if( isset($options['depths']) ) {
-            $depths = DepthList::factory($options['depths']);
+            $depths = $options['depths'];
         } else {
             $depths = new DepthList();
         }

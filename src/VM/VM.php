@@ -121,10 +121,11 @@ class VM
 
         $this->options = (array) $options;
 
-        $this->depths = isset($options['depths']) ? $options['depths'] : new DepthList();
-        /* if( $this->depths instanceof \SplDoublyLinkedList ) {
-            $this->depths->setIteratorMode(SplDoublyLinkedList::IT_MODE_FIFO);
-        } */
+        if( isset($options['depths']) ) {
+            $this->depths = $options['depths'];
+        } else {
+            $this->depths = new DepthList();
+        }
 
         // Flags
         $this->compat = !empty($options['compat']);
