@@ -62,8 +62,16 @@ install_php_handlebars)
 	echo "extension=`pwd`/handlebars.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
 	;;
 
+phpunit)
+	if [ "$COVERAGE" = "true" ]; then
+		./vendor/bin/phpunit --coverage-text --coverage-clover=coverage.clover
+	else
+		./vendor/bin/phpunit
+	fi
+	;;
+
 after_success)
-	if [ "$TRAVIS_PHP_VERSION" = "5.6" ]; then
+	if [ "$COVERAGE" = "true" ]; then
 		php vendor/bin/ocular code-coverage:upload --format=php-clover coverage.clover
 	fi
 	;;
