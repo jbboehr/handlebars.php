@@ -4,6 +4,8 @@ namespace Handlebars\Compiler;
 
 use SplStack;
 use Handlebars\Hash;
+use Handlebars\CompileException;
+use Handlebars\InvalidArgumentException;
 
 /**
  * PHP compiler
@@ -153,7 +155,7 @@ class PhpCompiler
      * @param mixed $context
      * @param boolean $asObject
      * @return array|string
-     * @throws \Handlebars\CompileException
+     * @throws CompileException
      */
     public function compile($environment, array $options = array(), $context = null, $asObject = false)
     {
@@ -179,8 +181,6 @@ class PhpCompiler
         
         // @todo https://github.com/wycats/handlebars.js/compare/v3.0.3...v4.0.2#diff-12fc6be51b9642b813f72c8bd16d891aR111
         if( !$this->decorators->isEmpty() ) {
-            $this->useDecorators = true;
-            
             $this->decorators->prepend('$decorators = $runtime->getDecorators();' . self::EOL);
             $this->decorators->push('return $fn;');
             
@@ -357,6 +357,9 @@ class PhpCompiler
         $bufferEnd = null;
         
         foreach( $this->source as $line ) {
+            /** @var $line \Handlebars\Compiler\SourceNode */
+            /** @var $bufferStart \Handlebars\Compiler\SourceNode */
+            /** @var $bufferEnd \Handlebars\Compiler\SourceNode */
             if( $line->appendToBuffer ) {
                 if( $bufferStart ) {
                     $line->prepend('    . ');
@@ -493,7 +496,6 @@ class PhpCompiler
     /**
      * Generate the function name used to handle an expression
      *
-     * @param boolean $escaped
      * @return string
      */
     private function isCallableFunctionName()
@@ -560,6 +562,7 @@ class PhpCompiler
      * @internal
      * @param string $parent
      * @param string $name
+     * @param string $type
      * @return string
      */
     public function nameLookup($parent, $name, $type = null)
@@ -579,7 +582,7 @@ class PhpCompiler
     /**
      * @param boolean $wrapped
      * @return mixed
-     * @throws \Handlebars\CompileException
+     * @throws CompileException
      */
     private function popStack($wrapped = false)
     {
@@ -635,15 +638,15 @@ class PhpCompiler
     /**
      * @param string $type
      * @param string $name
+     * @param string $child
      * @return void
      */
     private function pushId($type, $name, $child = null)
     {
         if( $type === 'BlockParam' ) {
-            $this->pushStackLiteral(
-                '$blockParams[' . $name[0] . ']["path"][' . $name[1] . ']'
-                    . ($child ? ' . ' . var_export('.' . $child, true) . '' : '')
-            );
+            $literal = '$blockParams[' . $name[0] . ']["path"][' . $name[1] . ']'
+                . ($child ? ' . ' . var_export('.' . $child, true) . '' : '');
+            $this->pushStackLiteral($literal);
         } else if( $type === 'PathExpression' ) {
             $this->pushString($name);
         } else if( $type === 'SubExpression' ) {
@@ -654,7 +657,7 @@ class PhpCompiler
     }
 
     /**
-     * @param string|\Handlebars\AppendToBuffer $source
+     * @param string $source
      * @return void
      */
     private function pushSource($source)
@@ -690,7 +693,7 @@ class PhpCompiler
     /**
      * @param callable $callback
      * @return void
-     * @throws \Handlebars\CompileException
+     * @throws CompileException
      */
     private function replaceStack($callback)
     {
@@ -751,6 +754,7 @@ class PhpCompiler
     /**
      * @param string $str
      * @param array $params
+     * @return string
      */
     private function safeJoin($str, $params)
     {
@@ -869,17 +873,15 @@ class PhpCompiler
         $inverse = $this->popStack();
         $program = $this->popStack();
 
-        //if( $program || $inverse ) {
-            if( !$program ) {
-                $program = '$runtime->noop()';
-            }
-            if( !$inverse ) {
-                $inverse = '$runtime->noop()';
-            }
+        if( !$program ) {
+            $program = '$runtime->noop()';
+        }
+        if( !$inverse ) {
+            $inverse = '$runtime->noop()';
+        }
 
-            $options['fn'] = $program;
-            $options['inverse'] = $inverse;
-       // }
+        $options['fn'] = $program;
+        $options['inverse'] = $inverse;
 
         $ids = $types = $contexts = array();
 
@@ -926,7 +928,7 @@ class PhpCompiler
     /**
      * @param string $helperName
      * @param integer $paramSize
-     * @param array $params
+     * @param array|false $params
      * @param boolean $useRegister
      * @return string
      */
@@ -1142,7 +1144,7 @@ class PhpCompiler
         $this->push(array(
             '!' . $this->isCallableFunctionName() . '(' . $register . ') ? ',
             $register,
-            ' : ', 
+            ' : ',
             $this->source->functionCall($register, '', $helper['callParams'])
         ));
     }

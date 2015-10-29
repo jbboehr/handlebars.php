@@ -53,13 +53,20 @@ class Runtime extends BaseRuntime
         $blockParams = array(); // @todo
 
         $runtime = $this;
-        $origMain = $this->main;
-        $main = function($context) use ($runtime, $origMain, $data, $depths, $blockParams) {
-            return call_user_func($this->main, $context, $runtime->getHelpers(), $runtime->getPartials(),
-                $data, $runtime, $blockParams, $depths);
+        $fn = $this->main;
+        $main = function($context) use ($runtime, $fn, $data, $depths, $blockParams) {
+            return $fn(
+                $context,
+                $runtime->getHelpers(),
+                $runtime->getPartials(),
+                $data,
+                $runtime,
+                $blockParams,
+                $depths
+            );
         };
         $main = $this->executeDecorators($this->main, $main, $runtime, $depths, $data, $blockParams);
-        return call_user_func($main, $context, $options);
+        return $main($context, $options);
     }
 
     /**
@@ -70,7 +77,7 @@ class Runtime extends BaseRuntime
     private function processDepthsOption($options, $context)
     {
         if( empty($this->options['useDepths']) ) {
-            return;
+            return null;
         }
 
         if( isset($options['depths']) ) {

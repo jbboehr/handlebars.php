@@ -123,6 +123,8 @@ class Options implements ArrayAccess
     {
         if( property_exists($this, $offset) ) {
             return $this->$offset;
+        } else {
+            return null;
         }
     }
 

@@ -69,7 +69,8 @@ class Each
             }
         }
         if( $i === 0 ) {
-            $ret = $options->inverse($options->scope);
+            $fn = $options->inverse;
+            $ret = $fn($options->scope);
         }
         return $ret;
     }

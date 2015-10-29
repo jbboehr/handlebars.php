@@ -2,7 +2,6 @@
 
 namespace Handlebars;
 
-use ArrayObject;
 use Handlebars\Registry\Registry;
 use Handlebars\Registry\DefaultRegistry;
 
@@ -15,7 +14,7 @@ class Handlebars
     const MODE_VM = 'vm';
 
     /**
-     * @var \Handlebars\Compiler
+     * @var \Handlebars\Compiler\Compiler
      */
     protected $compiler;
     
@@ -48,14 +47,14 @@ class Handlebars
     protected $partials;
 
     /**
-     * @var \Handlebars\PhpCompiler
+     * @var \Handlebars\Compiler\PhpCompiler
      */
     protected $phpCompiler;
 
     /**
      * VM instance
      *
-     * @var \Handlebars\VM
+     * @var \Handlebars\VM\VM
      */
     protected $vm;
 
@@ -112,7 +111,7 @@ class Handlebars
         } else {
             $templateSpecString = $this->precompile($tmpl, $compileOptions);
             $templateSpec = eval('return ' . $templateSpecString . ';');
-            if (!$templateSpec) {
+            if( !$templateSpec ) {
                 throw new CompileException('Failed to compile template');
             }
             return new Compiler\Runtime($this, $templateSpec);

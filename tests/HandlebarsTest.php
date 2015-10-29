@@ -90,7 +90,9 @@ class HandlebarsTest extends Common
 
     public function testRegisterDecorator()
     {
-        $fn = function() {};
+        $fn = function() {
+
+        };
         $handlebars = new Handlebars();
         $handlebars->registerDecorator('test', $fn);
         $this->assertArrayHasKey('test', $handlebars->getDecorators());
@@ -98,7 +100,9 @@ class HandlebarsTest extends Common
 
     public function testRegisterDecorators()
     {
-        $fn = function() {};
+        $fn = function() {
+
+        };
         $handlebars = new Handlebars();
         $handlebars->registerDecorators(array('test' => $fn));
         $this->assertArrayHasKey('test', $handlebars->getDecorators());

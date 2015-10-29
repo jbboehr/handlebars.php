@@ -2,7 +2,6 @@
 
 namespace Handlebars\Compiler;
 
-use ArrayIterator;
 use IteratorAggregate;
 use SplDoublyLinkedList;
 

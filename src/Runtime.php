@@ -5,24 +5,24 @@ namespace Handlebars;
 use Closure;
 use SplObjectStorage;
 
-class Runtime
+class Runtime extends Utils
 {
     /**
      * Main function
      *
-     * @var callable
+     * @var Closure
      */
     protected $main;
     
     /**
-     * @var array
+     * @var Closure[]
      */
     protected $programs;
 
     protected $programDecorators;
     
     /**
-     * @var array
+     * @var Closure[]
      */
     protected $programWrappers;
     
@@ -91,44 +91,6 @@ class Runtime
         }
     }
 
-    /**
-     * Prepare an expression for the output buffer. Handles certain
-     * javascript behaviours.
-     *
-     * @param mixed $value
-     * @retrun string
-     * @throws \Handlebars\RuntimeException
-     */
-    public function expression($value)
-    {
-        return Utils::expression($value);
-    }
-    
-    /**
-     * Escape an expression for the output buffer. Does not handle certain
-     * javascript behaviours.
-     *
-     * @param mixed $value
-     * @retrun string
-     * @throws \Handlebars\RuntimeException
-     */
-    public function escapeExpression($value)
-    {
-        return Utils::escapeExpression($value);
-    }
-
-    /**
-     * Escape an expression for the output buffer. Handles certain
-     * javascript behaviours.
-     *
-     * @param mixed $value
-     * @retrun string
-     * @throws \Handlebars\RuntimeException
-     */
-    public function escapeExpressionCompat($value)
-    {
-        return Utils::escapeExpressionCompat($value);
-    }
 
     /**
      * Fetch the data at the specified depth
@@ -230,12 +192,13 @@ class Runtime
         if( null === $partial && $partialBlock ) {
             $partial = $partialBlock;
         }
-        
-        $result = null;
+
         if( null === $partial ) {
             throw new RuntimeException('Partial ' . $options['name'] . ' could not be found');
         } else if( Utils::isCallable($partial) ) {
             return $partial($context, $options);
+        } else {
+            return null;
         }
     }
 
@@ -270,18 +233,7 @@ class Runtime
                 return $depth[$name];
             }
         }
-    }
-    
-    /**
-     * Alias for Utils::nameLookup()
-     *
-     * @param mixed $objOrArray
-     * @param string $field
-     * @return mixed
-     */
-    public function nameLookup($objOrArray, $field)
-    {
-        return Utils::nameLookup($objOrArray, $field);
+        return null;
     }
 
     public function noop()
@@ -334,7 +286,7 @@ class Runtime
         if( $data || $depths || $declaredBlockParams || $blockParams ) {
             $programWrapper = $this->wrapProgram($fn, $data, $declaredBlockParams, $blockParams, $depths);
         } else if( !$programWrapper ) {
-            $programWrapper = $this->programWrappers[$i] = $this->wrapProgram($fn);
+            $this->programWrappers[$i] = $programWrapper = $this->wrapProgram($fn);
         }
         return $programWrapper;
     }
@@ -425,6 +377,7 @@ class Runtime
     public function executeDecorators($fn, $prog, $runtime, $depths, $data, $blockParams)
     {
         if( $this->decoratorMap->contains($fn) ) {
+            /** @var callable $decorator */
             $decorator = $this->decoratorMap->offsetGet($fn);
             $prog = (!$prog instanceof ClosureWrapper ? new ClosureWrapper($prog) : $prog);
             $props = new \stdClass;

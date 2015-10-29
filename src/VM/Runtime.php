@@ -4,7 +4,6 @@ namespace Handlebars\VM;
 
 use Handlebars\Handlebars;
 use Handlebars\Runtime as BaseRuntime;
-use Handlebars\Utils;
 
 class Runtime extends BaseRuntime
 {

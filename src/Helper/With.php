@@ -25,7 +25,7 @@ class With
                 $data = Utils::createFrame($options['data']);
                 $data['contextPath'] = Utils::appendContextPath($options['data'], $options['ids'][0]);
             }
-            return call_user_func($fn, $context, array(
+            return $fn($context, array(
                 'data' => $data,
                 'blockParams' => array(
                     0 => $context,
@@ -33,7 +33,8 @@ class With
                 ),
             ));
         } else {
-            return $options->inverse();
+            $fn = $options->inverse;
+            return $fn();
         }
     }
 }

@@ -25,16 +25,23 @@ class VM
     /**
      * Input decorators
      *
-     * @var array
+     * @var \Handlebars\Registry\Registry
      */
     private $decorators;
 
     /**
      * Input helpers
      *
-     * @var array
+     * @var \Handlebars\Registry\Registry
      */
     private $helpers;
+
+    /**
+     * Input partials
+     *
+     * @var \Handlebars\Registry\Registry
+     */
+    private $partials;
 
     /**
      * Input options
@@ -99,15 +106,30 @@ class VM
      */
     private $useDepths = false;
 
-    private $currentDecoratorGuid;
+    /**
+     * @var array[]
+     */
+    private $opcodes;
+
+    /**
+     * @var \Handlebars\DepthList
+     */
+    private $depths;
+
+    /**
+     * @var \SplStack
+     */
+    private $frameStack;
 
     /**
      * Execute opcodes
      *
+     * @param Runtime $runtime
+     * @param array $opcodes
      * @param mixed $context
      * @param array $options
      * @return string
-     * @throws \Handlebars\RuntimeException
+     * @throws RuntimeException
      */
     public function execute($runtime, $opcodes, $context = null, $options = null)
     {
@@ -160,6 +182,8 @@ class VM
         // @todo find out what's passing it a non-scalar
         if( is_scalar($name) && isset($this->helpers[$name]) ) {
             return $this->helpers[$name];
+        } else {
+            return null;
         }
     }
 
@@ -227,8 +251,8 @@ class VM
      * @internal
      * @param integer $program
      * @param mixed $context
-     * @param mixed $data
-     * @throws \Handlebars\RuntimeException
+     * @param array $options
+     * @throws RuntimeException
      * @return string
      */
     public function executeProgramById($program, $context = null, $options = null)
@@ -262,6 +286,8 @@ class VM
     {
         if( $this->stack->count() ) {
             return $this->stack->pop();
+        } else {
+            return null;
         }
     }
 
@@ -403,9 +429,9 @@ class VM
     /**
      * @param string $helperName
      * @param integer $paramSize
-     * @param array $params
-     * @param boolean $blockHelper
-     * @return void
+     * @param array|false $params
+     * @param boolean $useRegister
+     * @return mixed
      */
     private function setupParams($helperName, $paramSize, &$params, $useRegister = false)
     {
@@ -422,6 +448,7 @@ class VM
         } else {
             $params[] = $options;
         }
+        return null;
     }
 
     /**
@@ -596,6 +623,7 @@ class VM
 
     /**
      * @param string $name
+     * @param boolean $helperCall
      * @return void
      */
     private function invokeAmbiguous($name, $helperCall)
@@ -767,7 +795,7 @@ class VM
     private function invokePartial($isDynamic, $name, $indent)
     {
         $params = array();
-        $options = $this->setupOptions($name, 1, $params, false);
+        $options = $this->setupOptions($name, 1, $params);
 
         if( $isDynamic ) {
             $name = $this->pop();
@@ -846,6 +874,7 @@ class VM
     /**
      * @param string $type
      * @param string $name
+     * @param string $child
      * @return void
      */
     private function pushId($type, $name, $child = null)
@@ -940,9 +969,10 @@ class VM
             $decoratorOptions->fn = ClosureWrapper::wrap($decoratorOptions->fn);
         }
 
+        /** @var callable $decorator */
         $prog = $decorator($prog, $props, $this->runtime, $decoratorOptions) ?: $prog;
 
-        $this->frame()->buffer = $this->frame()->internal->prog = $prog; // fear
+        $this->frame()->buffer = $this->frame()->internal->prog = $prog;
     }
 
     /**
@@ -952,6 +982,7 @@ class VM
     {
         $top = $this->top();
         if( Utils::isCallable($top) ) {
+            /** @var callable $top */
             $result = $top($this->frame()->context);
             $this->replace($result);
         }

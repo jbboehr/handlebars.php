@@ -106,4 +106,3 @@ class VMGenerator extends Generator
         
     }
 }
-

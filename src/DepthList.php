@@ -16,6 +16,8 @@ class DepthList extends SplDoublyLinkedList
     {
         if( $this->offsetExists($offset) ) {
             return parent::offsetGet($offset);
+        } else {
+            return null;
         }
     }
 }

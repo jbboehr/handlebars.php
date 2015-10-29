@@ -7,16 +7,24 @@ use Handlebars\CompileException;
 
 class Preprocessor
 {
+    /**
+     * @var array
+     */
     private $programsByGuid;
 
+    /**
+     * @var \SplStack
+     */
     private $programStack;
 
-    private $guid;
+    /**
+     * @var integer
+     */
+    private $guid = 0;
 
     public function compile($opcodes)
     {
         // Init
-        $this->guid = 0;
         $this->programStack = new SplStack();
         $this->programsByGuid = array();
 
@@ -34,7 +42,7 @@ class Preprocessor
 
         if( isset($program['children']) ) {
             foreach( $program['children'] as $i => &$child ) {
-                $this->scanProgram($child, $i);
+                $this->scanProgram($child);
             }
         }
 

@@ -3,8 +3,6 @@
 namespace Handlebars;
 
 use ArrayAccess;
-use SplDoublyLinkedList;
-use Traversable;
 
 /**
  * Utilities
@@ -37,6 +35,8 @@ class Utils
         } else if( is_array($object) ) {
             $frame = $object;
             $frame['_parent'] = $object;
+        } else {
+            $frame = null;
         }
         return $frame;
     }
@@ -78,25 +78,6 @@ class Utils
     public static function escapeExpressionCompat($value)
     {
         return self::escapeExpression($value, true);
-    }
-
-    /**
-     * Indent a multi-line string
-     *
-     * @param string $str
-     * @param string $indent
-     * @return string
-     */
-    public static function indent($str, $indent)
-    {
-        $lines = explode("\n", $str);
-        for( $i = 0, $l = count($lines); $i < $l; $i++ ) {
-            if( empty($lines[$i]) && $i + 1 == $l ) {
-                break;
-            }
-            $lines[$i] = $indent . $lines[$i];
-        }
-        return implode("\n", $lines);
     }
 
     /**
@@ -148,22 +129,8 @@ class Utils
             return isset($objOrArray[$field]) ? $objOrArray[$field] : null;
         } else if( is_object($objOrArray) ) {
             return isset($objOrArray->$field) ? $objOrArray->$field : null;
+        } else {
+            return null;
         }
-    }
-    
-    /**
-     * Returns an empty closure
-     *
-     * @return \Closure
-     */
-    public static function noop()
-    {
-        static $noop;
-        if( null === $noop ) {
-            $noop = function () {
-
-            };
-        }
-        return $noop;
     }
 }

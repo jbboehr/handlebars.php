@@ -3,11 +3,11 @@
 namespace Handlebars\Decorator;
 
 use Handlebars\ClosureWrapper;
-use Handlebars\Utils;
+use Handlebars\Runtime;
 
 class Inline
 {
-    public function __invoke($fn, $props, $runtime, $options)
+    public function __invoke($fn, $props, Runtime $runtime, $options)
     {
         $ret = $fn;
         if( empty($props->partials) ) {

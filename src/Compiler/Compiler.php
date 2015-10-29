@@ -36,6 +36,7 @@ class Compiler
                 }
             }
         }
+        /** @noinspection PhpUndefinedClassInspection */
         return NativeCompiler::compile($tmpl, $flags, $knownHelpers);
     }
 
