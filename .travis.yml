@@ -45,8 +45,8 @@ before_script:
 
 script:
   - ./vendor/bin/phpunit --coverage-text --coverage-clover=coverage.clover
-  - ./bench/main.php
+# broken
+#  - ./bench/main.php
 
 after_success:
   - ./.travis.sh after_success
-

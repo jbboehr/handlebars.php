@@ -63,9 +63,8 @@ install_php_handlebars)
 	;;
 
 after_success)
-	if [ "$TRAVIS_PHP_VERSION" != "7" ]; then
+	if [ "$TRAVIS_PHP_VERSION" = "5.6" ]; then
 		php vendor/bin/ocular code-coverage:upload --format=php-clover coverage.clover
 	fi
 	;;
 esac
-
