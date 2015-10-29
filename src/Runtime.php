@@ -223,14 +223,14 @@ class Runtime extends Utils
      * Lookup recursively the specified field in the depths list
      *
      * @param array $depths
-     * @param string $name
+     * @param string $key
      * @return mixed
      */
-    public function lookupData($depths, $name)
+    public function lookupData($depths, $key)
     {
         foreach( $depths as $depth ) {
-            if( isset($depth[$name]) ) {
-                return $depth[$name];
+            if( null !== ($val = $this->nameLookup($depth, $key)) ) {
+                return $val;
             }
         }
         return null;

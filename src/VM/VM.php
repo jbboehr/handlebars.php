@@ -329,14 +329,7 @@ class VM
         // @todo change depthslist to an SplStack
         $this->depths->setIteratorMode(SplDoublyLinkedList::IT_MODE_LIFO | SplDoublyLinkedList::IT_MODE_KEEP);
 
-        $val = null;
-        foreach( $this->depths as $depth ) {
-            if( isset($depth[$key]) ) {
-                $val = $depth[$key];
-                break;
-            }
-        }
-        $this->push($val);
+        $this->push($this->runtime->lookupData($this->depths, $key));
 
         $this->depths->setIteratorMode(SplDoublyLinkedList::IT_MODE_FIFO | SplDoublyLinkedList::IT_MODE_KEEP);
     }
