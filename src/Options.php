@@ -81,9 +81,10 @@ class Options implements ArrayAccess
      */
     public function fn()
     {
-        if( $this->fn ) {
-            return call_user_func_array($this->fn, func_get_args());
+        if( !$this->fn ) {
+            throw new RuntimeException('fn is not set');
         }
+        return call_user_func_array($this->fn, func_get_args());
     }
 
     /**
@@ -93,9 +94,10 @@ class Options implements ArrayAccess
      */
     public function inverse()
     {
-        if( $this->inverse ) {
-            return call_user_func_array($this->inverse, func_get_args());
+        if( !$this->inverse ) {
+            throw new RuntimeException('fn is not set');
         }
+        return call_user_func_array($this->inverse, func_get_args());
     }
 
     /**

@@ -16,12 +16,14 @@ class IfHelper
     public function __invoke($conditional, $options)
     {
         if( Utils::isCallable($conditional) ) {
-            $conditional = call_user_func($conditional, $options->scope);
+            /** @var callable $conditional */
+            $conditional = $conditional($options->scope);
         }
         if( !empty($conditional) || (!empty($options->hash['includeZero']) && $conditional === 0) ) {
-            return $options->fn($options->scope);
+            $fn = $options->fn;
         } else {
-            return $options->inverse($options->scope);
+            $fn = $options->inverse;
         }
+        return $fn($options->scope);
     }
 }

@@ -56,7 +56,8 @@ class Each
                     }
                 }
 
-                $ret .= $options->fn($value, array(
+                $fn = $options->fn;
+                $ret .= $fn($value, array(
                     'data' => $data,
                     'blockParams' => array(
                         0 => $value,

@@ -17,15 +17,18 @@ class BlockHelperMissing
     public function __invoke($context, $runtime, $options)
     {
         if( $context === true ) {
-            return $options->fn($options->scope);
+            $fn = $options->fn;
+            return $fn($options->scope);
         } else if( empty($context) && $context !== 0 ) {
-            return $options->inverse($options->scope);
+            $fn = $options->inverse;
+            return $fn($options->scope);
         } else if( Utils::isIntArray($context) ) {
             if( $options->ids !== null ) {
                 $options->ids[] = $options->name;
             }
             $eachHelper = $runtime->nameLookup($runtime->getHelpers(), 'each');
-            return call_user_func($eachHelper, $context, $options);
+            /** @var callable $eachHelper */
+            return $eachHelper($context, $options);
         } else {
             $tmpOptions = $options;
             if( $options->data !== null && $options->ids !== null ) {
@@ -33,7 +36,8 @@ class BlockHelperMissing
                 $data['contextPath'] = Utils::appendContextPath($options['data'], $options['name']);
                 $options = array('data' => $data);
             }
-            return $tmpOptions->fn($context, $options);
+            $fn = $tmpOptions->fn;
+            return $fn($context, $options);
         }
     }
 }

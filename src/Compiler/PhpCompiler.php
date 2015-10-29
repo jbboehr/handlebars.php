@@ -811,7 +811,7 @@ class PhpCompiler
     private function useRegister($name)
     {
         if( empty($this->registers[$name]) ) {
-            $this->registers[$name] = true;
+            //$this->registers[$name] = true;
         }
     }
 
@@ -869,17 +869,17 @@ class PhpCompiler
         $inverse = $this->popStack();
         $program = $this->popStack();
 
-        if( $program || $inverse ) {
+        //if( $program || $inverse ) {
             if( !$program ) {
-                $program = 'function() {}';
+                $program = '$runtime->noop()';
             }
             if( !$inverse ) {
-                $inverse = 'function() {}';
+                $inverse = '$runtime->noop()';
             }
 
             $options['fn'] = $program;
             $options['inverse'] = $inverse;
-        }
+       // }
 
         $ids = $types = $contexts = array();
 
@@ -967,9 +967,13 @@ class PhpCompiler
         $this->pushSource(array(
             'if( !' . join('', $this->lastHelper) . ' ) {' . self::EOL,
             $this->i(2),
+            '$blockHelperMissing = ',
+            $blockHelperMissingName,
+            ';' . self::EOL,
+            $this->i(2),
             $current,
             ' = ',
-            $this->source->functionCall($blockHelperMissingName, 'call', $params) . ';' . self::EOL,
+            $this->source->functionCall('$blockHelperMissing', '', $params) . ';' . self::EOL,
             $this->i(1),
             '}'
         ));
@@ -1073,8 +1077,14 @@ class PhpCompiler
         $blockName = $this->popStack();
         $blockHelperMissingName = $this->nameLookup('$helpers', 'blockHelperMissing', 'helper');
         array_splice($params, 0, 1, array($blockName, '$runtime'));
-        
-        $this->push($this->source->functionCall($blockHelperMissingName, 'call', $params));
+
+        $register = '$blockHelperMissing';
+        $this->useRegister('$blockHelperMissing');
+        $this->pushSource(array(
+            $register, ' = ', $blockHelperMissingName, ';'
+        ));
+
+        $this->push($this->source->functionCall($register, '', $params));
     }
 
     /**
@@ -1133,7 +1143,7 @@ class PhpCompiler
             '!' . $this->isCallableFunctionName() . '(' . $register . ') ? ',
             $register,
             ' : ', 
-            $this->source->functionCall($register, 'call', $helper['callParams'])
+            $this->source->functionCall($register, '', $helper['callParams'])
         ));
     }
 
@@ -1159,7 +1169,7 @@ class PhpCompiler
             . $this->i(2) . ' ?: (' . $register . ' = ' . join('', $helperMissingName) . ') !== null' . self::EOL
             . $this->i(2) . ' ?: $runtime->helperMissingMissing();');
 
-        $this->push($this->source->functionCall($register, 'call', $helper['callParams']));
+        $this->push($this->source->functionCall($register, '', $helper['callParams']));
     }
 
     /**
@@ -1170,7 +1180,12 @@ class PhpCompiler
     private function invokeKnownHelper($paramSize, $name)
     {
         $helper = $this->setupHelper($paramSize, $name, false);
-        $this->push($this->source->functionCall($helper['name'], 'call', $helper['callParams']));
+        $register = '$helper' . ++$this->registerCounter;
+        $this->useRegister($register);
+        $this->pushSource(array(
+            $register, ' = ', $helper['name'], ';'
+        ));
+        $this->push($this->source->functionCall($register, '', $helper['callParams']));
     }
 
     /**
@@ -1207,9 +1222,7 @@ class PhpCompiler
         }
         $params[] = /*'$runtime->setupOptions(' .*/ $this->objectLiteral($options) /*. ')'*/;
         
-        $this->push($this->source->functionCall(
-            '$runtime->invokePartial', '', $params
-        ));
+        $this->push($this->source->functionCall('$runtime->invokePartial', '', $params));
     }
     
     private function lookupBlockParam($blockParamId, $parts)
