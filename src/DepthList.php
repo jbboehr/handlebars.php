@@ -7,25 +7,6 @@ use SplDoublyLinkedList;
 class DepthList extends SplDoublyLinkedList
 {
     /**
-     * Factory function
-     *
-     * @param array|\Traversable $arr
-     * @return \Handlebars\DepthList
-     */
-    public static function factory($arr)
-    {
-        $list = new self();
-        
-        if( is_array($arr) || $arr instanceof \Traversable ) {
-            foreach( $arr as $v ) {
-                $list->push($v);
-            }
-        }
-        
-        return $list;
-    }
-    
-    /**
      * Getter that silences missing array index errors
      *
      * @param integer $offset
@@ -35,6 +16,8 @@ class DepthList extends SplDoublyLinkedList
     {
         if( $this->offsetExists($offset) ) {
             return parent::offsetGet($offset);
+        } else {
+            return null;
         }
     }
 }

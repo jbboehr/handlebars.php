@@ -8,7 +8,7 @@ $specialSuites = array('parser', 'tokenizer', 'delimiters', '~lambdas');
 
 
 // List files
-$exportDir = __DIR__ . '/spec/handlebars/export/';
+$exportDir = __DIR__ . '/vendor/jbboehr/handlebars-spec/export/';
 $exportFiles = array();
 foreach( scandir($exportDir) as $file ) {
     if( $file[0] === '.' || substr($file, -5) !== '.json' ) {
@@ -52,7 +52,7 @@ foreach( $exportFiles as $filePath ) {
 
 
 // Mustache tests
-$mustacheDir = __DIR__ . '/spec/mustache/specs/';
+$mustacheDir = __DIR__ . '/vendor/jbboehr/mustache-spec/specs/';
 $mustacheFiles = array();
 foreach( scandir($mustacheDir) as $file ) {
     if( $file[0] === '.' || substr($file, -5) !== '.json' ) {

@@ -38,7 +38,10 @@ class SourceNode
         $this->src = $chunks . $this->src;
         return $this;
     }
-    
+
+    /**
+     * @codeCoverageIgnore
+     */
     public function toStringWithSourceMap()
     {
         return array(

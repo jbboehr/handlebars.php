@@ -1,6 +1,9 @@
 <?php
 
-namespace Handlebars;
+namespace Handlebars\Compiler;
+
+use Handlebars\CompileException;
+use Handlebars\Compiler as NativeCompiler;
 
 /**
  * Compile wrapper class
@@ -17,6 +20,10 @@ class Compiler
      */
     public function compile($tmpl, array $options = null)
     {
+        if( !extension_loaded('handlebars') ) {
+            throw new CompileException("The handlebars extension is not loaded.");
+        }
+
         $flags = $this->makeCompilerFlags($options);
         $knownHelpers = null;
         if( !empty($options['knownHelpers']) ) {
@@ -29,30 +36,8 @@ class Compiler
                 }
             }
         }
-        return Native::compile($tmpl, $flags, $knownHelpers);
-    }
-
-    /**
-     * Compile an array of templates (for use with partials, typically)
-     *
-     * @param $tmpls
-     * @param $options
-     * @return array
-     */
-    public function compileMany(array $tmpls = null, array $options = null)
-    {
-        $opcodes = array();
-        foreach( (array) $tmpls as $index => $tmpl ) {
-            if( !$tmpl ) {
-                $opcodes[$index] = array(
-                    'opcodes' => array(),
-                    'children' => array()
-                );
-            } else {
-                $opcodes[$index] = $this->compile($tmpl, $options);
-            }
-        }
-        return $opcodes;
+        /** @noinspection PhpUndefinedClassInspection */
+        return NativeCompiler::compile($tmpl, $flags, $knownHelpers);
     }
 
     /**
@@ -61,27 +46,36 @@ class Compiler
      * @param $options
      * @return integer
      */
-    private function makeCompilerFlags(array $options = null)
+    public function makeCompilerFlags(array $options = null)
     {
         // Make flags
         $flags = 0;
         if( !empty($options['compat']) ) {
-            $flags |= COMPILER_FLAG_COMPAT;
+            $flags |= NativeCompiler::COMPAT;
         }
         if( !empty($options['stringParams']) ) {
-            $flags |= COMPILER_FLAG_STRING_PARAMS;
+            $flags |= NativeCompiler::STRING_PARAMS;
         }
         if( !empty($options['trackIds']) ) {
-            $flags |= COMPILER_FLAG_TRACK_IDS;
+            $flags |= NativeCompiler::TRACK_IDS;
         }
         if( !empty($options['useDepths']) ) {
-            $flags |= COMPILER_FLAG_USE_DEPTHS;
+            $flags |= NativeCompiler::USE_DEPTHS;
         }
         if( !empty($options['knownHelpersOnly']) ) {
-            $flags |= COMPILER_FLAG_KNOWN_HELPERS_ONLY;
+            $flags |= NativeCompiler::KNOWN_HELPERS_ONLY;
         }
         if( !empty($options['preventIndent']) ) {
-            $flags |= COMPILER_FLAG_PREVENT_INDENT;
+            $flags |= NativeCompiler::PREVENT_INDENT;
+        }
+        if( !empty($options['explicitPartialContext']) ) {
+            $flags |= NativeCompiler::EXPLICIT_PARTIAL_CONTEXT;
+        }
+        if( !empty($options['ignoreStandalone']) ) {
+            $flags |= NativeCompiler::IGNORE_STANDALONE;
+        }
+        if( !empty($options['alternateDecorators']) ) {
+            $flags |= NativeCompiler::ALTERNATE_DECORATORS;
         }
         return $flags;
     }

@@ -13,16 +13,23 @@ if( extension_loaded('xdebug') ) {
     if( file_exists($extensionDir . '/handlebars.so') ) {
         $command .= "-d 'extension=" . $extensionDir . "/handlebars.so' ";
     }
+    if( extension_loaded('xhprof') && file_exists($extensionDir . '/xhprof.so') ) {
+        $command .= "-d 'extension=" . $extensionDir . "/xhprof.so' ";
+    }
     $command .= ' ' . __FILE__;
+    $command .= ' ' . join(' ', array_map('escapeshellarg', $argv));
     //echo $command, "\n";
     passthru($command);
     exit(0);
 }
 
+if( extension_loaded('xhprof') ) {
+    xhprof_enable(XHPROF_FLAGS_CPU + XHPROF_FLAGS_MEMORY);
+}
 
-require __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/../vendor/autoload.php';
 
-$tests = json_decode(file_get_contents(__DIR__ . '/spec/handlebars/spec/bench.json'), true);
+$tests = json_decode(file_get_contents(__DIR__ . '/../vendor/jbboehr/handlebars-spec/spec/bench.json'), true);
 $count = 500;
 $results = array();
 $table = new Console_Table;
@@ -38,6 +45,9 @@ function runCompiled($test) {
     $helpers = isset($test['helpers']) ? evalLambdas($test['helpers']) : null;
     $partials = isset($test['partials']) ? $test['partials'] : null;
     $options = isset($test['compileOptions']) ? $test['compileOptions'] : null;
+
+    // @todo fix this
+    $options['data'] = true;
     
     $handlebars = new \Handlebars\Handlebars();
     $fn = $handlebars->compile($tmpl, $options);
@@ -108,8 +118,12 @@ function addResult($test, $delta, $mode) {
 }
 
 foreach( $tests as $test ) {
-    addResult($test, runCompiled($test), 'compiler');
-    addResult($test, runVM($test), 'vm');
+    if( !in_array('vm-only', $argv) ) {
+        addResult($test, runCompiled($test), 'compiler');
+    }
+    if( !in_array('compiler-only', $argv) ) {
+        addResult($test, runVM($test), 'vm');
+    }
 }
 
 echo $table->fromArray(array(
@@ -130,4 +144,11 @@ function evalLambdas(&$arr) {
         }
     }
     return $arr;
+}
+
+if( extension_loaded('xhprof') ) {
+    $xhprof_data = xhprof_disable();
+    $xhprof_runs = new XHProfRuns_Default(sys_get_temp_dir());
+    $run_id = $xhprof_runs->save_run($xhprof_data, "xhprof_handlebars");
+    echo "Run ID: ", $run_id, "\n";
 }

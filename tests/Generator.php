@@ -13,6 +13,7 @@ abstract class Generator
     protected $suiteName;
     protected $specName;
     protected $usedNames;
+    protected $mode;
     
     public function __construct(array $options)
     {
@@ -79,6 +80,9 @@ abstract class Generator
             
 namespace {$this->namespace};
 
+use \Handlebars\Handlebars;
+use \Handlebars\Compiler\PhpCompiler;
+use \Handlebars\Runtime;
 use \Handlebars\SafeString;
 use \Handlebars\Utils;
 use \Handlebars\Tests\Common;
@@ -108,12 +112,20 @@ EOF;
 EOF;
     }
     
-    protected function generateFunctionFooter()
+    protected function generateFunctionFooter($test)
     {
-        return <<<EOF
+        $parts = array();
+        if( !empty($test['exception']) ) {
+            //$parts[] = '$this->assertFalse(true);';
+        } else {
+            $parts[] = '$this->assertEquals($expected, $actual);';
+        }
+        return $this->indent(2) . join("\n" . $this->indent(2), $parts) . "\n"
+            . $this->indent(1) . "}\n\n";
+        /* return <<<EOF
     }
 
-EOF;
+EOF; */
     }
     
     protected function generateFunctionName(array &$test)
@@ -176,22 +188,46 @@ EOF;
         $this->convertLambdas($helpers);
         $parts[] = '$helpers = ' . $this->indentVarExport(2, $helpers) . ";";
 
+        // Generate decorators
+        $decorators = $test['decorators'];
+        if( !empty($test['globalDecorators']) ) {
+            $decorators += $test['globalDecorators'];
+        }
+        $this->convertLambdas($decorators);
+        if( isset($decorators['inline']) ) { // @todo fixme - shouldn't be saved
+            unset($decorators['inline']);
+        }
+        
+        $parts[] = '$decorators = ' . $this->indentVarExport(2, $decorators) . ";";
+
         // Generate options - @todo merge compile and runtime options for now
         $parts[] = '$compileOptions = ' . $this->indentVarExport(2, isset($test['compileOptions']) ? $test['compileOptions'] : array()) . ";";
+
+        $this->convertLambdas($test['options']);
         $parts[] = '$options = ' . $this->indentVarExport(2, isset($test['options']) ? $test['options'] : array()) . ";";
+
         $parts[] = '$allOptions = array_merge($compileOptions, $options);';
+
+
+        $parts[] = '$handlebars = new Handlebars(array("mode" => ' . var_export($this->mode, true) . '));';
 
         // Register global helpers/partial
         if( !empty($test['testMode']) && $test['testMode'] == 'integration' ) {
             if( !empty($test['globalHelpers']) ) {
                 $globalHelpers = $test['globalHelpers'];
                 $this->convertLambdas($globalHelpers);
-                $parts[] = '$this->handlebars->registerHelpers(' . $this->indentVarExport(2, $globalHelpers) . ');';
+                $parts[] = '$handlebars->registerHelpers(' . $this->indentVarExport(2, $globalHelpers) . ');';
                 unset($test['globalHelpers']); // maybe bad idea
             }
             if( !empty($test['globalPartials']) ) {
-                $parts[] = '$this->handlebars->registerPartials(' . $this->indentVarExport(2, $test['globalPartials']) . ');';
+                $parts[] = '$handlebars->registerPartials(' . $this->indentVarExport(2, $test['globalPartials']) . ');';
                 unset($test['globalPartial']); // maybe bad idea
+            }
+            if( !empty($test['globalDecorators']) ) {
+                $globalDecorators = $test['globalDecorators'];
+                $this->convertLambdas($globalDecorators);
+                $parts[] = '$handlebars->registerDecorators(' . $this->indentVarExport(2, $globalDecorators) . ');';
+                unset($test['globalDecorators']); // maybe bad idea
             }
         }
         
@@ -261,6 +297,9 @@ EOF;
         if( empty($test['partials']) ) {
             $test['partials'] = array();
         }
+        if( empty($test['decorators']) ) {
+            $test['decorators'] = array();
+        }
         if( !array_key_exists('expected', $test) ) {
             $test['expected'] = null;
         }
@@ -292,6 +331,7 @@ EOF;
             $v = var_export($var, true);
             if( is_string($var) ) {
                 $v = str_replace("\n", $v[0] . ' . "\n" . ' . $v[0], $v);
+                $v = str_replace("\r", $v[0] . ' . "\r" . ' . $v[0], $v);
             }
             return $v;
         }

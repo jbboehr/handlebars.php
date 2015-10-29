@@ -19,7 +19,7 @@ tools:
   php_analyzer: true
   php_code_sniffer: true
   external_code_coverage:
-    timeout: 600 
+    timeout: 900 
 
 before_commands:
   - "composer install"

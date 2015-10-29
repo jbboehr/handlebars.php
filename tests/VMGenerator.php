@@ -16,10 +16,32 @@ class VMGenerator extends Generator
         // Added in v3
         'testExportBlockParamsShouldTakePresedneceOverParentBlockParams1',
         'testIntegrationBlockParamsShouldTakePresedneceOverParentBlockParams1',
+
+        // Added in v4
+        'testExportDecoratorsShouldFailWhenAccessingVariablesFromRoot1',
+        'testIntegrationDecoratorsShouldFailWhenAccessingVariablesFromRoot1',
+        'testExportStandaloneSectionsBlockStandaloneElseSectionsCanBeDisabled1',
+        'testIntegrationStandaloneSectionsBlockStandaloneElseSectionsCanBeDisabled1',
+        'testExportStandaloneSectionsBlockStandaloneElseSectionsCanBeDisabled2',
+        'testIntegrationStandaloneSectionsBlockStandaloneElseSectionsCanBeDisabled2',
+
+        // These are skipped for export mode because of the alternate decorators compile option
+        'testExportInlinePartialsShouldDefineInlinePartialsForTemplate1',
+        'testExportInlinePartialsShouldOverwriteMultiplePartialsInTheSameTemplate1',
+        'testExportInlinePartialsShouldDefineInlinePartialsForBlock1',
+        'testExportInlinePartialsShouldOverrideTemplatePartials1',
+        'testExportInlinePartialsShouldOverridePartialsDownTheEntireStack1',
+        'testExportInlinePartialsShouldDefineInlinePartialsForPartialCall1',
+        'testExportInlinePartialsShouldDefineInlinePartialsForBlock2',
+        'testExportInlinePartialsShouldDefineInlinePartialsForBlock3',
+        'testExportRegressionsGH1089ShouldSupportFailoverContentInMultipleLevelsOfInlinePartials1',
+        'testExportRegressionsShouldSupportMultipleLevelsOfInlinePartials1',
+        'testExportInlinePartialsShouldDefineInlinePartialsInPartialBlockCall1',
     );
     
     public function __construct(array $options)
     {
+        $this->mode = \Handlebars\Handlebars::MODE_VM;
         $options['ns'] = 'VM';
         parent::__construct($options);
     }
@@ -36,17 +58,22 @@ class VMGenerator extends Generator
         $header = $this->generateFunctionHeader($test);
         $header .= $this->generateTestVars($test);
         $footer = $this->generateFunctionFooter($test);
-        
+
+        $parts = array();
+        $parts[] = 'if( !extension_loaded("handlebars") ) return $this->markTestSkipped("Integration tests require the handlebars extension");';
+        $parts[] = '$allOptions["alternateDecorators"] = true;';
         $parts[] = '$allOptions["helpers"] = $helpers;';
         $parts[] = '$allOptions["partials"] = $partials;';
-        $parts[] = '$actual = $this->handlebars->render($tmpl, $data, $allOptions);';
-        $parts[] = '$this->assertEquals($expected, $actual);';
+        $parts[] = '$allOptions["decorators"] = $decorators;';
+
+
+        $parts[] = '$actual = $handlebars->render($tmpl, $data, $allOptions);';
         
         return $header
             . $this->indent(2) . join("\n" . $this->indent(2), $parts) . "\n"
             . $footer;
     }
-    
+
     protected function generateTestExport(array $test)
     {
         if( $this->specName === 'Mustache' ) {
@@ -58,9 +85,20 @@ class VMGenerator extends Generator
         $header .= $this->generateTestVars($test);
         $footer = $this->generateFunctionFooter($test);
         
-        $parts[] = '$helpers += $this->handlebars->getHelpers();';
-        $parts[] = '$actual = $this->vm->execute($opcodes, $data, $helpers, $partialOpcodes, $allOptions);';
-        $parts[] = '$this->assertEquals($expected, $actual);';
+        $parts[] = 'if( !empty($decorators) || !empty($globalDecorators) ) {';
+        $parts[] = '    $this->markTestIncomplete("The VM does not support decorators in export mode - requires custom compiler option");';
+        $parts[] = '}';
+
+        $parts[] = 'foreach( $partialOpcodes as $name => $partialOpcode ) {';
+        $parts[] = '  $partials[$name] = new \\Handlebars\\VM\\Runtime($handlebars, $partialOpcode);';
+        $parts[] = '}';
+
+        $parts[] = '$allOptions["helpers"] = $helpers;';
+        $parts[] = '$allOptions["partials"] = $partials;';
+        $parts[] = '$allOptions["decorators"] = $decorators;';
+
+        $parts[] = '$vm = new \\Handlebars\\VM\\Runtime($handlebars, $opcodes);';
+        $parts[] = '$actual = $vm($data, $allOptions);';
         
         return $header
             . $this->indent(2) . join("\n" . $this->indent(2), $parts) . "\n"

@@ -25,13 +25,17 @@ phpunit: vendor tests/Spec
 
 test: cs phpunit
 
-tests/Spec: vendor spec/handlebars spec/mustache tests/Generator.php \
-		tests/VMGenerator.php tests/CompilerGenerator.php
+tests/Spec: vendor vendor/jbboehr/handlebars-spec vendor/jbboehr/mustache-spec \
+		tests/Generator.php tests/VMGenerator.php tests/CompilerGenerator.php
 	php generate-tests.php
 	@touch -c tests/Spec
 
 vendor: composer.json composer.lock
 	composer install $(COMPOSER_OPTS)
 	@touch -c vendor
+
+xhprof: vendor
+	php -d extension=xhprof.so bench.php $(BENCH_OPTS)
+	php -S 127.0.0.1:1234 -t vendor/lox/xhprof/xhprof_html/
 
 .PHONY: cbf clean coverage cs phpunit test

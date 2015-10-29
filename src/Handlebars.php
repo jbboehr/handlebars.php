@@ -2,6 +2,9 @@
 
 namespace Handlebars;
 
+use Handlebars\Registry\Registry;
+use Handlebars\Registry\DefaultRegistry;
+
 /**
  * Main class
  */
@@ -11,16 +14,23 @@ class Handlebars
     const MODE_VM = 'vm';
 
     /**
-     * @var \Handlebars\Compiler
+     * @var \Handlebars\Compiler\Compiler
      */
     protected $compiler;
+    
+    /**
+     * Array of global decorators
+     *
+     * @var array
+     */
+    protected $decorators;
 
     /**
      * Array of global helpers
      *
      * @var array
      */
-    protected $helpers = array();
+    protected $helpers;
 
     /**
      * The default render mode (compiler or vm)
@@ -34,17 +44,17 @@ class Handlebars
      *
      * @var array
      */
-    protected $partials = array();
+    protected $partials;
 
     /**
-     * @var \Handlebars\PhpCompiler
+     * @var \Handlebars\Compiler\PhpCompiler
      */
     protected $phpCompiler;
 
     /**
      * VM instance
      *
-     * @var \Handlebars\VM
+     * @var \Handlebars\VM\VM
      */
     protected $vm;
 
@@ -55,23 +65,33 @@ class Handlebars
      */
     public function __construct($options = array())
     {
+        $this->setOptions($options);
+
+        $this->compiler = new Compiler\Compiler();
+        $this->phpCompiler = new Compiler\PhpCompiler();
+
+        $this->setupBuiltins();
+    }
+
+    private function setOptions($options)
+    {
         if( isset($options['mode']) ) {
             $this->mode = $options['mode'];
         } else {
             $this->mode = self::MODE_COMPILER;
         }
-        if( isset($options['helpers']) ) {
-            $this->helpers = $options['helpers'];
-        }
-        if( isset($options['partials']) ) {
-            $this->partials = $options['partials'];
-        }
 
-        $this->compiler = new Compiler();
-        $this->phpCompiler = new PhpCompiler();
-        $this->vm = new VM();
-
-        $this->setupBuiltinHelpers();
+        foreach( array('helpers', 'partials', 'decorators') as $key ) {
+            if( isset($options[$key]) ) {
+                if( $options[$key] instanceof Registry ) {
+                    $this->$key = $options[$key];
+                } else {
+                    $this->$key = new DefaultRegistry($options[$key]);
+                }
+            } else {
+                $this->$key = new DefaultRegistry();
+            }
+        }
     }
 
     /**
@@ -84,12 +104,28 @@ class Handlebars
      */
     public function compile($tmpl, array $compileOptions = array())
     {
-        $templateSpecString = $this->precompile($tmpl, $compileOptions);
-        $templateSpec = eval('return ' . $templateSpecString . ';');
-        if( !$templateSpec ) {
-            throw new CompileException('Failed to compile template');
+        if( $this->mode === self::MODE_VM ) {
+            $opcodes = $this->compiler->compile($tmpl, $compileOptions);
+            $opcodes['options'] = $compileOptions;
+            return new VM\Runtime($this, $opcodes);
+        } else {
+            $templateSpecString = $this->precompile($tmpl, $compileOptions);
+            $templateSpec = eval('return ' . $templateSpecString . ';');
+            if( !$templateSpec ) {
+                throw new CompileException('Failed to compile template');
+            }
+            return new Compiler\Runtime($this, $templateSpec);
         }
-        return new Runtime($this, $templateSpec);
+    }
+
+    /**
+     * Get the currently registered decorators
+     *
+     * @return \Handlebars\Registry\Registry
+     */
+    public function getDecorators()
+    {
+        return $this->decorators;
     }
 
     /**
@@ -106,7 +142,7 @@ class Handlebars
     /**
      * Get the currently registered helpers
      *
-     * @return array
+     * @return \Handlebars\Registry\Registry
      */
     public function getHelpers()
     {
@@ -116,7 +152,7 @@ class Handlebars
     /**
      * Get the currently registered partials
      *
-     * @return array
+     * @return \Handlebars\Registry\Registry
      */
     public function getPartials()
     {
@@ -144,6 +180,33 @@ class Handlebars
         // Compile
         $opcodes = $this->compiler->compile($tmpl, $compileOptions);
         return $this->phpCompiler->compile($opcodes, $compileOptions);
+    }
+
+    /**
+     * Register a global decorator
+     *
+     * @param $name string
+     * @param $decorator callable
+     * @return \Handlebars\Handlebars
+     */
+    public function registerDecorator($name, $decorator)
+    {
+        $this->decorators[$name] = $decorator;
+        return $this;
+    }
+
+    /**
+     * Register global decorators
+     *
+     * @param array|\Traversable $decorators
+     * @return \Handlebars\Handlebars
+     */
+    public function registerDecorators($decorators)
+    {
+        foreach( $decorators as $name => $decorator ) {
+            $this->registerDecorator($name, $decorator);
+        }
+        return $this;
     }
 
     /**
@@ -247,16 +310,8 @@ class Handlebars
      */
     private function renderVM($tmpl, $context = null, $options = null)
     {
-        // Build helpers and partials
-        $helpers = Utils::arrayMerge($this->getHelpers(), Utils::lookup($options, 'helpers'));
-        $partials = Utils::arrayMerge($this->getPartials(), Utils::lookup($options, 'partials'));
-
-        // Compile
-        $opcodes = $this->compiler->compile($tmpl, $options);
-        $partialOpcodes = $this->compiler->compileMany($partials, $options);
-
-        // Execute
-        return $this->vm->execute($opcodes, $context, $helpers, $partialOpcodes, $options);
+        $runtime = $this->compile($tmpl, $options);
+        return $runtime($context, $options);
     }
 
     /**
@@ -264,13 +319,15 @@ class Handlebars
      *
      * @return void
      */
-    private function setupBuiltinHelpers()
+    private function setupBuiltins()
     {
-        $builtins = new Builtins($this);
-        foreach( $builtins->getAllHelpers() as $name => $helper ) {
-            if( !isset($this->helpers[$name]) ) {
-                $this->helpers[$name] = $helper;
-            }
-        }
+        $this->helpers['blockHelperMissing'] = new Helper\BlockHelperMissing();
+        $this->helpers['if'] = new Helper\IfHelper();
+        $this->helpers['each'] = new Helper\Each();
+        $this->helpers['helperMissing'] = new Helper\HelperMissing();
+        $this->helpers['lookup'] = new Helper\Lookup();
+        $this->helpers['unless'] = new Helper\Unless();
+        $this->helpers['with'] = new Helper\With();
+        $this->decorators['inline'] = new Decorator\Inline();
     }
 }

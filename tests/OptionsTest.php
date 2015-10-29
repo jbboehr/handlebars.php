@@ -33,14 +33,16 @@ class OptionsTest extends Common
     
     public function testFnWithoutFunction()
     {
+        $this->setExpectedException('\\Handlebars\\RuntimeException');
         $options = new Options();
-        $this->assertEmpty($options->fn());
+        $options->fn();
     }
     
     public function testInverseWithoutFunction()
     {
+        $this->setExpectedException('\\Handlebars\\RuntimeException');
         $options = new Options();
-        $this->assertEmpty($options->inverse());
+        $options->inverse();
     }
     
     public function testOffsetGetWithMissingOffset()

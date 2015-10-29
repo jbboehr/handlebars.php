@@ -7,12 +7,18 @@ php:
   - 5.6
   - 7.0
 
-env: LIBHANDLEBARS_VERSION=0.3.1 PHP_HANDLEBARS_VERSION=0.5.1
+env:
+  global:
+    - LIBHANDLEBARS_VERSION=0.4.1
+    - PHP_HANDLEBARS_VERSION=0.6.0
 
 matrix:
   fast_finish: true
   allow_failures:
-    - php: 7.0
+    - env: COVERAGE=true
+  include:
+    - php: 5.6
+      env: COVERAGE=true
 
 branches:
   only:
@@ -23,13 +29,9 @@ sudo: false
 
 addons:
   apt:
-    sources:
-      - ubuntu-toolchain-r-test
     packages:
       - bison
       - flex
-      - gcc-4.8
-      - g++-4.8
       - lcov
       - libjemalloc-dev
       - libjson0-dev
@@ -53,9 +55,9 @@ before_script:
   - php generate-tests.php
 
 script:
-  - ./vendor/bin/phpunit --coverage-text --coverage-clover=coverage.clover
-  - ./bench.php
+  - ./.travis.sh phpunit
+# broken
+#  - ./bench/main.php
 
 after_success:
   - ./.travis.sh after_success
-

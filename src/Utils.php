@@ -3,8 +3,6 @@
 namespace Handlebars;
 
 use ArrayAccess;
-use SplDoublyLinkedList;
-use Traversable;
 
 /**
  * Utilities
@@ -29,131 +27,59 @@ class Utils
         }
         return ($contextPath ? $contextPath . '.' : '') . $id;
     }
-    
-    /**
-     * Make a copy of an array or array object.
-     *
-     * @param mixed $array
-     * @return mixed
-     */
-    public static function arrayCopy($array)
-    {
-        if( is_object($array) ) {
-            return clone $array;
-        } else {
-            return $array;
-        }
-    }
-    
-    /**
-     * Merge all of the entries of array2 into array1, by value.
-     *
-     * @param array $array1
-     * @param array $array2
-     * @return array
-     */
-    public static function arrayMerge($array1, $array2)
-    {
-        $array = self::arrayCopy($array1);
-        if( is_array($array2) || is_object($array2) ) {
-            foreach( $array2 as $k => $v ) {
-                $array[$k] = $v;
-            }
-        }
-        return $array;
-    }
-
-    /**
-     * Merge all of the entries of array2 into array1, by reference.
-     *
-     * @param array $array1
-     * @param array $array2
-     * @return array
-     */
-    public static function arrayMergeByRef(&$array1, $array2)
-    {
-        foreach( $array2 as $k => $v ) {
-            $array1[$k] = $v;
-        }
-        return $array1;
-    }
-    
-    /**
-     * Unshift a single element onto the beginning of a copy of an array.
-     * SplDoublyLinkedList is cloned, otherwise Array objects are reduced to
-     * simple arrays. Returns null if not given an array.
-     *
-     * @param array|\Traversable $array
-     * @return array|\Traversable
-     */
-    public static function arrayUnshift($array, $value)
-    {
-        if( is_array($array) ) {
-            array_unshift($array, $value);
-        } else if( $array instanceof SplDoublyLinkedList ) {
-            $array = clone $array;
-            $array->unshift($value);
-        } else if( $array instanceof Traversable ) {
-            $newArray = array($value);
-            foreach( $array as $item ) {
-                $newArray[] = $item;
-            }
-            $array = $newArray;
-        } else {
-            $array = null;
-        }
-        
-        return $array;
-    }
 
     public static function createFrame($object)
     {
-        if( is_object($object) ) {
-            $frame = clone $object;
-            $frame->_parent = $object;
-        } else {
+        if( is_scalar($object) ) {
+            $frame = array($object);
+        } else if( is_array($object) ) {
             $frame = $object;
             $frame['_parent'] = $object;
+        } else {
+            $frame = null;
         }
         return $frame;
     }
 
-    /**
-     * Indent a multi-line string
-     *
-     * @param string $str
-     * @param string $indent
-     * @return string
-     */
-    public static function indent($str, $indent)
+    public static function expression($value)
     {
-        $lines = explode("\n", $str);
-        for( $i = 0, $l = count($lines); $i < $l; $i++ ) {
-            if( empty($lines[$i]) && $i + 1 == $l ) {
-                break;
+        if( !is_scalar($value) ) {
+            if( is_array($value) ) {
+                // javascript-style array-to-string conversion
+                if( Utils::isIntArray($value) ) {
+                    return implode(',', $value);
+                } else {
+                    throw new RuntimeException('Trying to stringify assoc array');
+                }
+            } else if( is_object($value) && !method_exists($value, '__toString') ) {
+                throw new RuntimeException('Trying to stringify object');
             }
-            $lines[$i] = $indent . $lines[$i];
+        } else if( is_bool($value) ) {
+            return $value ? 'true' : 'false';
+        } else if( $value === 0 ) {
+            return '0';
         }
-        return implode("\n", $lines);
+
+        return (string) $value;
     }
 
-    /**
-     * Convert path-fragment to PathFragment
-     *
-     * @param string $str
-     * @return string
-     */
-    public static function inflect($str)
+    public static function escapeExpression($value, $compat = true)
     {
-        return trim(
-            str_replace(
-                ' ',
-                '',
-                ucwords(preg_replace('/[^a-zA-Z0-9]+/', ' ', $str))
-            )
-        );
+        if( $value instanceof SafeString ) {
+            return $value->__toString();
+        }
+        $value = $compat ? self::expression($value) : $value;
+        $value = htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+        // Handlebars uses hex entities >.>
+        $value = str_replace(array('`', '&#039;'), array('&#x60;', '&#x27;'), $value);
+        return $value;
     }
-    
+
+    public static function escapeExpressionCompat($value)
+    {
+        return self::escapeExpression($value, true);
+    }
+
     /**
      * Check if callable, disallow strings
      *
@@ -162,7 +88,7 @@ class Utils
      */
     public static function isCallable($name)
     {
-        return !is_scalar($name) && is_callable($name);
+        return is_object($name) && is_callable($name);
     }
 
     /**
@@ -197,24 +123,14 @@ class Utils
      * @param string $field
      * @return mixed
      */
-    public static function lookup($objOrArray, $field)
+    public static function nameLookup($objOrArray, $field)
     {
         if( is_array($objOrArray) || $objOrArray instanceof ArrayAccess ) {
             return isset($objOrArray[$field]) ? $objOrArray[$field] : null;
         } else if( is_object($objOrArray) ) {
             return isset($objOrArray->$field) ? $objOrArray->$field : null;
+        } else {
+            return null;
         }
-    }
-    
-    /**
-     * Returns an empty closure
-     *
-     * @return \Closure
-     */
-    public static function noop()
-    {
-        return function () {
-            
-        };
     }
 }

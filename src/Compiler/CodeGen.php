@@ -2,7 +2,6 @@
 
 namespace Handlebars\Compiler;
 
-use ArrayIterator;
 use IteratorAggregate;
 use SplDoublyLinkedList;
 
@@ -22,7 +21,10 @@ class CodeGen implements IteratorAggregate
      * @var \SplDoublyLinkedList
      */
     private $source;
-    
+
+    /**
+     * @param $srcFile string
+     */
     public function __construct($srcFile)
     {
         $this->srcFile = $srcFile;
@@ -65,6 +67,11 @@ class CodeGen implements IteratorAggregate
         );
     }
     
+    public function isEmpty()
+    {
+        return !$this->source->count();
+    }
+    
     public function functionCall($fn, $type, $params)
     {
         $params = $this->generateList($params);
@@ -73,7 +80,6 @@ class CodeGen implements IteratorAggregate
         } else {
             return $this->wrap(array('call_user_func(', $fn, ', ', $params, ')'));
         }
-        //return $this->wrap(array($fn, $type ? '.' . $type . '(' : '(', $params, ')'));
     }
     
     public function generateArray($entries, $loc = null)
@@ -100,10 +106,13 @@ class CodeGen implements IteratorAggregate
         
         return $ret;
     }
-    
+
+    /**
+     * @return SplDoublyLinkedList
+     */
     public function getIterator()
     {
-        return $this->source; // new ArrayIterator($this->source);
+        return $this->source;
     }
     
     public function merge()
@@ -118,17 +127,13 @@ class CodeGen implements IteratorAggregate
     public function objectLiteral($obj)
     {
         $pairs = array();
-        
         foreach( $obj as $key => $value ) {
             $value = $this->castChunk($value);
-            // @todo make sure this is right
-            //if( $value /* !== 'undefined' */ ) {
-                $pairs[] = array(
-                    $this->quotedString($key),
-                    ' => ',
-                    $value
-                );
-            //}
+            $pairs[] = array(
+                $this->quotedString($key),
+                ' => ',
+                $value
+            );
         }
         
         $ret = $this->generateList($pairs);
@@ -153,7 +158,12 @@ class CodeGen implements IteratorAggregate
     {
         return var_export($str, true);
     }
-    
+
+    /**
+     * @param SourceNode|mixed $chunk
+     * @param array|null $loc
+     * @return SourceNode
+     */
     public function wrap($chunk, $loc = null)
     {
         if( $chunk instanceof SourceNode ) {

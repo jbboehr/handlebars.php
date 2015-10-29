@@ -9,14 +9,21 @@ use ReflectionObject;
 
 class HandlebarsTest extends Common
 {
+    public function setUp()
+    {
+        if( !extension_loaded('handlebars') ) {
+            return $this->markTestSkipped('The handlebars extension is not loaded.');
+        }
+    }
+
     public function testCompileThrowsExceptionWithInvalidTemplate1()
     {
-        $stub = $this->getMockBuilder('\\Handlebars\\PhpCompiler')
+        $stub = $this->getMockBuilder('\\Handlebars\\Compiler\\PhpCompiler')
             ->getMock();
         $stub->method('compile')
             ->willReturn(false);
         
-        $handlebars = new Handlebars;
+        $handlebars = new Handlebars();
         $r = new ReflectionObject($handlebars);
         $rp = $r->getProperty('phpCompiler');
         $rp->setAccessible(true);
@@ -79,5 +86,25 @@ class HandlebarsTest extends Common
         $this->assertEquals('time', $handlebars->render('{{foo}}', array(
             'foo' => 'time'
         )));
+    }
+
+    public function testRegisterDecorator()
+    {
+        $fn = function() {
+
+        };
+        $handlebars = new Handlebars();
+        $handlebars->registerDecorator('test', $fn);
+        $this->assertArrayHasKey('test', $handlebars->getDecorators());
+    }
+
+    public function testRegisterDecorators()
+    {
+        $fn = function() {
+
+        };
+        $handlebars = new Handlebars();
+        $handlebars->registerDecorators(array('test' => $fn));
+        $this->assertArrayHasKey('test', $handlebars->getDecorators());
     }
 }
