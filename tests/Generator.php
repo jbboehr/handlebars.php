@@ -319,6 +319,9 @@ EOF; */
                 $output = "array(\n";
                 $isNormalArray = Utils::isIntArray($var);
                 foreach( $var as $k => $v ) {
+                    if( $k === '!sparsearray' ) {
+                        continue;
+                    }
                     $output .= $this->indent($indent + 1)
                             . (!$isNormalArray ? var_export($k, true)
                             . ' => ' : '' )
