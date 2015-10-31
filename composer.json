@@ -30,7 +30,7 @@
     },
     "require-dev": {
         "jbboehr/coding-standard": "1.0.*@dev",
-        "jbboehr/handlebars-spec": "4.0.2",
+        "jbboehr/handlebars-spec": "4.0.4",
         "jbboehr/mustache-spec": "1.1.2",
         "lox/xhprof": "dev-master",
         "pear/console_table": "~1.2.1",

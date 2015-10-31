@@ -46,7 +46,7 @@ class Each
                 }
 
                 if( $data ) {
-                    $data['index'] = $i;
+                    $data['index'] = is_int($field) ? $field : $i;
                     $data['key'] = $field;
                     $data['first'] = ($i === 0);
                     $data['last'] = ($i === $len);
