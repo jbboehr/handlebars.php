@@ -9,8 +9,8 @@ php:
 
 env:
   global:
-    - LIBHANDLEBARS_VERSION=0.4.1
-    - PHP_HANDLEBARS_VERSION=0.6.0
+    - LIBHANDLEBARS_VERSION=0.4.2
+    - PHP_HANDLEBARS_VERSION=0.6.1
 
 matrix:
   fast_finish: true
@@ -23,7 +23,7 @@ matrix:
 branches:
   only:
     - master
-    - travis-fix
+    - travis
 
 sudo: false
 

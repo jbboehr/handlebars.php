@@ -37,7 +37,8 @@ install_bison)
 	;;
 
 install_handlebars)
-	if [ ! -f $PREFIX/include/handlebars.h ]; then
+	INSTALLED_HANDLEBARS_VERSION=`handlebarsc --version 2>&1 | awk '{ print $2 }'`
+	if [ ! -f $PREFIX/include/handlebars.h ] || [ "$INSTALLED_HANDLEBARS_VERSION" != "v$LIBHANDLEBARS_VERSION" ]; then
 		git clone -b v$LIBHANDLEBARS_VERSION https://github.com/jbboehr/handlebars.c handlebars-c --recursive
 		cd handlebars-c
 		./bootstrap
@@ -50,6 +51,7 @@ install_handlebars)
 	;;
 
 install_php_handlebars)
+	#INSTALLED_PHP_HANDLEBARS_VERSION=`php -r 'echo phpversion("handlebars");'`
 	rm -Rf php-handlebars
 	git clone -b v$PHP_HANDLEBARS_VERSION https://github.com/jbboehr/php-handlebars.git php-handlebars --recursive
 	cd php-handlebars
