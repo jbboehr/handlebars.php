@@ -53,12 +53,6 @@ class Compiler
         if( !empty($options['compat']) ) {
             $flags |= NativeCompiler::COMPAT;
         }
-        if( !empty($options['stringParams']) ) {
-            $flags |= NativeCompiler::STRING_PARAMS;
-        }
-        if( !empty($options['trackIds']) ) {
-            $flags |= NativeCompiler::TRACK_IDS;
-        }
         if( !empty($options['useDepths']) ) {
             $flags |= NativeCompiler::USE_DEPTHS;
         }

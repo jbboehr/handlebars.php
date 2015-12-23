@@ -3,12 +3,26 @@
 
 require __DIR__ . '/vendor/autoload.php';
 
+// Process arguments
+$options = array_merge(array(
+    'handlebars-spec' =>  __DIR__ . '/vendor/jbboehr/handlebars-spec/',
+    'mustache-spec' =>  __DIR__ . '/vendor/jbboehr/mustache-spec/',
+), getopt('', array(
+    'handlebars-spec:',
+    'mustache-spec',
+    'help'
+)));
+
+if( isset($options['help']) ) {
+    echo "Usage: generate-tests.php [--handlebars-spec <path>] [--mustache-spec <path>]\n";
+    exit(0);
+}
+$handlebarsSpecDir = $options['handlebars-spec'];
+$mustacheSpecDir = $options['mustache-spec'];
 $specialSuites = array('parser', 'tokenizer', 'delimiters', '~lambdas');
 
-
-
 // List files
-$exportDir = __DIR__ . '/vendor/jbboehr/handlebars-spec/export/';
+$exportDir = $handlebarsSpecDir . '/export/';
 $exportFiles = array();
 foreach( scandir($exportDir) as $file ) {
     if( $file[0] === '.' || substr($file, -5) !== '.json' ) {
@@ -52,7 +66,7 @@ foreach( $exportFiles as $filePath ) {
 
 
 // Mustache tests
-$mustacheDir = __DIR__ . '/vendor/jbboehr/mustache-spec/specs/';
+$mustacheDir = $mustacheSpecDir . '/specs/';
 $mustacheFiles = array();
 foreach( scandir($mustacheDir) as $file ) {
     if( $file[0] === '.' || substr($file, -5) !== '.json' ) {

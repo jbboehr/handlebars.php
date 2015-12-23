@@ -19,8 +19,6 @@ $opts = getopt('t:jp', array(
   'parse',
   'known-helpers:',
   'compat::',
-  'string-params::',
-  'track-ids::',
   'use-depths::',
   'known-helpers-only::',
   'disable-js-compat::',
@@ -48,8 +46,6 @@ if( $templateFile === '-' ) {
 
 $compileOptions = array(
     'compat' => isset($opts['compat']),
-    'stringParams' => isset($opts['string-params']),
-    'trackIds' => isset($opts['track-ids']),
     'useDepths' => isset($opts['use-depths']),
     'knownHelpers' => isset($opts['known-helpers']) ? explode(',', $opts['known-helpers']) : null,
     'knownHelpersOnly' => isset($opts['known-helpers-only']),

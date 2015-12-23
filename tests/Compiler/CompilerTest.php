@@ -32,8 +32,6 @@ class CompilerTest extends Common
     {
         $compiler = new Compiler();
         $this->assertEquals(NativeCompiler::COMPAT, $compiler->makeCompilerFlags(array('compat' => true)));
-        $this->assertEquals(NativeCompiler::STRING_PARAMS, $compiler->makeCompilerFlags(array('stringParams' => true)));
-        $this->assertEquals(NativeCompiler::TRACK_IDS, $compiler->makeCompilerFlags(array('trackIds' => true)));
         $this->assertEquals(NativeCompiler::USE_DEPTHS, $compiler->makeCompilerFlags(array('useDepths' => true)));
         $this->assertEquals(NativeCompiler::KNOWN_HELPERS_ONLY, $compiler->makeCompilerFlags(array('knownHelpersOnly' => true)));
         $this->assertEquals(NativeCompiler::PREVENT_INDENT, $compiler->makeCompilerFlags(array('preventIndent' => true)));

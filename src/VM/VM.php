@@ -83,20 +83,6 @@ class VM
     private $compat = false;
 
     /**
-     * Are string params enabled?
-     *
-     * @var boolean
-     */
-    private $stringParams = false;
-
-    /**
-     * Are we tracking IDs?
-     *
-     * @var boolean
-     */
-    private $trackIds = false;
-    
-    /**
      * @var boolean
      */
     private $useData = false;
@@ -151,8 +137,6 @@ class VM
 
         // Flags
         $this->compat = !empty($options['compat']);
-        $this->stringParams = !empty($options['stringParams']);
-        $this->trackIds = !empty($options['trackIds']);
         $this->useData = isset($options['data']);
         $this->useDepths = !empty($options['useDepths']);
 
@@ -375,42 +359,18 @@ class VM
             $options->scope = $this->frame()->context;
         }
 
-        if( $this->trackIds ) {
-            $options->hashIds = $this->pop();
-        }
-        if( $this->stringParams ) {
-            $options->hashTypes = $this->pop();
-            $options->hashContexts = $this->pop();
-        }
-
         $options->inverse = $this->wrapProgram($this->pop());
         $options->fn = $this->wrapProgram($this->pop());
 
         $i = $paramSize;
         $ids = $types = $contexts = array();
         while( $i-- ) {
-            $param = $this->pop();
-            $params[$i] = $param;
-            if( $this->trackIds ) {
-                $ids[$i] = $this->pop();
-            }
-            if( $this->stringParams ) {
-                $types[$i] = $this->pop();
-                $contexts[$i] = $this->pop();
-            }
+            $params[$i] = $this->pop();
         }
         ksort($params);
 
         if( $objectArgs ) {
             $options->args = $params;
-        }
-
-        if( $this->trackIds ) {
-            $options->ids = $ids;
-        }
-        if( $this->stringParams ) {
-            $options->types = $types;
-            $options->contexts = $contexts;
         }
 
         // This might not work right?
@@ -540,15 +500,6 @@ class VM
         $context = $type = $id = null;
         $value = $this->pop();
 
-        if( $this->trackIds ) {
-            $id = $this->pop();
-        }
-
-        if( $this->stringParams ) {
-            $type = $this->pop();
-            $context = $this->pop();
-        }
-
         $hash = $this->hashStack->top();
         if( $context ) {
             $hash->contexts[$key] = $context;
@@ -587,14 +538,6 @@ class VM
     private function emptyHash($omitEmpty = false)
     {
         $this->push(array());
-
-        if( $this->trackIds ) {
-            $this->push(array());
-        }
-        if( $this->stringParams ) {
-            $this->push(array());
-            $this->push(array());
-        }
         //$this->push($omitEmpty ? 'null' : array());
     }
 
@@ -836,14 +779,6 @@ class VM
     private function popHash()
     {
         $hash = $this->hashStack->pop();
-
-        if( $this->trackIds ) {
-            $this->push($hash->ids);
-        }
-        if( $this->stringParams ) {
-            $this->push($hash->contexts);
-            $this->push($hash->types);
-        }
         $this->push($hash->values);
     }
 
@@ -921,23 +856,6 @@ class VM
         $this->push($string);
     }
 
-    /**
-     * @param string $string
-     * @param string $type
-     * @return void
-     */
-    private function pushStringParam($string, $type)
-    {
-        $this->pushContext();
-        $this->pushString($type);
-
-        // If it's a subexpression, the string result
-        // will be pushed after this opcode.
-        if( $type !== 'SubExpression' ) {
-            $this->push($string);
-        }
-    }
-    
     private function registerDecorator($paramSize, $name)
     {
         if( !isset($this->decorators[$name]) ) {

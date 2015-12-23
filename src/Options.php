@@ -52,9 +52,6 @@ class Options implements ArrayAccess
     public $data;
 
     public $ids;
-    public $hashIds;
-    public $hashTypes;
-    public $hashContexts;
     public $types;
     public $contexts;
     public $args;

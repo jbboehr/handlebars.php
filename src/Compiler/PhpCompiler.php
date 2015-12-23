@@ -36,16 +36,6 @@ class PhpCompiler
     private $options;
 
     /**
-     * @var boolean
-     */
-    private $stringParams = false;
-
-    /**
-     * @var boolean
-     */
-    private $trackIds = false;
-
-    /**
      * @internal
      * @access private
      * @var boolean
@@ -205,8 +195,6 @@ class PhpCompiler
      */
     private function reinit()
     {
-        $this->stringParams = !empty($this->options['stringParams']);
-        $this->trackIds = !empty($this->options['trackIds']);
         $this->jsCompat = empty($this->options['disableJsCompat']);
         $this->nativeRuntime = false; //empty($this->options['disableNativeRuntime']);
 
@@ -861,15 +849,6 @@ class PhpCompiler
         $options['hash'] = $this->popStack();
         $options['scope'] = $this->contextName(0);
 
-        if( $this->trackIds ) {
-            $options['hashIds'] = $this->popStack();
-        }
-
-        if( $this->stringParams ) {
-            $options['hashTypes'] = $this->popStack();
-            $options['hashContexts'] = $this->popStack();
-        }
-
         $inverse = $this->popStack();
         $program = $this->popStack();
 
@@ -889,29 +868,11 @@ class PhpCompiler
         while( $i-- ) {
             $param = $this->popStack();
             $params[$i] = $param;
-
-            if( $this->trackIds ) {
-                $ids[$i] = $this->popStack();
-            }
-            if( $this->stringParams ) {
-                $types[$i] = $this->popStack();
-                $contexts[$i] = $this->popStack();
-            }
         }
         ksort($params);
 
         if( $objectArgs ) {
             $options['args'] = $this->source->generateArray($params);
-        }
-        if( $this->trackIds ) {
-            ksort($ids);
-            $options['ids'] = $this->source->generateArray($ids);
-        }
-        if( $this->stringParams ) {
-            ksort($types);
-            ksort($contexts);
-            $options['types'] = $this->source->generateArray($types);
-            $options['contexts'] = $this->source->generateArray($contexts);
         }
 
         if( !empty($this->options['data']) ) {
@@ -1046,14 +1007,6 @@ class PhpCompiler
         $value = $this->popStack();
         $id = $type = $context = null;
 
-        if( $this->trackIds ) {
-            $id = $this->popStack();
-        }
-        if( $this->stringParams ) {
-            $type = $this->popStack();
-            $context = $this->popStack();
-        }
-
         $hash = $this->hash;
         if( $context ) {
             $hash->contexts[$key] = $context;
@@ -1095,14 +1048,6 @@ class PhpCompiler
      */
     private function emptyHash($omitEmpty = false)
     {
-        if( $this->trackIds ) {
-            $this->push('array()');
-        }
-
-        if( $this->stringParams ) {
-            $this->push('array()');
-            $this->push('array()');
-        }
         $this->pushStackLiteral($omitEmpty ? 'null' : 'array()');
     }
 
@@ -1289,15 +1234,6 @@ class PhpCompiler
     {
         $hash = $this->hash;
         $this->hash = array_pop($this->hashes);
-
-        if( $this->trackIds ) {
-            $this->push($this->objectLiteral($hash->ids));
-        }
-        if( $this->stringParams ) {
-            $this->push($this->objectLiteral($hash->contexts));
-            $this->push($this->objectLiteral($hash->types));
-        }
-
         $this->push($this->objectLiteral($hash->values));
     }
 
@@ -1351,25 +1287,6 @@ class PhpCompiler
         $this->pushStackLiteral($this->quotedString($string));
     }
 
-    /**
-     * @param string $string
-     * @param string $type
-     * @return void
-     */
-    private function pushStringParam($string, $type)
-    {
-        $this->pushContext();
-        $this->pushString($type);
-
-        if( $type != 'SubExpression' ) {
-            if( is_string($string) ) {
-                $this->pushString($string);
-            } else {
-                $this->pushStackLiteral($string);
-            }
-        }
-    }
-    
     /**
      * @param integer $paramSize
      * @param string $name
