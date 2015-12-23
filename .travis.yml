@@ -9,7 +9,7 @@ php:
 
 env:
   global:
-    - LIBHANDLEBARS_VERSION=0.4.2
+    - LIBHANDLEBARS_VERSION=0.4.4
     - PHP_HANDLEBARS_VERSION=0.6.1
 
 matrix:

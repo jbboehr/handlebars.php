@@ -107,4 +107,12 @@ class HandlebarsTest extends Common
         $handlebars->registerDecorators(array('test' => $fn));
         $this->assertArrayHasKey('test', $handlebars->getDecorators());
     }
+
+    public function testConsecutiveMultilineComments()
+    {
+        $tmpl = "{{!-- blah1 --}}\nfoo\n{{!-- blah2 --}}";
+        $handlebars = new Handlebars();
+        $actual = trim($handlebars->render($tmpl));
+        $this->assertEquals('foo', $actual);
+    }
 }
