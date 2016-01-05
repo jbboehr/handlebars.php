@@ -17,7 +17,7 @@ class Runtime extends BaseRuntime
     {
         parent::__construct($handlebars);
 
-        if( isset($opcodes->options) ) {
+        if( !empty($opcodes->options) ) {
             $this->options = isset($opcodes->options) ? $opcodes->options : array();
             $this->options['useData'] = !empty($opcodes->options['data']);
         }
@@ -31,7 +31,6 @@ class Runtime extends BaseRuntime
         $options = array_merge((array) $this->options, (array) $options);
 
         parent::__invoke($context, $options);
-
 
         $data = $this->processDataOption($options, $context);
         if( $data !== null ) {

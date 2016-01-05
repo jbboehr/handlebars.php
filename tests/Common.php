@@ -14,7 +14,6 @@ class Common extends PHPUnit_Framework_TestCase
 {
     public function convertOpcode(array $opcode)
     {
-
         return new Opcode($opcode['opcode'], $opcode['args']);
     }
 
@@ -30,13 +29,21 @@ class Common extends PHPUnit_Framework_TestCase
             $children[$k] = $this->convertContext($v);
         }
 
+        $decorators = null;
+        if( isset($context['decorators']) ) {
+            foreach ($context['decorators'] as $k => $v) {
+                $decorators[$k] = $this->convertContext($v);
+            }
+        }
+
         $blockParams = isset($context['blockParams']) ? $context['blockParams'] : null;
 
         $obj = new CompileContext($opcodes, $children, $blockParams);
+        $obj->decorators = $decorators;
 
-        foreach( array('useDepths', 'usePartial', 'useDecorators') as $k ) {
+        foreach( array('useDepths', 'usePartial', 'useDecorators', 'isSimple', 'options', 'compileOptions') as $k ) {
             if( !empty($context[$k]) ) {
-                $obj->$k = true;
+                $obj->$k = $context[$k];
             }
         }
 
