@@ -1,6 +1,7 @@
 *~
 *.log
 .buildpath
+.php-version
 .project
 .settings
 .c9

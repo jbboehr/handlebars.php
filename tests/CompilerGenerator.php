@@ -95,7 +95,7 @@ class CompilerGenerator extends Generator
         \$templateSpecStr = \$compiler->compile(\$opcodes, \$compileOptions);
         \$templateSpec = eval('return ' . \$templateSpecStr . ';');
         foreach( \$partialOpcodes as \$name => \$partialOpcode ) {
-            \$partials[\$name] = new \Handlebars\Compiler\Runtime(\$handlebars, eval('return ' . \$compiler->compile(\$partialOpcode, \$compileOptions) . ';'));
+            \$partials[\$name] = new \Handlebars\Compiler\Runtime(\$handlebars, eval('return ' . \$compiler->compile(\$this->convertContext(\$partialOpcode), \$compileOptions) . ';'));
         }
         if( !\$templateSpec ) {
             echo \$templateSpecStr; exit(1);

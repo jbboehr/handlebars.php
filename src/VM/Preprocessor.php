@@ -4,6 +4,8 @@ namespace Handlebars\VM;
 
 use SplStack;
 use Handlebars\CompileException;
+use Handlebars\CompileContext;
+use Handlebars\Opcode;
 
 class Preprocessor
 {
@@ -22,7 +24,11 @@ class Preprocessor
      */
     private $guid = 0;
 
-    public function compile($opcodes)
+    /**
+     * @param CompileContext $opcodes
+     * @return array
+     */
+    public function compile(CompileContext $opcodes)
     {
         // Init
         $this->programStack = new SplStack();
@@ -35,56 +41,60 @@ class Preprocessor
         return $this->programsByGuid;
     }
 
-    private function scanProgram(&$program)
+    /**
+     * @param CompileContext $program
+     * @throws CompileException
+     */
+    private function scanProgram(CompileContext $program)
     {
-        $program['guid'] = $this->guid++;
-        $this->programsByGuid[$program['guid']] = &$program;
+        $program->guid = $this->guid++;
+        $this->programsByGuid[$program->guid] = $program;
 
-        if( isset($program['children']) ) {
-            foreach( $program['children'] as $i => &$child ) {
+        if( isset($program->children) ) {
+            foreach( $program->children as $i => $child ) {
                 $this->scanProgram($child);
             }
         }
 
         $this->programStack->push($program);
 
-        if( isset($program['opcodes']) ) {
-            foreach( $program['opcodes'] as &$opcode ) {
+        if( isset($program->opcodes) ) {
+            foreach( $program->opcodes as &$opcode ) {
                 $this->scanOpcode($opcode);
             }
         }
 
-        if( !empty($program['decorators']) ) {
+        if( !empty($program->decorators) ) {
             $decoratorOpcodes = array();
-            foreach( $program['decorators'] as $decorator ) {
+            foreach( $program->decorators as $decorator ) {
                 $decoratorOpcodes = array_merge($decoratorOpcodes, $decorator['opcodes']);
             }
             foreach( $decoratorOpcodes as &$opcode ) {
                 $this->scanOpcode($opcode);
             }
-            $this->programsByGuid[$program['guid'] . '_d'] = array('opcodes' => $decoratorOpcodes);
+            $this->programsByGuid[$program->guid . '_d'] = new CompileContext(array($decoratorOpcodes), array(), 0);
         }
 
         $this->programStack->pop();
 
-        unset($program['decorators']);
-        unset($program['children']);
-        $this->programsByGuid[$program['guid']] = $program;
+        unset($program->decorators);
+        unset($program->children);
+        $this->programsByGuid[$program->guid] = $program;
     }
 
-    private function scanOpcode(&$opcode)
+    private function scanOpcode(Opcode $opcode)
     {
-        switch( $opcode['opcode'] ) {
+        switch( $opcode->opcode ) {
             case 'pushProgram':
                 // Make program IDs global
-                $program = $opcode['args'][0];
+                $program = $opcode->args[0];
                 if( $program !== null ) {
                     $top = $this->programStack->top();
-                    if( !isset($top['children'][$program]) ) {
+                    if( !isset($top->children[$program]) ) {
                         throw new CompileException('Missing program: ' . $program);
                     }
-                    $guid = $top['children'][$program]['guid'];
-                    $opcode['args'][0] = $guid;
+                    $guid = $top->children[$program]->guid;
+                    $opcode->args[0] = $guid;
                 }
                 break;
         }

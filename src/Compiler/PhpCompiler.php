@@ -4,8 +4,10 @@ namespace Handlebars\Compiler;
 
 use SplStack;
 use Handlebars\Hash;
+use Handlebars\CompileContext;
 use Handlebars\CompileException;
 use Handlebars\InvalidArgumentException;
+use Handlebars\Opcode;
 
 /**
  * PHP compiler
@@ -26,7 +28,7 @@ class PhpCompiler
     const EOL = "\n";
 
     /**
-     * @var array
+     * @var CompileContext
      */
     private $environment;
 
@@ -140,14 +142,14 @@ class PhpCompiler
     private $decorators;
 
     /**
-     * @param array $environment
+     * @param CompileContext $environment
      * @param array $options
      * @param mixed $context
      * @param boolean $asObject
      * @return array|string
      * @throws CompileException
      */
-    public function compile($environment, array $options = array(), $context = null, $asObject = false)
+    public function compile(CompileContext $environment, array $options = array(), $context = null, $asObject = false)
     {
         $this->environment = $environment;
         $this->options = $options;
@@ -160,9 +162,9 @@ class PhpCompiler
 
         $this->reinit();
         $this->compileChildren($this->environment, $options);
-        $this->useDepths |= !empty($this->environment['useDepths']) || !empty($this->environment['useDecorators']) || !empty($options['compat']);
-        $this->useBlockParams |= !empty($this->environment['useBlockParams']);
-        $this->accept($this->environment['opcodes']);
+        $this->useDepths |= !empty($this->environment->useDepths) || !empty($this->environment->useDecorators) || !empty($options['compat']);
+        $this->useBlockParams |= !empty($this->environment->useBlockParams);
+        $this->accept($this->environment->opcodes);
         $this->pushSource('');
 
         if( $this->stackSlot || $this->inlineStack->count() || $this->compileStack->count() ) {
@@ -205,7 +207,7 @@ class PhpCompiler
             $this->options['nameLookup'] = array('helper' => 'array', 'partial' => 'array');
         }
 
-        $this->name = isset($this->environment['name']) ? $this->environment['name'] : null;
+        $this->name = isset($this->environment->name) ? $this->environment->name : null;
 
         $this->lastContext = 0;
         $this->source = new CodeGen(!empty($this->options['srcName']) ? $this->options['srcName'] : null);
@@ -221,19 +223,19 @@ class PhpCompiler
     }
 
     /**
-     * @param array $environment
+     * @param CompileContext $environment
      * @param array $options
      * @return void
      */
-    private function compileChildren(&$environment, array $options = array())
+    private function compileChildren(CompileContext $environment, array $options = array())
     {
-        foreach( $environment['children'] as $i => &$child ) {
+        foreach( $environment->children as $i => $child ) {
             $compiler = new self();
 
             $this->context->programs[] = '';
             $index = count($this->context->programs);
-            $child['index'] = $index;
-            $child['name'] = 'program' . $index;
+            $child->index = $index;
+            $child->name = 'program' . $index;
             $this->context->programs[$index] = $compiler->compile($child, $options, $this->context);
             $this->context->decorators[$index] = $compiler->decorators;
             $this->context->environments[$index] = $child;
@@ -307,7 +309,7 @@ class PhpCompiler
                 }
             }
         }
-        if( !empty($this->environment['usePartial']) ) {
+        if( !empty($this->environment->usePartial) ) {
             $ret['usePartial'] = true;
         }
         if( !empty($this->options['data']) ) {
@@ -337,7 +339,7 @@ class PhpCompiler
      */
     private function mergeSource($varDeclarations)
     {
-        $isSimple = !empty($this->environment['isSimple']);
+        $isSimple = !empty($this->environment->isSimple);
         $appendFirst = false;
         $appendOnly = !$this->forceBuffer;
         $sourceSeen = false;
@@ -398,18 +400,18 @@ class PhpCompiler
     }
 
     /**
-     * @param array $opcodes
+     * @param Opcode[] $opcodes
      * @return void
      */
-    private function accept($opcodes)
+    private function accept(array $opcodes)
     {
         $firstLoc = null;
         
         foreach( $opcodes as $opcode ) {
-            if( !$firstLoc && isset($opcode['loc']) ) {
-                $firstLoc = $opcode['loc'];
+            if( !$firstLoc && isset($opcode->loc) ) {
+                $firstLoc = $opcode->loc;
             }
-            call_user_func_array(array($this, $opcode['opcode']), $opcode['args']);
+            call_user_func_array(array($this, $opcode->opcode), $opcode->args);
         }
         
         $this->source->currentLocation = $firstLoc;
@@ -429,7 +431,7 @@ class PhpCompiler
         $source = $this->source->wrap($source, $location);
         
         $fn = $this->expressionFunctionName(false);
-        if( !empty($this->environment['isSimple']) ) {
+        if( !empty($this->environment->isSimple) ) {
             return array('return ', $fn, '(', $source, ');');
         } else if( $explicit ) {
             return array('$buffer .= ', $fn, '(', $source, ');');
@@ -596,8 +598,8 @@ class PhpCompiler
      */
     private function programExpression($guid)
     {
-        $child = $this->environment['children'][$guid];
-        $programParams = array((int) $child['index'], '$data', $child['blockParams']);
+        $child = $this->environment->children[$guid];
+        $programParams = array((int) $child->index, '$data', $child->blockParams);
 
         if( $this->useBlockParams || $this->useDepths ) {
             $programParams[] = '$blockParams';
@@ -965,7 +967,7 @@ class PhpCompiler
                 $this->appendToBuffer($local, null, true),
                 ' }'
             ));
-            if( !empty($this->environment['isSimple']) ) {
+            if( !empty($this->environment->isSimple) ) {
                 // @todo
             }
         }

@@ -3,6 +3,7 @@
 namespace Handlebars\Compiler;
 
 use Handlebars\CompileException;
+use Handlebars\CompileContext;
 use Handlebars\Compiler as NativeCompiler;
 
 /**
@@ -15,8 +16,8 @@ class Compiler
      *
      * @param $tmpl
      * @param $options
-     * @return array
-     * @throws \Handlebars\CompileException
+     * @return CompileContext
+     * @throws CompileException
      */
     public function compile($tmpl, array $options = null)
     {

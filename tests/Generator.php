@@ -2,6 +2,8 @@
 
 namespace Handlebars\Tests;
 
+use Handlebars\CompileContext;
+use Handlebars\Opcode;
 use Handlebars\Utils;
 
 abstract class Generator
@@ -235,7 +237,7 @@ EOF; */
         if( !empty($test['testMode']) && $test['testMode'] == 'export' &&
                 $this->specName !== 'Mustache' ) {
             // Generate opcodes
-            $parts[] = '$opcodes = json_decode(' . $this->indentVarExport(2, json_encode($test['opcodes'])) . ", true);";
+            $parts[] = '$opcodes = $this->convertContext(json_decode(' . $this->indentVarExport(2, json_encode($test['opcodes'])) . ", true));";
 
             // Generate partial opcodes
             $partialOpcodes = (isset($test['partialOpcodes']) ? $test['partialOpcodes'] : array());
@@ -257,11 +259,7 @@ EOF; */
         return $this->indent(2) . join("\n" . $this->indent(2), $parts) . "\n";
     }
     
-    
-    
-    
-    
-    
+
     protected function convertLambdas(&$data)
     {
         if( !is_array($data) ) {
