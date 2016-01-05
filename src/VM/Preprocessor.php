@@ -59,7 +59,7 @@ class Preprocessor
         $this->programStack->push($program);
 
         if( isset($program->opcodes) ) {
-            foreach( $program->opcodes as &$opcode ) {
+            foreach( $program->opcodes as $opcode ) {
                 $this->scanOpcode($opcode);
             }
         }
@@ -67,12 +67,12 @@ class Preprocessor
         if( !empty($program->decorators) ) {
             $decoratorOpcodes = array();
             foreach( $program->decorators as $decorator ) {
-                $decoratorOpcodes = array_merge($decoratorOpcodes, $decorator['opcodes']);
+                $decoratorOpcodes = array_merge($decoratorOpcodes, $decorator->opcodes);
             }
-            foreach( $decoratorOpcodes as &$opcode ) {
+            foreach( $decoratorOpcodes as $opcode ) {
                 $this->scanOpcode($opcode);
             }
-            $this->programsByGuid[$program->guid . '_d'] = new CompileContext(array($decoratorOpcodes), array(), 0);
+            $this->programsByGuid[$program->guid . '_d'] = new CompileContext($decoratorOpcodes, array(), 0);
         }
 
         $this->programStack->pop();

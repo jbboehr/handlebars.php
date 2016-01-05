@@ -15,6 +15,11 @@ class CompileContext
     public $children;
 
     /**
+     * @var CompileContext[]
+     */
+    public $decorators;
+
+    /**
      * @var boolean
      */
     public $isSimple;
