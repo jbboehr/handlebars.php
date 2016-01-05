@@ -2,9 +2,10 @@
 
 namespace Handlebars;
 
+use stdClass;
 use Closure as BaseClosure;
 
-class ClosureWrapper extends \stdClass
+class ClosureWrapper extends stdClass
 {
     private $fn;
 

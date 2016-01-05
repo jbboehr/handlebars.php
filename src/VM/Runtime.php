@@ -4,18 +4,22 @@ namespace Handlebars\VM;
 
 use Handlebars\Handlebars;
 use Handlebars\Runtime as BaseRuntime;
+use Handlebars\CompileContext;
 
 class Runtime extends BaseRuntime
 {
+    /**
+     * @var CompileContext
+     */
     private $opcodes;
 
-    public function __construct(Handlebars $handlebars, $opcodes)
+    public function __construct(Handlebars $handlebars, CompileContext $opcodes)
     {
         parent::__construct($handlebars);
 
-        if( isset($opcodes['options']) ) {
-            $this->options = isset($opcodes['options']) ? $opcodes['options'] : array();
-            $this->options['useData'] = !empty($opcodes['options']['data']);
+        if( isset($opcodes->options) ) {
+            $this->options = isset($opcodes->options) ? $opcodes->options : array();
+            $this->options['useData'] = !empty($opcodes->options['data']);
         }
 
         $preprocessor = new Preprocessor();

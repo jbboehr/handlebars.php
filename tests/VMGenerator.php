@@ -90,7 +90,7 @@ class VMGenerator extends Generator
         $parts[] = '}';
 
         $parts[] = 'foreach( $partialOpcodes as $name => $partialOpcode ) {';
-        $parts[] = '  $partials[$name] = new \\Handlebars\\VM\\Runtime($handlebars, $partialOpcode);';
+        $parts[] = '  $partials[$name] = new \\Handlebars\\VM\\Runtime($handlebars, $this->convertContext($partialOpcode));';
         $parts[] = '}';
 
         $parts[] = '$allOptions["helpers"] = $helpers;';

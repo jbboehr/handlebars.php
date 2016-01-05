@@ -1,6 +1,7 @@
 *~
 *.log
 .buildpath
+.php-version
 .project
 .php-version
 .settings

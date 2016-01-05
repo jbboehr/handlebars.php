@@ -103,7 +103,7 @@ class Handlebars
     {
         if( $this->mode === self::MODE_VM ) {
             $opcodes = $this->compiler->compile($tmpl, $compileOptions);
-            $opcodes['options'] = $compileOptions;
+            $opcodes->options = $compileOptions;
             return new VM\Runtime($this, $opcodes);
         } else {
             $templateSpecString = $this->precompile($tmpl, $compileOptions);

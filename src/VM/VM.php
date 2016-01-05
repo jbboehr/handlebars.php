@@ -6,8 +6,10 @@ use SplStack;
 use SplDoublyLinkedList;
 
 use Handlebars\ClosureWrapper;
+use Handlebars\CompileContext;
 use Handlebars\DepthList;
 use Handlebars\Hash;
+use Handlebars\Opcode;
 use Handlebars\Options;
 use Handlebars\RuntimeException;
 use Handlebars\Utils;
@@ -194,8 +196,10 @@ class VM
     }
 
 
-    public function executeProgramByRef($program, $context = null, $options = null)
+    public function executeProgramByRef(CompileContext $program, $context = null, $options = null)
     {
+        /** @var StackFrame $frame */
+
         // Push the frame stack
         $parentFrame = $this->frameStack->count() ? $this->frameStack->top() : null;
         $this->frameStack->push(new StackFrame());
@@ -231,7 +235,7 @@ class VM
         }
 
         // Execute the program
-        $this->accept($program['opcodes']);
+        $this->accept($program->opcodes);
 
         // Pop depths
         if( $pushedDepths ) {
@@ -273,13 +277,13 @@ class VM
     /**
      * Handle opcodes
      *
-     * @param array $opcodes
+     * @param Opcode[] $opcodes
      * @return void
      */
     private function accept($opcodes)
     {
         foreach( $opcodes as $opcode ) {
-            call_user_func_array(array($this, $opcode['opcode']), $opcode['args']);
+            call_user_func_array(array($this, $opcode->opcode), $opcode->args);
         }
     }
 
