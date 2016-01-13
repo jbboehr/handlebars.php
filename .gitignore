@@ -2,10 +2,12 @@
 *.log
 .buildpath
 .project
+.php-version
 .settings
 .c9
 .idea
 composer.phar
+coverage.clover
 /docs
 /node_modules/
 /phpunit
