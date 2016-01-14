@@ -1,7 +1,7 @@
 # handlebars.php
 
 [![Build Status](https://travis-ci.org/jbboehr/handlebars.php.svg?branch=master)](https://travis-ci.org/jbboehr/handlebars.php)
-[![Code Coverage](https://scrutinizer-ci.com/g/jbboehr/handlebars.php/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/jbboehr/handlebars.php/?branch=master)
+[![Coverage Status](https://coveralls.io/repos/jbboehr/handlebars.php/badge.svg?branch=master&service=github)](https://coveralls.io/github/jbboehr/handlebars.php?branch=master)
 [![Latest Stable Version](https://poser.pugx.org/jbboehr/handlebars/v/stable.svg)](https://packagist.org/packages/jbboehr/handlebars)
 [![License](https://poser.pugx.org/jbboehr/handlebars/license.svg)](https://packagist.org/packages/jbboehr/handlebars)
 

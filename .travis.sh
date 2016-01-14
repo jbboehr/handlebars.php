@@ -74,6 +74,8 @@ phpunit)
 
 after_success)
 	if [ "$COVERAGE" = "true" ]; then
+		mkdir -p build/logs/
+		php vendor/bin/coveralls -x coverage.clover
 		php vendor/bin/ocular code-coverage:upload --format=php-clover coverage.clover
 	fi
 	;;
