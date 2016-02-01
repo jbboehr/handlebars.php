@@ -162,6 +162,7 @@ class VM
 
         // Alternate stacks
         $this->frameStack = new SplStack();
+        $this->blockParamStack = new SplStack();
 
         // Execute
         $fn = $this->wrapProgram(0);
@@ -223,10 +224,10 @@ class VM
             ($parentFrame ? $parentFrame->data : null);
 
         // Set block params
+        $pushedBlockParams = false;
         if( isset($options['blockParams']) ) {
-            $top = $parentFrame && $parentFrame->blockParams ? $parentFrame->blockParams : array();
-            $next = array_merge(array($options['blockParams']), $top);
-            $frame->blockParams = $next;
+            $this->blockParamStack->push($options['blockParams']);
+            $pushedBlockParams = true;
         }
 
         // Execute the program
@@ -235,6 +236,11 @@ class VM
         // Pop depths
         if( $pushedDepths ) {
             $this->depths->pop();
+        }
+
+        // Pop block params
+        if( $pushedBlockParams ) {
+            $this->blockParamStack->pop();
         }
 
         // Pop the frame stack
@@ -723,7 +729,7 @@ class VM
 
     private function lookupBlockParam($blockParamId, $parts)
     {
-        $top = $this->frame()->blockParams;
+        $top = $this->blockParamStack;
 
         $value = null;
         if( isset($top[$blockParamId[0]][$blockParamId[1]]) ) {
@@ -810,7 +816,7 @@ class VM
         $options['partials'] = $this->runtime->getPartials();
         $options['decorators'] = $this->runtime->getDecorators();
         $options['depths'] = $this->depths;
-        $options['blockParams'] = $this->frame()->blockParams;
+        $options['blockParams'] = $this->blockParamStack;
 
         if( !$isDynamic ) {
             $partial = $this->runtime->nameLookup($this->partials, $name);
@@ -873,7 +879,7 @@ class VM
     private function pushId($type, $name, $child = null)
     {
         if( $type === 'BlockParam' ) {
-            $top = $this->frame()->blockParams;
+            $top = $this->blockParamStack;
             $this->pushLiteral($top[$name[0]]['path'][$name[1]] . ($child ? '.' . $child : ''));
         } else if( $type === 'PathExpression' ) {
             $this->pushString($name);
