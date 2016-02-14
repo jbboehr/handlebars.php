@@ -2,9 +2,6 @@
 
 namespace Handlebars;
 
-use Handlebars\Registry\Registry;
-use Handlebars\Registry\DefaultRegistry;
-
 /**
  * Main class
  */
@@ -121,7 +118,7 @@ class Handlebars
     /**
      * Get the currently registered decorators
      *
-     * @return \Handlebars\Registry\Registry
+     * @return Registry
      */
     public function getDecorators()
     {
@@ -142,7 +139,7 @@ class Handlebars
     /**
      * Get the currently registered helpers
      *
-     * @return \Handlebars\Registry\Registry
+     * @return Registry
      */
     public function getHelpers()
     {
@@ -152,7 +149,7 @@ class Handlebars
     /**
      * Get the currently registered partials
      *
-     * @return \Handlebars\Registry\Registry
+     * @return Registry
      */
     public function getPartials()
     {
