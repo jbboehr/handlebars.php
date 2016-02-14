@@ -20,10 +20,10 @@ class With
         }
         if( $context !== null ) { // An empty object is true in javascript...
             $fn = $options->fn;
-            $data = $options['data'];
+            $data = $options->data;
             if( $options->data !== null && $options->ids !== null ) {
-                $data = Utils::createFrame($options['data']);
-                $data['contextPath'] = Utils::appendContextPath($options['data'], $options['ids'][0]);
+                $data = Utils::createFrame($options->data);
+                $data['contextPath'] = Utils::appendContextPath($options->data, $options->ids[0]);
             }
             return $fn($context, array(
                 'data' => $data,

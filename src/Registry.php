@@ -1,6 +1,6 @@
 <?php
 
-namespace Handlebars\Registry;
+namespace Handlebars;
 
 use ArrayAccess;
 use IteratorAggregate;

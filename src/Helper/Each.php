@@ -23,7 +23,7 @@ class Each
 
         $contextPath = null;
         if( $options->data !== null && $options->ids !== null ) {
-            $contextPath = Utils::appendContextPath($options['data'], $options->ids[0]) . '.';
+            $contextPath = Utils::appendContextPath($options->data, $options->ids[0]) . '.';
         }
 
         if( Utils::isCallable($context) ) {

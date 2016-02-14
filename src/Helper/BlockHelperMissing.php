@@ -32,8 +32,8 @@ class BlockHelperMissing
         } else {
             $tmpOptions = $options;
             if( $options->data !== null && $options->ids !== null ) {
-                $data = Utils::createFrame($options['data']);
-                $data['contextPath'] = Utils::appendContextPath($options['data'], $options['name']);
+                $data = Utils::createFrame($options->data);
+                $data['contextPath'] = Utils::appendContextPath($options->data, $options->name);
                 $options = array('data' => $data);
             }
             $fn = $tmpOptions->fn;

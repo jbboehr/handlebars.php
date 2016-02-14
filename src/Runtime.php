@@ -339,9 +339,7 @@ class Runtime extends Utils
             if( !$options ) {
                 $options = array();
             }
-            if( isset($options['data']) ) {
-                $data = $options['data'];
-            }
+            $data = Utils::nameLookup($options, 'data');
             if( null !== $blockParams ) {
                 $blockParams = array_merge(array(
                     Utils::nameLookup($options, 'blockParams'),

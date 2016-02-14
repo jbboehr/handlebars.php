@@ -212,9 +212,7 @@ class VM
         $frame->context = $context;
 
         // Set internal options
-        if( !empty($options['internal']) ) {
-            $frame->internal = $options['internal'];
-        }
+        $frame->internal = Utils::nameLookup($options, 'internal');
 
         // Push depths
         $pushedDepths = false;
@@ -224,13 +222,16 @@ class VM
         }
 
         // Set data
-        $frame->data = isset($options['data']) && $options['data'] !== true ? $options['data'] :
-            ($parentFrame ? $parentFrame->data : null);
+        if( null !== ($data = Utils::nameLookup($options, 'data')) && $data !== true ) {
+            $frame->data = $data;
+        } else if( $parentFrame ) {
+            $frame->data = $parentFrame->data;
+        }
 
         // Set block params
         $pushedBlockParams = false;
-        if( isset($options['blockParams']) ) {
-            $this->blockParamStack->push($options['blockParams']);
+        if( null !== ($bp = Utils::nameLookup($options, 'blockParams')) ) {
+            $this->blockParamStack->push($bp);
             $pushedBlockParams = true;
         }
 
@@ -802,25 +803,25 @@ class VM
 
         if( $isDynamic ) {
             $name = $this->pop();
-            unset($options['name']);
+            unset($options->name);
         }
         $params[] = $options;
 
 
         $context = $params[0];
-        $hash = !empty($options['hash']) ? $options['hash'] : null;
+        $hash = Utils::nameLookup($options, 'hash');
 
         if( is_array($hash) ) {
-            $context = $context ? array_merge($context, $hash) : $hash;
+            $context = $context ? array_merge((array) $context, $hash) : $hash;
             $hash = null;
         }
 
         //$options['name'] = $name;
-        $options['helpers'] = $this->runtime->getHelpers();
-        $options['partials'] = $this->runtime->getPartials();
-        $options['decorators'] = $this->runtime->getDecorators();
-        $options['depths'] = $this->depths;
-        $options['blockParams'] = $this->blockParamStack;
+        $options->helpers = $this->runtime->getHelpers();
+        $options->partials = $this->runtime->getPartials();
+        $options->decorators = $this->runtime->getDecorators();
+        $options->depths = $this->depths;
+        $options->blockParams = $this->blockParamStack;
 
         if( !$isDynamic ) {
             $partial = $this->runtime->nameLookup($this->partials, $name);
