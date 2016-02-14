@@ -64,8 +64,15 @@ class Handlebars
     {
         $this->setOptions($options);
 
-        if( extension_loaded('handlebars') ) {
+        $loaded = extension_loaded('handlebars');
+        if( isset($options['compiler']) ) {
+            $this->compiler = $options['compiler'];
+        } else if( $loaded ) {
             $this->compiler = new Compiler();
+        }
+        if( isset($options['phpCompiler']) ) {
+            $this->phpCompiler = $options['phpCompiler'];
+        } else if( $loaded ) {
             $this->phpCompiler = new Compiler\PhpCompiler();
         }
 

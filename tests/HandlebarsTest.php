@@ -22,20 +22,18 @@ class HandlebarsTest extends Common
             ->getMock();
         $stub->method('compile')
             ->willReturn(false);
-        
-        $handlebars = new Handlebars();
-        $r = new ReflectionObject($handlebars);
-        $rp = $r->getProperty('phpCompiler');
-        $rp->setAccessible(true);
-        $rp->setValue($handlebars, $stub);
-        
+
+        $handlebars = new Handlebars(array(
+            'phpCompiler' => $stub
+        ));
+
         // Note: not testing parse error in eval because it's not possible
         // to catch the output. eval returning false should have the same
         // behaviour (minus the output)
         $this->setExpectedException('\\Handlebars\\CompileException');
         $handlebars->compile('{{foo}}');
     }
-    
+
     public function testCompilerRenderMode()
     {
         $handlebars = new Handlebars(array(
