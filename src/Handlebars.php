@@ -64,8 +64,10 @@ class Handlebars
     {
         $this->setOptions($options);
 
-        $this->compiler = new Compiler\Compiler();
-        $this->phpCompiler = new Compiler\PhpCompiler();
+        if( extension_loaded('handlebars') ) {
+            $this->compiler = new Compiler();
+            $this->phpCompiler = new Compiler\PhpCompiler();
+        }
 
         $this->setupBuiltins();
     }
@@ -166,15 +168,6 @@ class Handlebars
      */
     public function precompile($tmpl, array $compileOptions = array())
     {
-        // Add current helpers as known helpers
-        if( !isset($compileOptions['knownHelpers']) ) {
-            $compileOptions['knownHelpers'] = array();
-        }
-        foreach( $this->helpers as $name => $helper ) {
-            $compileOptions['knownHelpers'][] = $name;
-        }
-
-        // Compile
         $opcodes = $this->compiler->compile($tmpl, $compileOptions);
         return $this->phpCompiler->compile($opcodes, $compileOptions);
     }
