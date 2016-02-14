@@ -11,6 +11,7 @@ use Handlebars\DepthList;
 use Handlebars\Hash;
 use Handlebars\Opcode;
 use Handlebars\Options;
+use Handlebars\Registry;
 use Handlebars\RuntimeException;
 use Handlebars\Utils;
 
@@ -27,21 +28,21 @@ class VM
     /**
      * Input decorators
      *
-     * @var \Handlebars\Registry\Registry
+     * @var Registry
      */
     private $decorators;
 
     /**
      * Input helpers
      *
-     * @var \Handlebars\Registry\Registry
+     * @var Registry
      */
     private $helpers;
 
     /**
      * Input partials
      *
-     * @var \Handlebars\Registry\Registry
+     * @var Registry
      */
     private $partials;
 

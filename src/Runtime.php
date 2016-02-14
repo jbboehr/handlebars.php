@@ -27,7 +27,7 @@ class Runtime extends Utils
     protected $programWrappers;
     
     /**
-     * @var \Handlebars\Registry\Registry
+     * @var Registry
      */
     protected $decorators;
 
@@ -37,12 +37,12 @@ class Runtime extends Utils
     protected $decoratorMap;
     
     /**
-     * @var \Handlebars\Registry\Registry
+     * @var Registry
      */
     protected $helpers;
     
     /**
-     * @var \Handlebars\Registry\Registry
+     * @var Registry
      */
     protected $partials;
     
