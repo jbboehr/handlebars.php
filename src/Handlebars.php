@@ -9,6 +9,7 @@ class Handlebars
 {
     const MODE_COMPILER = 'compiler';
     const MODE_VM = 'vm';
+    const MODE_CVM = 'cvm';
 
     /**
      * @var \Handlebars\Compiler\Compiler
@@ -76,7 +77,9 @@ class Handlebars
             $this->phpCompiler = new Compiler\PhpCompiler();
         }
 
-        $this->setupBuiltins();
+        if( $this->mode !== self::MODE_CVM ) {
+            $this->setupBuiltins();
+        }
     }
 
     private function setOptions($options)
@@ -274,6 +277,8 @@ class Handlebars
     {
         if( $this->mode === self::MODE_VM ) {
             return $this->renderVM($tmpl, $context, $options);
+        } else if( $this->mode === self::MODE_CVM ) {
+            return $this->renderCVM($tmpl, $context, $options);
         } else {
             return $this->renderCompiler($tmpl, $context, $options);
         }
@@ -309,6 +314,24 @@ class Handlebars
     {
         $runtime = $this->compile($tmpl, $options);
         return $runtime($context, $options);
+    }
+
+    /**
+     * Render a template in C VM mode
+     *
+     * @param $tmpl
+     * @param $context
+     * @param $options
+     * @return string
+     * @throws \Handlebars\CompileException
+     * @throws \Handlebars\RuntimeException
+     */
+    private function renderCVM($tmpl, $context = null, $options = null)
+    {
+        $vm = new \Handlebars\VM();
+        $vm->setHelpers($this->helpers);
+        $vm->setPartials($this->partials);
+        return $vm->render($tmpl, $context, $options);
     }
 
     /**
