@@ -2,13 +2,6 @@
 
 set -ex
 
-export PREFIX=$HOME/build
-export PATH="$PREFIX/bin:$PATH"
-export CFLAGS="-L$PREFIX/lib"
-export CPPFLAGS="-I$PREFIX/include"
-export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
-#export MAKE_OPTS="-j`nproc`"
-
 case "$1" in
 install_handlebars)
 	#INSTALLED_HANDLEBARS_VERSION=`handlebarsc --version 2>&1 | awk '{ print $2 }'`
