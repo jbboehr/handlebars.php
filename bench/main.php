@@ -105,6 +105,39 @@ function runVM($test) {
     return $end - $start;
 }
 
+function runCVM($test) {
+    global $count;
+
+    $test['mode'] = 'cvm';
+
+    $expected = $test['expected'];
+    $tmpl = $test['template'];
+    $data = isset($test['data']) ? evalLambdas($test['data']) : null;
+    $helpers = isset($test['helpers']) ? evalLambdas($test['helpers']) : array();
+    $partials = isset($test['partials']) ? $test['partials'] : array();
+    $options = isset($test['compileOptions']) ? $test['compileOptions'] : array();
+
+    $handlebars = new \Handlebars\Handlebars(array('mode' => \Handlebars\Handlebars::MODE_CVM));
+    // @todo allow to be passed in
+    $handlebars->registerHelpers($helpers);
+    $handlebars->registerPartials($partials);
+
+    $start = microtime(true);
+    for( $i = 0; $i < $count; $i++ ) {
+        $actual = $handlebars->render($tmpl, $data, array(
+            'helpers' => $helpers,
+            'partials' => $partials,
+        ));
+    }
+    $end = microtime(true);
+
+    if( $actual !== $expected ) {
+        throw new \Exception('Test output mismatch');
+    }
+
+    return $end - $start;
+}
+
 function addResult($test, $delta, $mode) {
     global $count, $results;
     $result = array(
@@ -117,12 +150,20 @@ function addResult($test, $delta, $mode) {
     $results[] = $result;
 }
 
+$doCompiler = in_array('compiler', $argv);
+$doVM = in_array('vm', $argv);
+$doCVM = in_array('cvm', $argv);
+$noFilter = !$doCompiler && !$doVM && !$doCVM;
+
 foreach( $tests as $test ) {
-    if( !in_array('vm-only', $argv) ) {
+    if( $noFilter || $doCompiler ) {
         addResult($test, runCompiled($test), 'compiler');
     }
-    if( !in_array('compiler-only', $argv) ) {
+    if( $noFilter || $doVM ) {
         addResult($test, runVM($test), 'vm');
+    }
+    if( $noFilter || $doCVM ) {
+        addResult($test, runCVM($test), 'cvm');
     }
 }
 
