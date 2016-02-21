@@ -124,10 +124,10 @@ function runCVM($test) {
 
     $start = microtime(true);
     for( $i = 0; $i < $count; $i++ ) {
-        $actual = $handlebars->render($tmpl, $data, array(
+        $actual = $handlebars->render($tmpl, $data/*, array(
             'helpers' => $helpers,
             'partials' => $partials,
-        ));
+        )*/);
     }
     $end = microtime(true);
 

@@ -76,9 +76,19 @@ class Handlebars
         } else if( $loaded ) {
             $this->phpCompiler = new Compiler\PhpCompiler();
         }
+        if( isset($options['cvm']) ) {
+            $this->cvm = $options['cvm'];
+        } else if( $loaded ) {
+            $this->cvm = new \Handlebars\VM();
+        }
 
         if( $this->mode !== self::MODE_CVM ) {
             $this->setupBuiltins();
+        }
+
+        if( $this->cvm ) {
+            $this->cvm->setHelpers($this->helpers);
+            $this->cvm->setPartials($this->partials);
         }
     }
 
@@ -328,10 +338,7 @@ class Handlebars
      */
     private function renderCVM($tmpl, $context = null, $options = null)
     {
-        $vm = new \Handlebars\VM();
-        $vm->setHelpers($this->helpers);
-        $vm->setPartials($this->partials);
-        return $vm->render($tmpl, $context, $options);
+        return $this->cvm->render($tmpl, $context, $options);
     }
 
     /**
