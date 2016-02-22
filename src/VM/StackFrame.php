@@ -8,7 +8,6 @@ class StackFrame
     public $data;
     public $program;
     public $buffer = '';
-    public $blockParams;
     public $decorators;
     public $optionsRegister;
     public $internal;
