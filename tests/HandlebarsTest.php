@@ -77,6 +77,12 @@ class HandlebarsTest extends Common
             )
         )));
     }
+
+    public function testRenderFile()
+    {
+        $handlebars = new Handlebars(array('mode' => Handlebars::MODE_CVM));
+        $this->assertEquals('bar', $handlebars->renderFile(__DIR__ . '/fixture1.hbs', array('foo' => 'bar')));
+    }
     
     public function testGH29RCEFix()
     {

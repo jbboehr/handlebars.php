@@ -295,6 +295,25 @@ class Handlebars
     }
 
     /**
+     * Render a template from a file
+     *
+     * @param $filename
+     * @param $context
+     * @param $options
+     * @return string
+     * @throws \Handlebars\CompileException
+     * @throws \Handlebars\RuntimeException
+     */
+    public function renderFile($filename, $context = null, $options = array())
+    {
+        if( $this->mode === self::MODE_CVM ) {
+            return $this->cvm->renderFile($filename, $context, $options);
+        } else {
+            return $this->render(file_get_contents($filename), $context, $options);
+        }
+    }
+
+    /**
      * Render a template in compiler mode
      *
      * @param $tmpl
