@@ -6,6 +6,8 @@ use ArrayAccess;
 
 /**
  * Options
+ *
+ * Note: this class is only used when the extension isn't loaded
  */
 class Options implements ArrayAccess
 {

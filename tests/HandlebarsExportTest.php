@@ -2,6 +2,7 @@
 
 namespace Handlebars\Tests;
 
+use Handlebars\DefaultRegistry;
 use Handlebars\Compiler\PhpCompiler;
 
 class HandlebarsExportTest extends Common
@@ -44,29 +45,17 @@ class HandlebarsExportTest extends Common
         $handlebars = $this->handlebarsFactory($test, 'compiler');
         $compiler = new PhpCompiler();
         $templateSpecStr = $compiler->compile($this->convertContext($test['opcodes']), $test['compileOptions']);
-        $templateSpec = eval('return ' . $templateSpecStr . ';');
-        if( !$templateSpec ) {
-            echo $templateSpecStr;
-        };
 
-        $globalPartials = array();
-        foreach( $test['globalPartialOpcodes'] as $name => $partialOpcode ) {
-            $globalPartials[$name] = new \Handlebars\Compiler\Runtime(
-                $handlebars,
-                eval('return ' . $compiler->compile($this->convertContext($partialOpcode), $test['compileOptions']) . ';')
-            );
+        if( false ) {
+            $file = tempnam(sys_get_temp_dir(), 'HandlebarsTestsCache');
+            file_put_contents($file, '<?php return ' . $templateSpecStr . ';');
+            $templateSpec = include $file;
+        } else {
+            $templateSpec = eval('return ' . $templateSpecStr . ';');
+            if( !$templateSpec ) {
+                echo $templateSpecStr;
+            };
         }
-        $handlebars->registerPartials($globalPartials);
-
-        $partials = array();
-        foreach( $test['partialOpcodes'] as $name => $partialOpcode ) {
-            $partials[$name] = new \Handlebars\Compiler\Runtime(
-                $handlebars,
-                eval('return ' . $compiler->compile($this->convertContext($partialOpcode), $test['compileOptions']) . ';')
-            );
-        }
-        $test['options']['partials'] = $partials;
-        $handlebars->registerPartials($partials);
 
         $fn = new \Handlebars\Compiler\Runtime($handlebars, $templateSpec);
         $actual = $fn($test['data'], $test['options']);
@@ -93,18 +82,6 @@ class HandlebarsExportTest extends Common
         }
 
         $handlebars = $this->handlebarsFactory($test, 'vm');
-
-        $globalPartials = array();
-        foreach( $test['globalPartialOpcodes'] as $name => $partialOpcode ) {
-            $globalPartials[$name] = new \Handlebars\VM\Runtime($handlebars, $this->convertContext($partialOpcode));
-        }
-        $handlebars->registerPartials($globalPartials);
-
-        $partials = array();
-        foreach( $test['partialOpcodes'] as $name => $partialOpcode ) {
-            $partials[$name] = new \Handlebars\VM\Runtime($handlebars, $this->convertContext($partialOpcode));
-        }
-        $test['options']['partials'] = $partials;
 
         $allOptions = array_merge($test['compileOptions'], $test['options']);
 
@@ -161,13 +138,43 @@ class HandlebarsExportTest extends Common
 
     protected function handlebarsFactory($test, $mode = null)
     {
-        $handlebars = new \Handlebars\Handlebars(array('mode' => $mode));
         $globalHelpers = (array) $this->convertCode($test['globalHelpers']);
-        $globalPartials = (array) $this->convertCode($test['globalPartials']);
         $globalDecorators = (array) $this->convertCode($test['globalDecorators']);
-        $handlebars->registerHelpers($globalHelpers);
-        $handlebars->registerPartials($globalPartials);
-        $handlebars->registerDecorators($globalDecorators);
+        $helpers = (array) $this->convertCode($test['helpers']);
+        $decorators = (array) $this->convertCode($test['decorators']);
+
+        $pr = new DefaultRegistry();
+        $handlebars = \Handlebars\Handlebars::factory(array(
+            'mode' => $mode,
+            'helpers' => new DefaultRegistry(array_merge($globalHelpers, $helpers)),
+            'partials' => $pr,
+            'decorators' => new DefaultRegistry(array_merge($globalDecorators, $decorators)),
+        ));
+        if( $mode === 'compiler' ) {
+            $compiler = new PhpCompiler();
+            foreach( $test['globalPartialOpcodes'] as $name => $partialOpcode ) {
+                $pr[$name] = new \Handlebars\Compiler\Runtime(
+                    $handlebars,
+                    eval('return ' . $compiler->compile($this->convertContext($partialOpcode), $test['compileOptions']) . ';')
+                );
+            }
+            foreach( $test['partialOpcodes'] as $name => $partialOpcode ) {
+                $pr[$name] = new \Handlebars\Compiler\Runtime(
+                    $handlebars,
+                    eval('return ' . $compiler->compile($this->convertContext($partialOpcode), $test['compileOptions']) . ';')
+                );
+            }
+        } else if( $mode === 'vm' ) {
+            foreach( $test['globalPartialOpcodes'] as $name => $partialOpcode ) {
+                $pr[$name] = new \Handlebars\VM\Runtime($handlebars, $this->convertContext($partialOpcode));
+            }
+            foreach( $test['partialOpcodes'] as $name => $partialOpcode ) {
+                $pr[$name] = new \Handlebars\VM\Runtime($handlebars, $this->convertContext($partialOpcode));
+            }
+        } else {
+            throw new \Exception('Unknown mode: ' . $mode);
+        }
+        $handlebars->setPartials($pr);
         return $handlebars;
     }
 
@@ -197,9 +204,6 @@ class HandlebarsExportTest extends Common
         if( isset($test['options']['data']) ) {
             $test['options']['data'] = $this->convertCode($test['options']['data']);
         }
-        $test['options']['helpers'] = $test['helpers'];
-        $test['options']['partials'] = $test['partials'];
-        $test['options']['decorators'] = $test['decorators'];
         return $test;
     }
 }

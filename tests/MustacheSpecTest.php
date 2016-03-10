@@ -2,6 +2,8 @@
 
 namespace Handlebars\Tests;
 
+use Handlebars\DefaultRegistry;
+
 class MustacheSpecTest extends Common
 {
     private $data;
@@ -122,7 +124,7 @@ class MustacheSpecTest extends Common
     protected function handlebarsFactory($test, $mode = null)
     {
         $handlebars = new \Handlebars\Handlebars(array('mode' => $mode));
-        $handlebars->registerPartials($test['partials']);
+        $handlebars->setPartials(new DefaultRegistry($test['partials']));
         return $handlebars;
     }
 

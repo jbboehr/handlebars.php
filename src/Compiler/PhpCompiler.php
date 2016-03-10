@@ -159,8 +159,10 @@ class PhpCompiler
      * @return array|string
      * @throws CompileException
      */
-    public function compile(CompileContext $environment, array $options = array(), $context = null, $asObject = false)
+    public function compile(CompileContext $environment, array $options = null, $context = null, $asObject = false)
     {
+        settype($options, 'array');
+
         $this->environment = $environment;
         $this->options = $options;
         $this->isChild = $context !== null;

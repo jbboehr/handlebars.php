@@ -29,7 +29,7 @@ class Runtime extends Utils
     /**
      * @var Registry
      */
-    protected $decorators;
+    //protected $decorators;
 
     /**
      * @var \SplObjectStorage
@@ -39,7 +39,7 @@ class Runtime extends Utils
     /**
      * @var Registry
      */
-    protected $helpers;
+    //protected $helpers;
     
     /**
      * @var Registry
@@ -61,14 +61,14 @@ class Runtime extends Utils
     /**
      * Constructor
      *
-     * @param \Handlebars\Handlebars $handlebars
+     * @param Impl $handlebars
      */
-    public function __construct(Handlebars $handlebars)
+    public function __construct(Impl $handlebars)
     {
         $this->handlebars = $handlebars;
-        $this->helpers = clone $handlebars->getHelpers();
-        $this->partials = clone $handlebars->getPartials();
-        $this->decorators = clone $handlebars->getDecorators();
+        $this->helpers = $handlebars->getHelpers();
+        $this->partials = $handlebars->getPartials();
+        $this->decorators = $handlebars->getDecorators();
         $this->decoratorMap = new SplObjectStorage();
     }
     
@@ -79,14 +79,15 @@ class Runtime extends Utils
      * @param array $options
      * @return string
      */
-    public function __invoke($context = null, array $options = array())
+    public function __invoke($context = null, array $options = null)
     {
         foreach( array('helpers', 'partials', 'decorators') as $key ) {
-            if( !empty($options[$key]) ) {
-                $registry = $this->$key;
-                foreach( $options[$key] as $k => $v ) {
+            if (!empty($options[$key])) {
+                $registry = clone $this->$key;
+                foreach ($options[$key] as $k => $v) {
                     $registry[$k] = $v;
                 }
+                $this->$key = $registry;
             }
         }
     }
@@ -110,7 +111,7 @@ class Runtime extends Utils
     /**
      * Get registered decorators
      *
-     * @return \Handlebars\Registry\Registry
+     * @return \Handlebars\Registry
      */
     public function getDecorators()
     {
@@ -120,7 +121,7 @@ class Runtime extends Utils
     /**
      * Get registered helpers
      *
-     * @return \Handlebars\Registry\Registry
+     * @return \Handlebars\Registry
      */
     public function getHelpers()
     {
@@ -130,7 +131,7 @@ class Runtime extends Utils
     /**
      * Get registered partials
      *
-     * @return \Handlebars\Registry\Registry
+     * @return \Handlebars\Registry
      */
     public function getPartials()
     {
@@ -154,7 +155,7 @@ class Runtime extends Utils
 
         $partial = $this->resolvePartial($partial, $options);
         $result = $this->invokePartialInner($partial, $context, $options);
-        
+
         if( null === $result ) {
             if( !$partial ) {
                 $options['partials'][$options['name']] = $this->noop();
@@ -192,6 +193,7 @@ class Runtime extends Utils
         if( null === $partial && $partialBlock ) {
             $partial = $partialBlock;
         }
+
 
         if( null === $partial ) {
             throw new RuntimeException('Partial ' . $options['name'] . ' could not be found');

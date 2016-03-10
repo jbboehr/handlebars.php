@@ -21,7 +21,7 @@ class With
         if( $context !== null ) { // An empty object is true in javascript...
             $fn = $options->fn;
             $data = $options->data;
-            if( $options->data !== null && $options->ids !== null ) {
+            if( $options->data !== null && property_exists($options, 'ids') && $options->ids !== null ) {
                 $data = Utils::createFrame($options->data);
                 $data['contextPath'] = Utils::appendContextPath($options->data, $options->ids[0]);
             }

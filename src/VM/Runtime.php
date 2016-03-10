@@ -2,7 +2,7 @@
 
 namespace Handlebars\VM;
 
-use Handlebars\Handlebars;
+use Handlebars\Impl;
 use Handlebars\Runtime as BaseRuntime;
 use Handlebars\CompileContext;
 
@@ -13,7 +13,7 @@ class Runtime extends BaseRuntime
      */
     private $opcodes;
 
-    public function __construct(Handlebars $handlebars, CompileContext $opcodes)
+    public function __construct(Impl $handlebars, CompileContext $opcodes)
     {
         parent::__construct($handlebars);
 
@@ -26,7 +26,7 @@ class Runtime extends BaseRuntime
         $this->opcodes = $preprocessor->compile($opcodes);
     }
 
-    public function __invoke($context = null, array $options = array())
+    public function __invoke($context = null, array $options = null)
     {
         $options = array_merge((array) $this->options, (array) $options);
 

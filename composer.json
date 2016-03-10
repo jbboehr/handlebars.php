@@ -8,7 +8,8 @@
     "autoload" : {
         "psr-4" : {
             "Handlebars\\": "src/"
-        }
+        },
+        "classmap": ["compat"]
     },
     "autoload-dev": {
         "psr-4": {

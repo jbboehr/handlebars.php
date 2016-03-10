@@ -2,6 +2,8 @@
 
 namespace Handlebars\Tests;
 
+use Handlebars\DefaultRegistry;
+
 class HandlebarsSpecTest extends Common
 {
     private $data;
@@ -107,12 +109,6 @@ class HandlebarsSpecTest extends Common
 
         $handlebars = $this->handlebarsFactory($test, 'cvm');
 
-        // @todo allow passing in
-        $handlebars->registerHelpers($test['helpers']);
-        $handlebars->registerPartials($test['partials']);
-        unset($test['options']['helpers']);
-        unset($test['options']['partials']);
-
         $allOptions = array_merge($test['compileOptions'], $test['options']);
         //$allOptions['alternateDecorators'] = true;
         $actual = $handlebars->render($test['template'], $test['data'], $allOptions);
@@ -165,13 +161,21 @@ class HandlebarsSpecTest extends Common
 
     protected function handlebarsFactory($test, $mode = null)
     {
-        $handlebars = new \Handlebars\Handlebars(array('mode' => $mode));
         $globalHelpers = (array) $this->convertCode($test['globalHelpers']);
         $globalPartials = (array) $this->convertCode($test['globalPartials']);
         $globalDecorators = (array) $this->convertCode($test['globalDecorators']);
-        $handlebars->registerHelpers($globalHelpers);
-        $handlebars->registerPartials($globalPartials);
-        $handlebars->registerDecorators($globalDecorators);
+        $helpers = (array) $this->convertCode($test['helpers']);
+        $partials = (array) $this->convertCode($test['partials']);
+        $decorators = (array) $this->convertCode($test['decorators']);
+        $helpers += $globalHelpers;
+        $partials += $globalPartials;
+        $decorators += $globalDecorators;
+        $handlebars = \Handlebars\Handlebars::factory(array(
+            'mode' => $mode,
+            'helpers' => new DefaultRegistry($helpers),
+            'partials' => new DefaultRegistry($partials),
+            'decorators' => new DefaultRegistry($decorators),
+        ));
         return $handlebars;
     }
 
@@ -198,9 +202,6 @@ class HandlebarsSpecTest extends Common
         if( isset($test['options']['data']) ) {
             $test['options']['data'] = $this->convertCode($test['options']['data']);
         }
-        $test['options']['helpers'] = $test['helpers'];
-        $test['options']['partials'] = $test['partials'];
-        $test['options']['decorators'] = $test['decorators'];
         return $test;
     }
 }

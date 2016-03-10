@@ -92,26 +92,6 @@ class HandlebarsTest extends Common
         )));
     }
 
-    public function testRegisterDecorator()
-    {
-        $fn = function() {
-
-        };
-        $handlebars = new Handlebars();
-        $handlebars->registerDecorator('test', $fn);
-        $this->assertArrayHasKey('test', $handlebars->getDecorators());
-    }
-
-    public function testRegisterDecorators()
-    {
-        $fn = function() {
-
-        };
-        $handlebars = new Handlebars();
-        $handlebars->registerDecorators(array('test' => $fn));
-        $this->assertArrayHasKey('test', $handlebars->getDecorators());
-    }
-
     public function testConsecutiveMultilineComments()
     {
         $tmpl = "{{!-- blah1 --}}\nfoo\n{{!-- blah2 --}}";
