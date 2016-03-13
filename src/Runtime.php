@@ -250,25 +250,6 @@ class Runtime extends Utils
     }
 
     /**
-     * Indent a multi-line string
-     *
-     * @param string $str
-     * @param string $indent
-     * @return string
-     */
-    public function indent($str, $indent)
-    {
-        $lines = explode("\n", $str);
-        for( $i = 0, $l = count($lines); $i < $l; $i++ ) {
-            if( empty($lines[$i]) && $i + 1 == $l ) {
-                break;
-            }
-            $lines[$i] = $indent . $lines[$i];
-        }
-        return implode("\n", $lines);
-    }
-
-    /**
      * Get a function for the specified program ID
      *
      * @param integer $i
