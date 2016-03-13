@@ -19,6 +19,10 @@
         </testsuite>
     </testsuites>
 
+    <php>
+        <ini name="handlebars.cache.enabled" value="0"/>
+    </php>
+
     <filter>
         <whitelist>
             <directory processUncoveredFilesFromWhitelist="true">src</directory>
