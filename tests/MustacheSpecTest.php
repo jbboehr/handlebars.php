@@ -28,54 +28,53 @@ class MustacheSpecTest extends Common
     }
 
     /**
+     * @param SpecTestModel $test
      * @dataProvider specProvider
      */
-    public function testCompiler($test)
+    public function testCompiler(SpecTestModel $test)
     {
-        if( in_array($test['name'], self::$skipTests) ) {
+        if( in_array($test->name, self::$skipTests) ) {
             $this->markTestIncomplete();
         }
-        $test = $this->prepareTestData($test);
 
-        if( !empty($test['exception']) ) {
+        if( $test->exception ) {
             $this->setExpectedException('\\Handlebars\\Exception');
         }
 
-        $handlebars = $this->handlebarsFactory($test);
-        $fn = $handlebars->compile($test['template'], array('compat' => true));
-        $actual = $fn($test['data']);
-        $this->assertEquals($test['expected'], $actual);
+        $handlebars = $this->handlebarsFactory($test, 'compiler');
+        $fn = $handlebars->compile($test->template, array('compat' => true));
+        $actual = $fn($test->getData());
+        $this->assertEquals($test->expected, $actual);
     }
 
     /**
+     * @param SpecTestModel $test
      * @dataProvider specProvider
      */
-    public function testLegacyVM($test)
+    public function testLegacyVM(SpecTestModel $test)
     {
-        if( in_array($test['name'], self::$skipTests) ) {
+        if( in_array($test->name, self::$skipTests) ) {
             $this->markTestIncomplete();
         }
-        $test = $this->prepareTestData($test);
 
         $handlebars = $this->handlebarsFactory($test, 'vm');
-        $actual = $handlebars->render($test['template'], $test['data'], array('compat' => true));
-        $this->assertEquals($test['expected'], $actual);
+        $actual = $handlebars->render($test->template, $test->getData(), array('compat' => true));
+        $this->assertEquals($test->expected, $actual);
     }
 
     /**
+     * @param SpecTestModel $test
      * @dataProvider specProvider
      */
-    public function testNewVM($test)
+    public function testNewVM(SpecTestModel $test)
     {
-        if( in_array($test['name'], self::$skipTests) ) {
+        if( in_array($test->name, self::$skipTests) ) {
             $this->markTestIncomplete();
         }
-        $test = $this->prepareTestData($test);
 
         $handlebars = $this->handlebarsFactory($test, 'cvm');
-
-        $actual = $handlebars->render($test['template'], $test['data'], array('compat' => true));
-        $this->assertEquals($test['expected'], $actual);
+        $actual = $handlebars->render($test->template, $test->getData(), array('compat' => true));
+        $this->assertEquals($test->expected, $actual);
     }
 
     public function specProvider()
@@ -95,10 +94,14 @@ class MustacheSpecTest extends Common
             $testData = json_decode(file_get_contents($filePath), true);
             foreach( $testData['tests'] as $test ) {
                 $i++;
+                // Convert to handlebars spec format
+                $test['it'] = $test['desc'];
+                $test['description'] = $test['name'];
+                // Patch
                 $test['suiteName'] = $suiteName;
                 $test['number'] = $i;
-                $test['name'] = $name = sprintf('%s - %s - %s', $test['suiteName'], $test['name'], $test['desc']);
-                $tests[$name] = array($test);
+                $test['name'] = $name = sprintf('%s - %s - %s', $test['suiteName'], $test['description'], $test['it']);
+                $tests[$name] = array(new SpecTestModel($test));
             }
         }
         return $tests;
@@ -121,19 +124,10 @@ class MustacheSpecTest extends Common
         return $out;
     }
 
-    protected function handlebarsFactory($test, $mode = null)
+    protected function handlebarsFactory(SpecTestModel $test, $mode = null)
     {
         $handlebars = new \Handlebars\Handlebars(array('mode' => $mode));
-        $handlebars->setPartials(new DefaultRegistry($test['partials']));
+        $handlebars->setPartials(new DefaultRegistry($test->getAllPartials()));
         return $handlebars;
-    }
-
-    protected function prepareTestData($test)
-    {
-        $test = array_merge(array(
-            'data' => null,
-            'partials' => array(),
-        ), $test);
-        return $test;
     }
 }

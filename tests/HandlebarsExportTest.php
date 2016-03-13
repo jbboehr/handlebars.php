@@ -2,8 +2,11 @@
 
 namespace Handlebars\Tests;
 
+use Handlebars\Handlebars;
 use Handlebars\DefaultRegistry;
 use Handlebars\Compiler\PhpCompiler;
+use Handlebars\Compiler\Runtime as CompilerRuntime;
+use Handlebars\VM\Runtime as VMRuntime;
 
 class HandlebarsExportTest extends Common
 {
@@ -29,22 +32,22 @@ class HandlebarsExportTest extends Common
     }
 
     /**
+     * @param SpecTestModel $test
      * @dataProvider specProvider
      */
-    public function testCompiler($test)
+    public function testCompiler(SpecTestModel $test)
     {
-        if( in_array($test['name'], self::$skipTests) ) {
+        if( in_array($test->name, self::$skipTests) ) {
             $this->markTestIncomplete();
         }
-        $test = $this->prepareTestData($test);
 
-        if( !empty($test['exception']) ) {
+        if( $test->exception ) {
             $this->setExpectedException('\\Handlebars\\Exception');
         }
 
         $handlebars = $this->handlebarsFactory($test, 'compiler');
         $compiler = new PhpCompiler();
-        $templateSpecStr = $compiler->compile($this->convertContext($test['opcodes']), $test['compileOptions']);
+        $templateSpecStr = $compiler->compile($test->getOpcodes(), $test->compileOptions);
 
         if( false ) {
             $file = tempnam(sys_get_temp_dir(), 'HandlebarsTestsCache');
@@ -57,37 +60,35 @@ class HandlebarsExportTest extends Common
             };
         }
 
-        $fn = new \Handlebars\Compiler\Runtime($handlebars, $templateSpec);
-        $actual = $fn($test['data'], $test['options']);
-        $this->assertEquals($test['expected'], $actual);
+        $fn = new CompilerRuntime($handlebars, $templateSpec);
+        $actual = $fn($test->getData(), $test->getOptions());
+        $this->assertEquals($test->expected, $actual);
     }
 
     /**
+     * @param SpecTestModel $test
      * @dataProvider specProvider
      */
-    public function testLegacyVM($test)
+    public function testLegacyVM(SpecTestModel $test)
     {
-        if( in_array($test['name'], self::$skipTests) || in_array($test['name'], self::$skipLegacyVMTests) ) {
+        if( in_array($test->name, self::$skipTests) || in_array($test->name, self::$skipLegacyVMTests) ) {
             $this->markTestIncomplete();
         }
-        if( $test['description'] === 'decorators' ||
-                !empty($test['decorators']) ||
-                $test['description'] === 'inline partials' ) {
+        if( $test->description === 'decorators' ||
+                !empty($test->decorators) ||
+                $test->description === 'inline partials' ) {
             $this->markTestIncomplete("The VM does not support decorators in export mode - requires custom compiler option");
         }
-        $test = $this->prepareTestData($test);
 
-        if( !empty($test['exception']) ) {
+        if( $test->exception ) {
             $this->setExpectedException('\\Handlebars\\Exception');
         }
 
         $handlebars = $this->handlebarsFactory($test, 'vm');
 
-        $allOptions = array_merge($test['compileOptions'], $test['options']);
-
-        $vm = new \Handlebars\VM\Runtime($handlebars, $this->convertContext($test['opcodes']));
-        $actual = $vm($test['data'], $allOptions);
-        $this->assertEquals($test['expected'], $actual);
+        $vm = new VMRuntime($handlebars, $test->getOpcodes());
+        $actual = $vm($test->getData(), $test->getAllOptions());
+        $this->assertEquals($test->expected, $actual);
     }
 
     // Note: New VM doesn't have a way of specifying opcodes (yet)
@@ -113,7 +114,7 @@ class HandlebarsExportTest extends Common
                 $test['suiteName'] = $suiteName;
                 $test['number'] = $i;
                 $test['name'] = $name = sprintf('%s - %s - %s', $test['suiteName'], $test['description'], $test['it']);
-                $tests[$name] = array($test);
+                $tests[$name] = array(new SpecTestModel($test));
             }
         }
         return $tests;
@@ -136,74 +137,31 @@ class HandlebarsExportTest extends Common
         return $out;
     }
 
-    protected function handlebarsFactory($test, $mode = null)
+    protected function handlebarsFactory(SpecTestModel $test, $mode = null)
     {
-        $globalHelpers = (array) $this->convertCode($test['globalHelpers']);
-        $globalDecorators = (array) $this->convertCode($test['globalDecorators']);
-        $helpers = (array) $this->convertCode($test['helpers']);
-        $decorators = (array) $this->convertCode($test['decorators']);
-
-        $pr = new DefaultRegistry();
-        $handlebars = \Handlebars\Handlebars::factory(array(
+        $partialRegistry = new DefaultRegistry();
+        $handlebars = Handlebars::factory(array(
             'mode' => $mode,
-            'helpers' => new DefaultRegistry(array_merge($globalHelpers, $helpers)),
-            'partials' => $pr,
-            'decorators' => new DefaultRegistry(array_merge($globalDecorators, $decorators)),
+            'helpers' => new DefaultRegistry($test->getAllHelpers()),
+            'partials' => $partialRegistry,
+            'decorators' => new DefaultRegistry($test->getAllDecorators()),
         ));
         if( $mode === 'compiler' ) {
             $compiler = new PhpCompiler();
-            foreach( $test['globalPartialOpcodes'] as $name => $partialOpcode ) {
-                $pr[$name] = new \Handlebars\Compiler\Runtime(
+            foreach( $test->getAllPartialOpcodes() as $name => $partialOpcodes ) {
+                $partialRegistry[$name] = new CompilerRuntime(
                     $handlebars,
-                    eval('return ' . $compiler->compile($this->convertContext($partialOpcode), $test['compileOptions']) . ';')
-                );
-            }
-            foreach( $test['partialOpcodes'] as $name => $partialOpcode ) {
-                $pr[$name] = new \Handlebars\Compiler\Runtime(
-                    $handlebars,
-                    eval('return ' . $compiler->compile($this->convertContext($partialOpcode), $test['compileOptions']) . ';')
+                    eval('return ' . $compiler->compile($partialOpcodes, $test->compileOptions) . ';')
                 );
             }
         } else if( $mode === 'vm' ) {
-            foreach( $test['globalPartialOpcodes'] as $name => $partialOpcode ) {
-                $pr[$name] = new \Handlebars\VM\Runtime($handlebars, $this->convertContext($partialOpcode));
-            }
-            foreach( $test['partialOpcodes'] as $name => $partialOpcode ) {
-                $pr[$name] = new \Handlebars\VM\Runtime($handlebars, $this->convertContext($partialOpcode));
+            foreach( $test->getAllPartialOpcodes() as $name => $partialOpcodes ) {
+                $partialRegistry[$name] = new VMRuntime($handlebars, $partialOpcodes);
             }
         } else {
             throw new \Exception('Unknown mode: ' . $mode);
         }
-        $handlebars->setPartials($pr);
+        $handlebars->setPartials($partialRegistry);
         return $handlebars;
-    }
-
-    protected function prepareTestData($test)
-    {
-        $test = array_merge(array(
-            'data' => null,
-            'helpers' => array(),
-            'partials' => array(),
-            'decorators' => array(),
-            'globalHelpers' => array(),
-            'globalPartials' => array(),
-            'globalDecorators' => array(),
-            'exception' => false,
-            'message' => null,
-            'compileOptions' => array(),
-            'options' => array(),
-            'opcodes' => array(),
-            'partialOpcodes' => array(),
-            'globalPartialOpcodes' => array(),
-        ), $test);
-        $test['compileOptions']['data'] = true; // @todo fix
-        $test['data'] = $this->convertCode($test['data']);
-        $test['helpers'] = (array) $this->convertCode($test['helpers']);
-        $test['partials'] = (array) $this->convertCode($test['partials']);
-        $test['decorators'] = (array) $this->convertCode($test['decorators']);
-        if( isset($test['options']['data']) ) {
-            $test['options']['data'] = $this->convertCode($test['options']['data']);
-        }
-        return $test;
     }
 }

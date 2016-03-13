@@ -50,69 +50,69 @@ class HandlebarsSpecTest extends Common
     }
 
     /**
+     * @param SpecTestModel $test
      * @dataProvider specProvider
      */
-    public function testCompiler($test)
+    public function testCompiler(SpecTestModel $test)
     {
-        if( in_array($test['name'], self::$skipTests) ) {
+        if( in_array($test->name, self::$skipTests) ) {
             $this->markTestIncomplete();
         }
-        $test = $this->prepareTestData($test);
 
-        if( !empty($test['exception']) ) {
+        if( $test->exception ) {
             $this->setExpectedException('\\Handlebars\\Exception');
         }
 
-        $handlebars = $this->handlebarsFactory($test);
-        $fn = $handlebars->compile($test['template'], $test['compileOptions']);
-        $actual = $fn($test['data'], $test['options']);
-        $this->assertEquals($test['expected'], $actual);
+        $handlebars = $this->handlebarsFactory($test, 'compiler');
+        $fn = $handlebars->compile($test->template, $test->compileOptions);
+        $actual = $fn($test->getData(), $test->getOptions());
+        $this->assertEquals($test->expected, $actual);
     }
 
     /**
+     * @param SpecTestModel $test
      * @dataProvider specProvider
      */
-    public function testLegacyVM($test)
+    public function testLegacyVM(SpecTestModel $test)
     {
-        if( in_array($test['name'], self::$skipTests) || in_array($test['name'], self::$skipLegacyVMTests) ) {
+        if( in_array($test->name, self::$skipTests) || in_array($test->name, self::$skipLegacyVMTests) ) {
             $this->markTestIncomplete();
         }
-        $test = $this->prepareTestData($test);
 
-        if( !empty($test['exception']) ) {
+        if( $test->exception ) {
             $this->setExpectedException('\\Handlebars\\Exception');
         }
 
         $handlebars = $this->handlebarsFactory($test, 'vm');
-        $allOptions = array_merge($test['compileOptions'], $test['options']);
+        $allOptions = $test->getAllOptions();
         $allOptions['alternateDecorators'] = true;
-        $actual = $handlebars->render($test['template'], $test['data'], $allOptions);
-        $this->assertEquals($test['expected'], $actual);
+        $actual = $handlebars->render($test->template, $test->getData(), $allOptions);
+        $this->assertEquals($test->expected, $actual);
     }
 
     /**
+     * @param SpecTestModel $test
      * @dataProvider specProvider
      */
-    public function testNewVM($test)
+    public function testNewVM(SpecTestModel $test)
     {
-        if( in_array($test['name'], self::$skipTests) ||
-                in_array($test['name'], self::$skipNewVMTests) ||
-                in_array($test['description'], self::$skipNewVMTests) ||
-                in_array($test['suiteName'], self::$skipNewVMTests) ) {
+        if( in_array($test->name, self::$skipTests) ||
+                in_array($test->name, self::$skipNewVMTests) ||
+                in_array($test->description, self::$skipNewVMTests) ||
+                in_array($test->suiteName, self::$skipNewVMTests) ) {
             $this->markTestIncomplete();
         }
-        $test = $this->prepareTestData($test);
 
-        if( !empty($test['exception']) ) {
+        if( $test->exception ) {
             $this->setExpectedException('\\Handlebars\\Exception');
         }
 
         $handlebars = $this->handlebarsFactory($test, 'cvm');
 
-        $allOptions = array_merge($test['compileOptions'], $test['options']);
+        $allOptions = $test->getAllOptions();
         //$allOptions['alternateDecorators'] = true;
-        $actual = $handlebars->render($test['template'], $test['data'], $allOptions);
-        $this->assertEquals($test['expected'], $actual);
+        $actual = $handlebars->render($test->template, $test->getData(), $allOptions);
+        $this->assertEquals($test->expected, $actual);
     }
 
     public function specProvider($testName)
@@ -136,7 +136,7 @@ class HandlebarsSpecTest extends Common
                 $test['suiteName'] = $suiteName;
                 $test['number'] = $i;
                 $test['name'] = $name = sprintf('%s - %s - %s', $test['suiteName'], $test['description'], $test['it']);
-                $tests[$name] = array($test);
+                $tests[$name] = array(new SpecTestModel($test));
             }
         }
         return $tests;
@@ -149,7 +149,7 @@ class HandlebarsSpecTest extends Common
             $test = $this->data[0];
             $out .= "\n";
             foreach( $test as $k => $v ) {
-                if( $k === 'name' ) continue;
+                if( $k === 'name' || $v === null ) continue;
                 if( !is_scalar($v) ) {
                     $v = json_encode($v);
                 }
@@ -159,49 +159,14 @@ class HandlebarsSpecTest extends Common
         return $out;
     }
 
-    protected function handlebarsFactory($test, $mode = null)
+    protected function handlebarsFactory(SpecTestModel $test, $mode = null)
     {
-        $globalHelpers = (array) $this->convertCode($test['globalHelpers']);
-        $globalPartials = (array) $this->convertCode($test['globalPartials']);
-        $globalDecorators = (array) $this->convertCode($test['globalDecorators']);
-        $helpers = (array) $this->convertCode($test['helpers']);
-        $partials = (array) $this->convertCode($test['partials']);
-        $decorators = (array) $this->convertCode($test['decorators']);
-        $helpers += $globalHelpers;
-        $partials += $globalPartials;
-        $decorators += $globalDecorators;
         $handlebars = \Handlebars\Handlebars::factory(array(
             'mode' => $mode,
-            'helpers' => new DefaultRegistry($helpers),
-            'partials' => new DefaultRegistry($partials),
-            'decorators' => new DefaultRegistry($decorators),
+            'helpers' => new DefaultRegistry($test->getAllHelpers()),
+            'partials' => new DefaultRegistry($test->getAllPartials()),
+            'decorators' => new DefaultRegistry($test->getAllDecorators()),
         ));
         return $handlebars;
-    }
-
-    protected function prepareTestData($test)
-    {
-        $test = array_merge(array(
-            'data' => null,
-            'helpers' => array(),
-            'partials' => array(),
-            'decorators' => array(),
-            'globalHelpers' => array(),
-            'globalPartials' => array(),
-            'globalDecorators' => array(),
-            'exception' => false,
-            'message' => null,
-            'compileOptions' => array(),
-            'options' => array(),
-        ), $test);
-        $test['compileOptions']['data'] = true; // @todo fix
-        $test['data'] = $this->convertCode($test['data']);
-        $test['helpers'] = (array) $this->convertCode($test['helpers']);
-        $test['partials'] = (array) $this->convertCode($test['partials']);
-        $test['decorators'] = (array) $this->convertCode($test['decorators']);
-        if( isset($test['options']['data']) ) {
-            $test['options']['data'] = $this->convertCode($test['options']['data']);
-        }
-        return $test;
     }
 }
