@@ -3,6 +3,7 @@
 namespace Handlebars\Tests;
 
 use Handlebars\Compiler;
+use Handlebars\DefaultRegistry;
 use Handlebars\Handlebars;
 use Handlebars\Tests\Common;
 use ReflectionObject;
@@ -120,5 +121,17 @@ class HandlebarsTest extends Common
         $handlebars->render($tmpl);
         $this->assertEquals('info', $logger->logs[0][0]);
         $this->assertEquals('string(test)', $logger->logs[0][1]);
+    }
+
+    public function testPartialFunctionWithNewVM()
+    {
+        $tmpl = '{{> foo}}';
+        $handlebars = new \Handlebars\VM();
+        $partials = new DefaultRegistry();
+        $partials['foo'] = function() {
+            return 'bar{{baz}}';
+        };
+        $handlebars->setPartials($partials);
+        $this->assertEquals('bar{{baz}}', $handlebars->render($tmpl, array('grr' => 'asdasd')));
     }
 }
