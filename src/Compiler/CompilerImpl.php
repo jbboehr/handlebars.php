@@ -122,6 +122,9 @@ class CompilerImpl extends BaseImpl
         if( !isset($this->helpers['helperMissing']) ) {
             $this->helpers['helperMissing'] = new \Handlebars\Helper\HelperMissing();
         }
+        if( !isset($this->helpers['log']) ) {
+            $this->helpers['log'] = new \Handlebars\Helper\Log();
+        }
         if( !isset($this->helpers['lookup']) ) {
             $this->helpers['lookup'] = new \Handlebars\Helper\Lookup();
         }

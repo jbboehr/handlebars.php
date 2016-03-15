@@ -61,6 +61,11 @@ class Options implements ArrayAccess
     public $contexts;
     public $args;
     public $partial;
+
+    /**
+     * @var Runtime
+     */
+    public $runtime;
     
     /**
      * Constructor

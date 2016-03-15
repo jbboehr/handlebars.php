@@ -54,9 +54,9 @@ class Runtime extends Utils
     protected $options;
     
     /**
-     * @var \Handlebars\Handlebars
+     * @var Impl
      */
-    protected $handlebars;
+    protected $impl;
 
     /**
      * Constructor
@@ -65,7 +65,7 @@ class Runtime extends Utils
      */
     public function __construct(Impl $handlebars)
     {
-        $this->handlebars = $handlebars;
+        $this->impl = $handlebars;
         $this->helpers = $handlebars->getHelpers();
         $this->partials = $handlebars->getPartials();
         $this->decorators = $handlebars->getDecorators();
@@ -139,6 +139,14 @@ class Runtime extends Utils
     }
 
     /**
+     * @return Impl
+     */
+    public function getImpl()
+    {
+        return $this->impl;
+    }
+
+    /**
      * Invoke partial runtime helper
      *
      * @param mixed $partial
@@ -160,7 +168,7 @@ class Runtime extends Utils
             if( !$partial ) {
                 $options['partials'][$options['name']] = $this->noop();
             } else if( is_string($partial) ) {
-                $options['partials'][$options['name']] = $this->handlebars->compile($partial, $this->options);
+                $options['partials'][$options['name']] = $this->impl->compile($partial, $this->options);
             }
             $result = call_user_func($options['partials'][$options['name']], $context, $options);
         }
@@ -289,7 +297,9 @@ class Runtime extends Utils
      */
     public function setupOptions(array $options)
     {
-        return new Options($options);
+        $obj = new Options($options);
+        $obj->runtime = $this;
+        return $obj;
     }
     
     private function resolvePartial($partial, &$options)

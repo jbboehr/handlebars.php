@@ -99,4 +99,26 @@ class HandlebarsTest extends Common
         $actual = trim($handlebars->render($tmpl));
         $this->assertEquals('foo', $actual);
     }
+
+    public function testLog()
+    {
+        $tmpl = '{{log "test"}}';
+        $logger = new MockLogger();
+        $handlebars = new Handlebars();
+        $handlebars->setLogger($logger);
+        $handlebars->render($tmpl);
+        $this->assertEquals('info', $logger->logs[0][0]);
+        $this->assertEquals('test', $logger->logs[0][1]);
+    }
+
+    public function testLogWithNewVM()
+    {
+        $tmpl = '{{log "test"}}';
+        $logger = new MockLogger();
+        $handlebars = new \Handlebars\VM();
+        $handlebars->setLogger($logger);
+        $handlebars->render($tmpl);
+        $this->assertEquals('info', $logger->logs[0][0]);
+        $this->assertEquals('string(test)', $logger->logs[0][1]);
+    }
 }
