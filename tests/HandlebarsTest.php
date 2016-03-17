@@ -120,7 +120,7 @@ class HandlebarsTest extends Common
         $handlebars->setLogger($logger);
         $handlebars->render($tmpl);
         $this->assertEquals('info', $logger->logs[0][0]);
-        $this->assertEquals('string(test)', $logger->logs[0][1]);
+        $this->assertEquals('string(test) ', $logger->logs[0][1]);
     }
 
     public function testPartialFunctionWithNewVM()
