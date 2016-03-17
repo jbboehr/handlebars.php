@@ -9,6 +9,7 @@
 .idea
 composer.phar
 coverage.clover
+/coverage/
 /docs
 /node_modules/
 /phpunit

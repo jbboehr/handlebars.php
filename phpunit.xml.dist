@@ -25,6 +25,7 @@
 
     <filter>
         <whitelist>
+            <directory processUncoveredFilesFromWhitelist="true">compat</directory>
             <directory processUncoveredFilesFromWhitelist="true">src</directory>
             <exclude>
                 <file>src/CompileException.php</file>

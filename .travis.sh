@@ -33,7 +33,11 @@ install_php_handlebars)
 
 phpunit)
 	if [ "$COVERAGE" = "true" ]; then
-		./vendor/bin/phpunit --coverage-text --coverage-clover=coverage.clover
+		#./vendor/bin/phpunit --coverage-text --coverage-clover=coverage.clover
+		mkdir coverage
+		./vendor/bin/phpunit -dmemory_limit=256M --coverage-php coverage/coverage1.cov
+		php -n -dzend_extension=xdebug.so -dextension=json.so -dmemory_limit=256M ./vendor/bin/phpunit --coverage-php coverage/coverage2.cov
+		./vendor/bin/phpcov merge --clover coverage.clover coverage
 	else
 		./vendor/bin/phpunit
 	fi
