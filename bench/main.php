@@ -41,15 +41,20 @@ function runCompiled($test) {
     
     $expected = $test['expected'];
     $tmpl = $test['template'];
-    $data = isset($test['data']) ? evalLambdas($test['data']) : null;
-    $helpers = isset($test['helpers']) ? evalLambdas($test['helpers']) : null;
-    $partials = isset($test['partials']) ? $test['partials'] : null;
+    $data = isset($test['data']) ? (is_array($test['data']) ? evalLambdas($test['data']) : $test['data']) : null;
     $options = isset($test['compileOptions']) ? $test['compileOptions'] : null;
 
     // @todo fix this
     $options['data'] = true;
     
-    $handlebars = new \Handlebars\Handlebars();
+    $handlebars = new \Handlebars\Compiler\CompilerImpl();
+    if( !empty($test['helpers']) ) {
+        $handlebars->setHelpers(new \Handlebars\DefaultRegistry(evalLambdas($test['helpers'])));
+    }
+    if( !empty($test['partials']) ) {
+        $handlebars->setPartials(new \Handlebars\DefaultRegistry($test['partials']));
+    }
+
     $fn = $handlebars->compile($tmpl, $options);
     
     // Compile partials in advance
@@ -61,10 +66,7 @@ function runCompiled($test) {
     
     $start = microtime(true);
     for( $i = 0; $i < $count; $i++ ) {
-        $actual = $fn($data, array(
-            'helpers' => $helpers,
-            'partials' => $partials,
-        ));
+        $actual = $fn($data);
     }
     $end = microtime(true);
     
@@ -82,19 +84,20 @@ function runVM($test) {
     
     $expected = $test['expected'];
     $tmpl = $test['template'];
-    $data = isset($test['data']) ? evalLambdas($test['data']) : null;
-    $helpers = isset($test['helpers']) ? evalLambdas($test['helpers']) : null;
-    $partials = isset($test['partials']) ? $test['partials'] : null;
+    $data = isset($test['data']) ? (is_array($test['data']) ? evalLambdas($test['data']) : $test['data']) : null;
     $options = isset($test['compileOptions']) ? $test['compileOptions'] : null;
     
-    $handlebars = new \Handlebars\Handlebars(array('mode' => \Handlebars\Handlebars::MODE_VM));
+    $handlebars = new \Handlebars\VM\VMImpl();
+    if( !empty($test['helpers']) ) {
+        $handlebars->setHelpers(new \Handlebars\DefaultRegistry(evalLambdas($test['helpers'])));
+    }
+    if( !empty($test['partials']) ) {
+        $handlebars->setPartials(new \Handlebars\DefaultRegistry($test['partials']));
+    }
     
     $start = microtime(true);
     for( $i = 0; $i < $count; $i++ ) {
-        $actual = $handlebars->render($tmpl, $data, array(
-            'helpers' => $helpers,
-            'partials' => $partials,
-        ));
+        $actual = $handlebars->render($tmpl, $data);
     }
     $end = microtime(true);
     
@@ -112,22 +115,20 @@ function runCVM($test) {
 
     $expected = $test['expected'];
     $tmpl = $test['template'];
-    $data = isset($test['data']) ? evalLambdas($test['data']) : null;
-    $helpers = isset($test['helpers']) ? evalLambdas($test['helpers']) : array();
-    $partials = isset($test['partials']) ? $test['partials'] : array();
+    $data = isset($test['data']) ? (is_array($test['data']) ? evalLambdas($test['data']) : $test['data']) : null;
     $options = isset($test['compileOptions']) ? $test['compileOptions'] : array();
 
-    $handlebars = new \Handlebars\Handlebars(array('mode' => \Handlebars\Handlebars::MODE_CVM));
-    // @todo allow to be passed in
-    $handlebars->registerHelpers($helpers);
-    $handlebars->registerPartials($partials);
+    $handlebars = new \Handlebars\VM();
+    if( !empty($test['helpers']) ) {
+        $handlebars->setHelpers(new \Handlebars\DefaultRegistry(evalLambdas($test['helpers'])));
+    }
+    if( !empty($test['partials']) ) {
+        $handlebars->setPartials(new \Handlebars\DefaultRegistry($test['partials']));
+    }
 
     $start = microtime(true);
     for( $i = 0; $i < $count; $i++ ) {
-        $actual = $handlebars->render($tmpl, $data/*, array(
-            'helpers' => $helpers,
-            'partials' => $partials,
-        )*/);
+        $actual = $handlebars->render($tmpl, $data);
     }
     $end = microtime(true);
 
@@ -171,7 +172,7 @@ echo $table->fromArray(array(
     'Test', 'Runs', 'Total (s)', 'Average (ms)', 'Ops/msec'
 ), $results);
 
-function evalLambdas(&$arr) {
+function evalLambdas($arr) {
     if( is_array($arr) ) {
         foreach( $arr as $k => $v ) {
             if( !is_array($v) ) {
@@ -183,6 +184,8 @@ function evalLambdas(&$arr) {
                 evalLambdas($v);
             }
         }
+    } else {
+        throw new Exception('Not an array');
     }
     return $arr;
 }
