@@ -2,7 +2,7 @@
 
 namespace Handlebars\VM;
 
-use Handlebars\CompileContext;
+use Handlebars\Program;
 
 class StackFrame
 {
@@ -10,7 +10,7 @@ class StackFrame
     public $data;
 
     /**
-     * @var CompileContext
+     * @var Program
      */
     public $program;
 

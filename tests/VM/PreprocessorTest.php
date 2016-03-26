@@ -2,7 +2,7 @@
 
 namespace Handlebars\Tests\VM;
 
-use Handlebars\CompileContext;
+use Handlebars\Program;
 use Handlebars\Handlebars;
 use Handlebars\Opcode;
 use Handlebars\VM\Preprocessor;
@@ -14,7 +14,7 @@ class PreprocessorTest extends Common
     {
         $this->setExpectedException('\\Handlebars\\CompileException');
 
-        $context = new CompileContext(array(
+        $context = new Program(array(
             new Opcode('pushProgram', array(2))
         ), array(), 0);
 

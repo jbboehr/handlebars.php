@@ -4,7 +4,7 @@ namespace Handlebars\Compiler;
 
 use SplStack;
 use Handlebars\Hash;
-use Handlebars\CompileContext;
+use Handlebars\Program;
 use Handlebars\CompileException;
 use Handlebars\InvalidArgumentException;
 use Handlebars\Opcode;
@@ -28,7 +28,7 @@ class PhpCompiler
     const EOL = "\n";
 
     /**
-     * @var CompileContext
+     * @var Program
      */
     private $environment;
 
@@ -152,14 +152,14 @@ class PhpCompiler
     private $decorators;
 
     /**
-     * @param CompileContext $environment
+     * @param Program $environment
      * @param array $options
      * @param mixed $context
      * @param boolean $asObject
      * @return array|string
      * @throws CompileException
      */
-    public function compile(CompileContext $environment, array $options = null, $context = null, $asObject = false)
+    public function compile(Program $environment, array $options = null, $context = null, $asObject = false)
     {
         settype($options, 'array');
 
@@ -237,11 +237,11 @@ class PhpCompiler
     }
 
     /**
-     * @param CompileContext $environment
+     * @param Program $environment
      * @param array $options
      * @return void
      */
-    private function compileChildren(CompileContext $environment, array $options = array())
+    private function compileChildren(Program $environment, array $options = array())
     {
         foreach( $environment->children as $i => $child ) {
             $compiler = new self();
