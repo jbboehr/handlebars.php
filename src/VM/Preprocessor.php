@@ -4,7 +4,7 @@ namespace Handlebars\VM;
 
 use SplStack;
 use Handlebars\CompileException;
-use Handlebars\CompileContext;
+use Handlebars\Program;
 use Handlebars\Opcode;
 
 class Preprocessor
@@ -25,10 +25,10 @@ class Preprocessor
     private $guid = 0;
 
     /**
-     * @param CompileContext $opcodes
+     * @param Program $opcodes
      * @return array
      */
-    public function compile(CompileContext $opcodes)
+    public function compile(Program $opcodes)
     {
         // Init
         $this->programStack = new SplStack();
@@ -42,10 +42,10 @@ class Preprocessor
     }
 
     /**
-     * @param CompileContext $program
+     * @param Program $program
      * @throws CompileException
      */
-    private function scanProgram(CompileContext $program)
+    private function scanProgram(Program $program)
     {
         $program->guid = $this->guid++;
         $this->programsByGuid[$program->guid] = $program;
@@ -72,7 +72,7 @@ class Preprocessor
             foreach( $decoratorOpcodes as $opcode ) {
                 $this->scanOpcode($opcode);
             }
-            $this->programsByGuid[$program->guid . '_d'] = new CompileContext($decoratorOpcodes, array(), 0);
+            $this->programsByGuid[$program->guid . '_d'] = new Program($decoratorOpcodes, array(), 0);
         }
 
         $this->programStack->pop();

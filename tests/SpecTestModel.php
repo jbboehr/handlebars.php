@@ -2,7 +2,7 @@
 
 namespace Handlebars\Tests;
 
-use Handlebars\CompileContext;
+use Handlebars\Program;
 use Handlebars\Opcode;
 
 class SpecTestModel
@@ -144,7 +144,7 @@ class SpecTestModel
 
         $blockParams = isset($context['blockParams']) ? $context['blockParams'] : null;
 
-        $obj = new CompileContext($opcodes, $children, $blockParams);
+        $obj = new Program($opcodes, $children, $blockParams);
         $obj->decorators = $decorators;
 
         foreach( array('useDepths', 'usePartial', 'useDecorators', 'isSimple', 'options', 'compileOptions') as $k ) {

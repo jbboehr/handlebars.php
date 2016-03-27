@@ -6,7 +6,7 @@ use SplStack;
 use SplDoublyLinkedList;
 
 use Handlebars\ClosureWrapper;
-use Handlebars\CompileContext;
+use Handlebars\Program;
 use Handlebars\DepthList;
 use Handlebars\Hash;
 use Handlebars\Opcode;
@@ -197,7 +197,7 @@ class VM
     }
 
 
-    public function executeProgramByRef(CompileContext $program, $context = null, $options = null)
+    public function executeProgramByRef(Program $program, $context = null, $options = null)
     {
         /** @var StackFrame $frame */
 

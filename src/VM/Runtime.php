@@ -4,16 +4,16 @@ namespace Handlebars\VM;
 
 use Handlebars\Impl;
 use Handlebars\Runtime as BaseRuntime;
-use Handlebars\CompileContext;
+use Handlebars\Program;
 
 class Runtime extends BaseRuntime
 {
     /**
-     * @var CompileContext
+     * @var Program
      */
     private $opcodes;
 
-    public function __construct(Impl $handlebars, CompileContext $opcodes)
+    public function __construct(Impl $handlebars, Program $opcodes)
     {
         parent::__construct($handlebars);
 
