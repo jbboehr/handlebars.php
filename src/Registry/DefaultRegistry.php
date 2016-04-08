@@ -1,10 +1,3 @@
 <?php
 
-namespace Handlebars\Registry;
-
-use ArrayObject;
-
-class DefaultRegistry extends ArrayObject implements Registry
-{
-
-}
+class_alias('Handlebars\\DefaultRegistry', 'Handlebars\\Registry\\DefaultRegistry');

@@ -1,11 +1,3 @@
 <?php
 
-namespace Handlebars\Registry;
-
-use ArrayAccess;
-use IteratorAggregate;
-
-interface Registry extends IteratorAggregate, ArrayAccess
-{
-
-}
+class_alias('Handlebars\\Registry', 'Handlebars\\Registry\\Registry');

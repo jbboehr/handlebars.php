@@ -27,7 +27,7 @@ class Runtime extends Utils
     protected $programWrappers;
     
     /**
-     * @var \Handlebars\Registry\Registry
+     * @var Registry
      */
     protected $decorators;
 
@@ -37,12 +37,12 @@ class Runtime extends Utils
     protected $decoratorMap;
     
     /**
-     * @var \Handlebars\Registry\Registry
+     * @var Registry
      */
     protected $helpers;
     
     /**
-     * @var \Handlebars\Registry\Registry
+     * @var Registry
      */
     protected $partials;
     
@@ -110,7 +110,7 @@ class Runtime extends Utils
     /**
      * Get registered decorators
      *
-     * @return \Handlebars\Registry\Registry
+     * @return Registry
      */
     public function getDecorators()
     {
@@ -120,7 +120,7 @@ class Runtime extends Utils
     /**
      * Get registered helpers
      *
-     * @return \Handlebars\Registry\Registry
+     * @return Registry
      */
     public function getHelpers()
     {
@@ -130,7 +130,7 @@ class Runtime extends Utils
     /**
      * Get registered partials
      *
-     * @return \Handlebars\Registry\Registry
+     * @return Registry
      */
     public function getPartials()
     {

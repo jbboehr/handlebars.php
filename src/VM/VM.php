@@ -25,21 +25,21 @@ class VM
     /**
      * Input decorators
      *
-     * @var \Handlebars\Registry\Registry
+     * @var Registry
      */
     private $decorators;
 
     /**
      * Input helpers
      *
-     * @var \Handlebars\Registry\Registry
+     * @var Registry
      */
     private $helpers;
 
     /**
      * Input partials
      *
-     * @var \Handlebars\Registry\Registry
+     * @var Registry
      */
     private $partials;
 
