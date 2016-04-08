@@ -55,7 +55,14 @@ function runCompiled($test) {
         $handlebars->setPartials(new \Handlebars\DefaultRegistry($test['partials']));
     }
 
-    $fn = $handlebars->compile($tmpl, $options);
+    if( true ) {
+        $fn = $handlebars->compile($tmpl, $options);
+    } else { // helps with debugging
+        $templateSpecStr = $handlebars->precompile($tmpl, $options);
+        $templateFile = sys_get_temp_dir() . '/' . md5($templateSpecStr) . '.hbs.php';
+        file_put_contents($templateFile, '<?php return ' . $templateSpecStr . ';');
+        $fn = new \Handlebars\Compiler\Runtime($handlebars, require $templateFile);
+    }
     
     // Compile partials in advance
     if( !empty($partials) ) {

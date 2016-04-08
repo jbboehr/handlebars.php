@@ -111,7 +111,7 @@ class Runtime extends Utils
     /**
      * Get registered decorators
      *
-     * @return \Handlebars\Registry
+     * @return Registry
      */
     public function getDecorators()
     {
@@ -121,7 +121,7 @@ class Runtime extends Utils
     /**
      * Get registered helpers
      *
-     * @return \Handlebars\Registry
+     * @return Registry
      */
     public function getHelpers()
     {
@@ -131,7 +131,7 @@ class Runtime extends Utils
     /**
      * Get registered partials
      *
-     * @return \Handlebars\Registry
+     * @return Registry
      */
     public function getPartials()
     {
