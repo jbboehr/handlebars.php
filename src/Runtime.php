@@ -254,7 +254,7 @@ class Runtime extends Utils
      * @param string $indent
      * @return string
      */
-    public function indent($str, $indent)
+    public static function indent($str, $indent)
     {
         $lines = explode("\n", $str);
         for( $i = 0, $l = count($lines); $i < $l; $i++ ) {
