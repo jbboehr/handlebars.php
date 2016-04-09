@@ -2,21 +2,23 @@
 <?php
 
 // Try to disable xdebug >.>
-if( extension_loaded('xdebug') ) {
-    echo "Xdebug is loaded, trying to re-run with bare configuration\n";
+//if( extension_loaded('xdebug') ) {
+if( empty($argv[1]) || $argv[1] != 'exec' ) {
     // Find the json and handlebars modules
     $command = 'php -n -d display_errors=On -d error_reporting=E_ALL ';
     $extensionDir = ini_get('extension_dir');
-    if( file_exists($extensionDir . '/json.so') ) {
+    if (file_exists($extensionDir . '/json.so')) {
         $command .= "-d 'extension=" . $extensionDir . "/json.so' ";
     }
-    if( file_exists($extensionDir . '/handlebars.so') ) {
+    if (file_exists($extensionDir . '/handlebars.so')) {
         $command .= "-d 'extension=" . $extensionDir . "/handlebars.so' ";
     }
-    if( extension_loaded('xhprof') && file_exists($extensionDir . '/xhprof.so') ) {
+    if (extension_loaded('xhprof') && file_exists($extensionDir . '/xhprof.so')) {
         $command .= "-d 'extension=" . $extensionDir . "/xhprof.so' ";
     }
+    $command .= ' -d handlebars.cache.enable=1 -d handlebars.cache.enable_cli=1 ';
     $command .= ' ' . __FILE__;
+    $command .= ' exec ';
     $command .= ' ' . join(' ', array_map('escapeshellarg', $argv));
     //echo $command, "\n";
     passthru($command);
