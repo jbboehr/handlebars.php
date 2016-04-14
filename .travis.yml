@@ -14,8 +14,8 @@ dist: trusty
 
 env:
   global:
-    - LIBHANDLEBARS_VERSION=vm
-    - PHP_HANDLEBARS_VERSION=vm
+    - LIBHANDLEBARS_VERSION=v0.5.0
+    - PHP_HANDLEBARS_VERSION=v0.7.0
     - PREFIX="$HOME/build"
     - PATH="$PREFIX/bin:$PATH"
     - CFLAGS="-L$PREFIX/lib"
