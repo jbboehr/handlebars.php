@@ -37,9 +37,7 @@ class HandlebarsTest extends Common
 
     public function testCompilerRenderMode()
     {
-        $handlebars = new Handlebars(array(
-            'mode' => Handlebars::MODE_COMPILER,
-        ));
+        $handlebars = new Handlebars();
         $this->assertEquals('bar', $handlebars->render('{{foo}}', array(
             'foo' => 'bar',
         )));
@@ -81,7 +79,7 @@ class HandlebarsTest extends Common
 
     public function testRenderFile()
     {
-        $handlebars = new Handlebars(array('mode' => Handlebars::MODE_CVM));
+        $handlebars = new \Handlebars\VM();
         $this->assertEquals('bar', $handlebars->renderFile(__DIR__ . '/fixture1.hbs', array('foo' => 'bar')));
     }
     
