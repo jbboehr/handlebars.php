@@ -8,7 +8,8 @@
     "autoload" : {
         "psr-4" : {
             "Handlebars\\": "src/"
-        }
+        },
+        "classmap": ["compat"]
     },
     "autoload-dev": {
         "psr-4": {
@@ -25,8 +26,9 @@
     "license": "LGPLv3",
     "require" : {
         "php" : ">=5.3.0",
-        "ext-handlebars": "0.6.*",
-        "ext-spl" : "*"
+        "ext-handlebars": "~0.7.0",
+        "ext-spl" : "*",
+        "psr/log": "~1.0.0"
     },
     "require-dev": {
         "jbboehr/coding-standard": "1.0.*@dev",
@@ -34,10 +36,14 @@
         "jbboehr/mustache-spec": "1.1.2",
         "lox/xhprof": "dev-master",
         "pear/console_table": "~1.2.1",
-        "phpunit/phpunit": "~4.5",
+        "phpunit/phpcov": "~2.0.2",
+        "phpunit/phpunit": "~4.8",
         "satooshi/php-coveralls": "~1.0.0",
         "scrutinizer/ocular": "~1.1",
         "squizlabs/php_codesniffer": "~2.3.2"
+    },
+    "suggest": {
+        "ext-psr": "*"
     },
     "scripts": {
         "test": "phpunit"

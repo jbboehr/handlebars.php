@@ -6,9 +6,12 @@ use SplStack;
 use SplDoublyLinkedList;
 
 use Handlebars\ClosureWrapper;
+use Handlebars\Program;
 use Handlebars\DepthList;
 use Handlebars\Hash;
+use Handlebars\Opcode;
 use Handlebars\Options;
+use Handlebars\Registry;
 use Handlebars\RuntimeException;
 use Handlebars\Utils;
 
@@ -194,8 +197,10 @@ class VM
     }
 
 
-    public function executeProgramByRef($program, $context = null, $options = null)
+    public function executeProgramByRef(Program $program, $context = null, $options = null)
     {
+        /** @var StackFrame $frame */
+
         // Push the frame stack
         $parentFrame = $this->frameStack->count() ? $this->frameStack->top() : null;
         $this->frameStack->push(new StackFrame());
@@ -208,9 +213,7 @@ class VM
         $frame->context = $context;
 
         // Set internal options
-        if( !empty($options['internal']) ) {
-            $frame->internal = $options['internal'];
-        }
+        $frame->internal = Utils::nameLookup($options, 'internal');
 
         // Push depths
         $pushedDepths = false;
@@ -220,18 +223,21 @@ class VM
         }
 
         // Set data
-        $frame->data = isset($options['data']) && $options['data'] !== true ? $options['data'] :
-            ($parentFrame ? $parentFrame->data : null);
+        if( null !== ($data = Utils::nameLookup($options, 'data')) && $data !== true ) {
+            $frame->data = $data;
+        } else if( $parentFrame ) {
+            $frame->data = $parentFrame->data;
+        }
 
         // Set block params
         $pushedBlockParams = false;
-        if( isset($options['blockParams']) ) {
-            $this->blockParamStack->push($options['blockParams']);
+        if( null !== ($bp = Utils::nameLookup($options, 'blockParams')) ) {
+            $this->blockParamStack->push($bp);
             $pushedBlockParams = true;
         }
 
         // Execute the program
-        $this->accept($program['opcodes']);
+        $this->accept($program->opcodes);
 
         // Pop depths
         if( $pushedDepths ) {
@@ -273,13 +279,13 @@ class VM
     /**
      * Handle opcodes
      *
-     * @param array $opcodes
+     * @param Opcode[] $opcodes
      * @return void
      */
     private function accept($opcodes)
     {
         foreach( $opcodes as $opcode ) {
-            call_user_func_array(array($this, $opcode['opcode']), $opcode['args']);
+            call_user_func_array(array($this, $opcode->opcode), $opcode->args);
         }
     }
 
@@ -798,25 +804,25 @@ class VM
 
         if( $isDynamic ) {
             $name = $this->pop();
-            unset($options['name']);
+            unset($options->name);
         }
         $params[] = $options;
 
 
         $context = $params[0];
-        $hash = !empty($options['hash']) ? $options['hash'] : null;
+        $hash = Utils::nameLookup($options, 'hash');
 
         if( is_array($hash) ) {
-            $context = $context ? array_merge($context, $hash) : $hash;
+            $context = $context ? array_merge((array) $context, $hash) : $hash;
             $hash = null;
         }
 
         //$options['name'] = $name;
-        $options['helpers'] = $this->runtime->getHelpers();
-        $options['partials'] = $this->runtime->getPartials();
-        $options['decorators'] = $this->runtime->getDecorators();
-        $options['depths'] = $this->depths;
-        $options['blockParams'] = $this->blockParamStack;
+        $options->helpers = $this->runtime->getHelpers();
+        $options->partials = $this->runtime->getPartials();
+        $options->decorators = $this->runtime->getDecorators();
+        $options->depths = $this->depths;
+        $options->blockParams = $this->blockParamStack;
 
         if( !$isDynamic ) {
             $partial = $this->runtime->nameLookup($this->partials, $name);

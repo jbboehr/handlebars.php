@@ -6,6 +6,8 @@ use ArrayAccess;
 
 /**
  * Options
+ *
+ * Note: this class is only used when the extension isn't loaded
  */
 class Options implements ArrayAccess
 {
@@ -59,6 +61,11 @@ class Options implements ArrayAccess
     public $contexts;
     public $args;
     public $partial;
+
+    /**
+     * @var Runtime
+     */
+    public $runtime;
     
     /**
      * Constructor

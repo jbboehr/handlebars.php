@@ -1,6 +1,7 @@
 *~
 *.log
 .buildpath
+.php-version
 .project
 .php-version
 .settings
@@ -8,6 +9,7 @@
 .idea
 composer.phar
 coverage.clover
+/coverage/
 /docs
 /node_modules/
 /phpunit

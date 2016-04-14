@@ -2,14 +2,14 @@
 
 namespace Handlebars\Compiler;
 
-use Handlebars\Handlebars;
+use Handlebars\Impl;
 use Handlebars\Runtime as BaseRuntime;
 use Handlebars\RuntimeException;
 use Handlebars\DepthList;
 
 class Runtime extends BaseRuntime
 {
-    public function __construct(Handlebars $handlebars, $templateSpec)
+    public function __construct(Impl $handlebars, $templateSpec)
     {
         parent::__construct($handlebars);
 
@@ -44,7 +44,7 @@ class Runtime extends BaseRuntime
      * @param array $options
      * @return string
      */
-    public function __invoke($context = null, array $options = array())
+    public function __invoke($context = null, array $options = null)
     {
         parent::__invoke($context, $options);
 

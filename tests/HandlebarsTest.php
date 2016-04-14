@@ -3,6 +3,7 @@
 namespace Handlebars\Tests;
 
 use Handlebars\Compiler;
+use Handlebars\DefaultRegistry;
 use Handlebars\Handlebars;
 use Handlebars\Tests\Common;
 use ReflectionObject;
@@ -22,25 +23,21 @@ class HandlebarsTest extends Common
             ->getMock();
         $stub->method('compile')
             ->willReturn(false);
-        
-        $handlebars = new Handlebars();
-        $r = new ReflectionObject($handlebars);
-        $rp = $r->getProperty('phpCompiler');
-        $rp->setAccessible(true);
-        $rp->setValue($handlebars, $stub);
-        
+
+        $handlebars = new Handlebars(array(
+            'phpCompiler' => $stub
+        ));
+
         // Note: not testing parse error in eval because it's not possible
         // to catch the output. eval returning false should have the same
         // behaviour (minus the output)
         $this->setExpectedException('\\Handlebars\\CompileException');
         $handlebars->compile('{{foo}}');
     }
-    
+
     public function testCompilerRenderMode()
     {
-        $handlebars = new Handlebars(array(
-            'mode' => Handlebars::MODE_COMPILER,
-        ));
+        $handlebars = new Handlebars();
         $this->assertEquals('bar', $handlebars->render('{{foo}}', array(
             'foo' => 'bar',
         )));
@@ -79,6 +76,12 @@ class HandlebarsTest extends Common
             )
         )));
     }
+
+    public function testRenderFile()
+    {
+        $handlebars = new \Handlebars\VM();
+        $this->assertEquals('bar', $handlebars->renderFile(__DIR__ . '/fixture1.hbs', array('foo' => 'bar')));
+    }
     
     public function testGH29RCEFix()
     {
@@ -88,31 +91,45 @@ class HandlebarsTest extends Common
         )));
     }
 
-    public function testRegisterDecorator()
-    {
-        $fn = function() {
-
-        };
-        $handlebars = new Handlebars();
-        $handlebars->registerDecorator('test', $fn);
-        $this->assertArrayHasKey('test', $handlebars->getDecorators());
-    }
-
-    public function testRegisterDecorators()
-    {
-        $fn = function() {
-
-        };
-        $handlebars = new Handlebars();
-        $handlebars->registerDecorators(array('test' => $fn));
-        $this->assertArrayHasKey('test', $handlebars->getDecorators());
-    }
-
     public function testConsecutiveMultilineComments()
     {
         $tmpl = "{{!-- blah1 --}}\nfoo\n{{!-- blah2 --}}";
         $handlebars = new Handlebars();
         $actual = trim($handlebars->render($tmpl));
         $this->assertEquals('foo', $actual);
+    }
+
+    public function testLog()
+    {
+        $tmpl = '{{log "test"}}';
+        $logger = new MockLogger();
+        $handlebars = new Handlebars();
+        $handlebars->setLogger($logger);
+        $handlebars->render($tmpl);
+        $this->assertEquals('info', $logger->logs[0][0]);
+        $this->assertEquals('test', $logger->logs[0][1]);
+    }
+
+    public function testLogWithNewVM()
+    {
+        $tmpl = '{{log "test"}}';
+        $logger = new MockLogger();
+        $handlebars = new \Handlebars\VM();
+        $handlebars->setLogger($logger);
+        $handlebars->render($tmpl);
+        $this->assertEquals('info', $logger->logs[0][0]);
+        $this->assertEquals('string(test) ', $logger->logs[0][1]);
+    }
+
+    public function testPartialFunctionWithNewVM()
+    {
+        $tmpl = '{{> foo}}';
+        $handlebars = new \Handlebars\VM();
+        $partials = new DefaultRegistry();
+        $partials['foo'] = function() {
+            return 'bar{{baz}}';
+        };
+        $handlebars->setPartials($partials);
+        $this->assertEquals('bar{{baz}}', $handlebars->render($tmpl, array('grr' => 'asdasd')));
     }
 }

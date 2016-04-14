@@ -2,21 +2,23 @@
 <?php
 
 // Try to disable xdebug >.>
-if( extension_loaded('xdebug') ) {
-    echo "Xdebug is loaded, trying to re-run with bare configuration\n";
+//if( extension_loaded('xdebug') ) {
+if( empty($argv[1]) || $argv[1] != 'exec' ) {
     // Find the json and handlebars modules
     $command = 'php -n -d display_errors=On -d error_reporting=E_ALL ';
     $extensionDir = ini_get('extension_dir');
-    if( file_exists($extensionDir . '/json.so') ) {
+    if (file_exists($extensionDir . '/json.so')) {
         $command .= "-d 'extension=" . $extensionDir . "/json.so' ";
     }
-    if( file_exists($extensionDir . '/handlebars.so') ) {
+    if (file_exists($extensionDir . '/handlebars.so')) {
         $command .= "-d 'extension=" . $extensionDir . "/handlebars.so' ";
     }
-    if( extension_loaded('xhprof') && file_exists($extensionDir . '/xhprof.so') ) {
+    if (extension_loaded('xhprof') && file_exists($extensionDir . '/xhprof.so')) {
         $command .= "-d 'extension=" . $extensionDir . "/xhprof.so' ";
     }
+    $command .= ' -d handlebars.cache.enable=1 -d handlebars.cache.enable_cli=1 ';
     $command .= ' ' . __FILE__;
+    $command .= ' exec ';
     $command .= ' ' . join(' ', array_map('escapeshellarg', $argv));
     //echo $command, "\n";
     passthru($command);
@@ -41,20 +43,28 @@ function runCompiled($test) {
     
     $expected = $test['expected'];
     $tmpl = $test['template'];
-    $data = isset($test['data']) ? evalLambdas($test['data']) : null;
-    $helpers = isset($test['helpers']) ? evalLambdas($test['helpers']) : null;
-    $partials = isset($test['partials']) ? $test['partials'] : null;
+    $data = isset($test['data']) ? (is_array($test['data']) ? evalLambdas($test['data']) : $test['data']) : null;
     $options = isset($test['compileOptions']) ? $test['compileOptions'] : null;
 
     // @todo fix this
     $options['data'] = true;
     
-    $handlebars = new \Handlebars\Handlebars();
-    //$fn = $handlebars->compile($tmpl, $options);
-    $templateSpecStr = $handlebars->precompile($tmpl, $options);
-    $templateFile = sys_get_temp_dir() . '/' . md5($templateSpecStr) . '.hbs.php';
-    file_put_contents($templateFile, '<?php return ' . $templateSpecStr . ';');
-    $fn = new \Handlebars\Compiler\Runtime($handlebars, require $templateFile);
+    $handlebars = new \Handlebars\Compiler\CompilerImpl();
+    if( !empty($test['helpers']) ) {
+        $handlebars->setHelpers(new \Handlebars\DefaultRegistry(evalLambdas($test['helpers'])));
+    }
+    if( !empty($test['partials']) ) {
+        $handlebars->setPartials(new \Handlebars\DefaultRegistry($test['partials']));
+    }
+
+    if( true ) {
+        $fn = $handlebars->compile($tmpl, $options);
+    } else { // helps with debugging
+        $templateSpecStr = $handlebars->precompile($tmpl, $options);
+        $templateFile = sys_get_temp_dir() . '/' . md5($templateSpecStr) . '.hbs.php';
+        file_put_contents($templateFile, '<?php return ' . $templateSpecStr . ';');
+        $fn = new \Handlebars\Compiler\Runtime($handlebars, require $templateFile);
+    }
     
     // Compile partials in advance
     if( !empty($partials) ) {
@@ -65,10 +75,7 @@ function runCompiled($test) {
     
     $start = microtime(true);
     for( $i = 0; $i < $count; $i++ ) {
-        $actual = $fn($data, array(
-            'helpers' => $helpers,
-            'partials' => $partials,
-        ));
+        $actual = $fn($data);
     }
     $end = microtime(true);
     
@@ -86,19 +93,20 @@ function runVM($test) {
     
     $expected = $test['expected'];
     $tmpl = $test['template'];
-    $data = isset($test['data']) ? evalLambdas($test['data']) : null;
-    $helpers = isset($test['helpers']) ? evalLambdas($test['helpers']) : null;
-    $partials = isset($test['partials']) ? $test['partials'] : null;
+    $data = isset($test['data']) ? (is_array($test['data']) ? evalLambdas($test['data']) : $test['data']) : null;
     $options = isset($test['compileOptions']) ? $test['compileOptions'] : null;
     
-    $handlebars = new \Handlebars\Handlebars(array('mode' => \Handlebars\Handlebars::MODE_VM));
+    $handlebars = new \Handlebars\VM\VMImpl();
+    if( !empty($test['helpers']) ) {
+        $handlebars->setHelpers(new \Handlebars\DefaultRegistry(evalLambdas($test['helpers'])));
+    }
+    if( !empty($test['partials']) ) {
+        $handlebars->setPartials(new \Handlebars\DefaultRegistry($test['partials']));
+    }
     
     $start = microtime(true);
     for( $i = 0; $i < $count; $i++ ) {
-        $actual = $handlebars->render($tmpl, $data, array(
-            'helpers' => $helpers,
-            'partials' => $partials,
-        ));
+        $actual = $handlebars->render($tmpl, $data);
     }
     $end = microtime(true);
     
@@ -106,6 +114,37 @@ function runVM($test) {
         throw new \Exception('Test output mismatch');
     }
     
+    return $end - $start;
+}
+
+function runCVM($test) {
+    global $count;
+
+    $test['mode'] = 'cvm';
+
+    $expected = $test['expected'];
+    $tmpl = $test['template'];
+    $data = isset($test['data']) ? (is_array($test['data']) ? evalLambdas($test['data']) : $test['data']) : null;
+    $options = isset($test['compileOptions']) ? $test['compileOptions'] : array();
+
+    $handlebars = new \Handlebars\VM();
+    if( !empty($test['helpers']) ) {
+        $handlebars->setHelpers(new \Handlebars\DefaultRegistry(evalLambdas($test['helpers'])));
+    }
+    if( !empty($test['partials']) ) {
+        $handlebars->setPartials(new \Handlebars\DefaultRegistry($test['partials']));
+    }
+
+    $start = microtime(true);
+    for( $i = 0; $i < $count; $i++ ) {
+        $actual = $handlebars->render($tmpl, $data);
+    }
+    $end = microtime(true);
+
+    if( $actual !== $expected ) {
+        throw new \Exception('Test output mismatch');
+    }
+
     return $end - $start;
 }
 
@@ -121,12 +160,20 @@ function addResult($test, $delta, $mode) {
     $results[] = $result;
 }
 
+$doCompiler = in_array('compiler', $argv);
+$doVM = in_array('vm', $argv);
+$doCVM = in_array('cvm', $argv);
+$noFilter = !$doCompiler && !$doVM && !$doCVM;
+
 foreach( $tests as $test ) {
-    if( !in_array('vm-only', $argv) ) {
+    if( $noFilter || $doCompiler ) {
         addResult($test, runCompiled($test), 'compiler');
     }
-    if( !in_array('compiler-only', $argv) ) {
+    if( $noFilter || $doVM ) {
         addResult($test, runVM($test), 'vm');
+    }
+    if( $noFilter || $doCVM ) {
+        addResult($test, runCVM($test), 'cvm');
     }
 }
 
@@ -134,7 +181,7 @@ echo $table->fromArray(array(
     'Test', 'Runs', 'Total (s)', 'Average (ms)', 'Ops/msec'
 ), $results);
 
-function evalLambdas(&$arr) {
+function evalLambdas($arr) {
     if( is_array($arr) ) {
         foreach( $arr as $k => $v ) {
             if( !is_array($v) ) {
@@ -146,6 +193,8 @@ function evalLambdas(&$arr) {
                 evalLambdas($v);
             }
         }
+    } else {
+        throw new Exception('Not an array');
     }
     return $arr;
 }

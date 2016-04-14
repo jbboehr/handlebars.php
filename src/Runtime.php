@@ -29,7 +29,7 @@ class Runtime extends Utils
     /**
      * @var Registry
      */
-    protected $decorators;
+    //protected $decorators;
 
     /**
      * @var \SplObjectStorage
@@ -39,7 +39,7 @@ class Runtime extends Utils
     /**
      * @var Registry
      */
-    protected $helpers;
+    //protected $helpers;
     
     /**
      * @var Registry
@@ -54,21 +54,21 @@ class Runtime extends Utils
     protected $options;
     
     /**
-     * @var \Handlebars\Handlebars
+     * @var Impl
      */
-    protected $handlebars;
+    protected $impl;
 
     /**
      * Constructor
      *
-     * @param \Handlebars\Handlebars $handlebars
+     * @param Impl $handlebars
      */
-    public function __construct(Handlebars $handlebars)
+    public function __construct(Impl $handlebars)
     {
-        $this->handlebars = $handlebars;
-        $this->helpers = clone $handlebars->getHelpers();
-        $this->partials = clone $handlebars->getPartials();
-        $this->decorators = clone $handlebars->getDecorators();
+        $this->impl = $handlebars;
+        $this->helpers = $handlebars->getHelpers();
+        $this->partials = $handlebars->getPartials();
+        $this->decorators = $handlebars->getDecorators();
         $this->decoratorMap = new SplObjectStorage();
     }
     
@@ -79,14 +79,15 @@ class Runtime extends Utils
      * @param array $options
      * @return string
      */
-    public function __invoke($context = null, array $options = array())
+    public function __invoke($context = null, array $options = null)
     {
         foreach( array('helpers', 'partials', 'decorators') as $key ) {
-            if( !empty($options[$key]) ) {
-                $registry = $this->$key;
-                foreach( $options[$key] as $k => $v ) {
+            if (!empty($options[$key])) {
+                $registry = clone $this->$key;
+                foreach ($options[$key] as $k => $v) {
                     $registry[$k] = $v;
                 }
+                $this->$key = $registry;
             }
         }
     }
@@ -138,6 +139,14 @@ class Runtime extends Utils
     }
 
     /**
+     * @return Impl
+     */
+    public function getImpl()
+    {
+        return $this->impl;
+    }
+
+    /**
      * Invoke partial runtime helper
      *
      * @param mixed $partial
@@ -154,12 +163,12 @@ class Runtime extends Utils
 
         $partial = $this->resolvePartial($partial, $options);
         $result = $this->invokePartialInner($partial, $context, $options);
-        
+
         if( null === $result ) {
             if( !$partial ) {
                 $options['partials'][$options['name']] = $this->noop();
             } else if( is_string($partial) ) {
-                $options['partials'][$options['name']] = $this->handlebars->compile($partial, $this->options);
+                $options['partials'][$options['name']] = $this->impl->compile($partial, $this->options);
             }
             $result = call_user_func($options['partials'][$options['name']], $context, $options);
         }
@@ -192,6 +201,7 @@ class Runtime extends Utils
         if( null === $partial && $partialBlock ) {
             $partial = $partialBlock;
         }
+
 
         if( null === $partial ) {
             throw new RuntimeException('Partial ' . $options['name'] . ' could not be found');
@@ -248,25 +258,6 @@ class Runtime extends Utils
     }
 
     /**
-     * Indent a multi-line string
-     *
-     * @param string $str
-     * @param string $indent
-     * @return string
-     */
-    public static function indent($str, $indent)
-    {
-        $lines = explode("\n", $str);
-        for( $i = 0, $l = count($lines); $i < $l; $i++ ) {
-            if( empty($lines[$i]) && $i + 1 == $l ) {
-                break;
-            }
-            $lines[$i] = $indent . $lines[$i];
-        }
-        return implode("\n", $lines);
-    }
-
-    /**
      * Get a function for the specified program ID
      *
      * @param integer $i
@@ -306,7 +297,9 @@ class Runtime extends Utils
      */
     public function setupOptions(array $options)
     {
-        return new Options($options);
+        $obj = new Options($options);
+        $obj->runtime = $this;
+        return $obj;
     }
     
     private function resolvePartial($partial, &$options)
@@ -339,8 +332,8 @@ class Runtime extends Utils
             if( !$options ) {
                 $options = array();
             }
-            if( isset($options['data']) ) {
-                $data = $options['data'];
+            if( null !== ($d = Utils::nameLookup($options, 'data')) ) {
+                $data = $d;
             }
             if( null !== $blockParams ) {
                 $blockParams = array_merge(array(

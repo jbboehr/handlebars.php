@@ -2,44 +2,11 @@
 
 set -ex
 
-export PREFIX=$HOME/build
-export PATH="$PREFIX/bin:$PATH"
-export CFLAGS="-L$PREFIX/lib"
-export CPPFLAGS="-I$PREFIX/include"
-export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig"
-#export MAKE_OPTS="-j`nproc`"
-
 case "$1" in
-install_check)
-	if [ ! -f $PREFIX/include/check.h ]; then
-		wget http://downloads.sourceforge.net/project/check/check/0.9.14/check-0.9.14.tar.gz
-		tar xfv check-0.9.14.tar.gz
-		cd check-0.9.14
-		./configure --prefix=$PREFIX
-		make $MAKE_OPTS
-		make install
-		cd ..
-		rm -Rf check-0.9.14.tar.gz check-0.9.14
-	fi
-	;;
-
-install_bison)
-	if [ ! -f $PREFIX/bin/bison ]; then
-		wget http://gnu.mirror.iweb.com/bison/bison-3.0.2.tar.gz
-		tar xfv bison-3.0.2.tar.gz
-		cd bison-3.0.2
-		./configure --prefix=$PREFIX
-		make $MAKE_OPTS
-		make install
-		cd ..
-		rm -Rf bison-3.0.2 bison-3.0.2.tar.gz
-	fi
-	;;
-
 install_handlebars)
-	INSTALLED_HANDLEBARS_VERSION=`handlebarsc --version 2>&1 | awk '{ print $2 }'`
-	if [ ! -f $PREFIX/include/handlebars.h ] || [ "$INSTALLED_HANDLEBARS_VERSION" != "v$LIBHANDLEBARS_VERSION" ]; then
-		git clone -b v$LIBHANDLEBARS_VERSION https://github.com/jbboehr/handlebars.c handlebars-c --recursive
+	#INSTALLED_HANDLEBARS_VERSION=`handlebarsc --version 2>&1 | awk '{ print $2 }'`
+	#if [ ! -f $PREFIX/include/handlebars.h ] || [ "$INSTALLED_HANDLEBARS_VERSION" != "v$LIBHANDLEBARS_VERSION" ]; then
+		git clone -b $LIBHANDLEBARS_VERSION https://github.com/jbboehr/handlebars.c handlebars-c --recursive
 		cd handlebars-c
 		./bootstrap
 		./configure --prefix=$PREFIX
@@ -47,13 +14,13 @@ install_handlebars)
 		make install
 		cd ..
 		rm -Rf handlebars-c
-	fi
+	#fi
 	;;
 
 install_php_handlebars)
 	#INSTALLED_PHP_HANDLEBARS_VERSION=`php -r 'echo phpversion("handlebars");'`
 	rm -Rf php-handlebars
-	git clone -b v$PHP_HANDLEBARS_VERSION https://github.com/jbboehr/php-handlebars.git php-handlebars --recursive
+	git clone -b $PHP_HANDLEBARS_VERSION https://github.com/jbboehr/php-handlebars.git php-handlebars --recursive
 	cd php-handlebars
 	phpize
 	./configure
@@ -66,7 +33,11 @@ install_php_handlebars)
 
 phpunit)
 	if [ "$COVERAGE" = "true" ]; then
-		./vendor/bin/phpunit --coverage-text --coverage-clover=coverage.clover
+		#./vendor/bin/phpunit --coverage-text --coverage-clover=coverage.clover
+		mkdir coverage
+		./vendor/bin/phpunit -dmemory_limit=512M --coverage-php coverage/coverage1.cov
+		php -n -dzend_extension=xdebug.so -dextension=json.so -dmemory_limit=512M ./vendor/bin/phpunit --coverage-php coverage/coverage2.cov
+		php -dmemory_limit=512M ./vendor/bin/phpcov merge --clover coverage.clover coverage
 	else
 		./vendor/bin/phpunit
 	fi
