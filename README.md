@@ -7,6 +7,8 @@
 
 PHP handlebars.js Compiler and VM. Use with [handlebars.c](https://github.com/jbboehr/handlebars.c) and [php-handlebars](https://github.com/jbboehr/php-handlebars).
 
+**Deprecated: Use [php-handlebars]() instead**
+
 
 ## Requirements
 
